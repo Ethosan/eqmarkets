@@ -32,14 +32,25 @@
 .tab:hover { color: var(--text-2) }
 .tab[aria-selected="true"] { background: var(--surface-2); color: var(--text-1) }
 
-/* ---------- regime ---------- */
-.regime { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 28px }
-.regime-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px }
-.regime-kicker { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
+/* ---------- models ---------- */
+.models { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px }
+.m-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; display: flex; flex-direction: column; min-width: 0 }
+.m-rai { grid-column: 1 / -1 }
+.m-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px }
+.m-kicker { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
 .regime-label { font-size: 21px; font-weight: 600; letter-spacing: -.01em }
-.regime-rai { font-size: var(--fs-xs); color: var(--text-3) }
-.rai-chart { height: 56px; margin: 0 0 14px }
-.rai-chart svg { width: 100%; height: 56px; display: block }
+.m-value { font-size: 30px; font-weight: 600; letter-spacing: -.02em; margin-top: 8px }
+.m-sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; line-height: 1.5 }
+.m-cap { font-size: var(--fs-xs); color: var(--text-3); margin: 8px 0 6px }
+.m-tag { font-weight: 600; color: var(--amber); margin-right: 4px }
+.m-tag.u { color: var(--up) }
+.m-tag.d { color: var(--down) }
+.m-chart { height: 56px; margin-top: auto; padding-top: 10px; box-sizing: content-box }
+.m-chart svg { width: 100%; height: 56px; display: block }
+.m-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-top: 10px }
+.m-grid > div { display: flex; flex-direction: column; min-width: 0 }
+.rai-chart { height: auto; min-height: 120px; flex: 1; padding-top: 0; margin-top: 0 }
+.rai-chart svg { height: 100%; min-height: 120px }
 .track { position: relative; height: 4px; border-radius: 999px; background: linear-gradient(90deg, var(--down), var(--amber) 50%, var(--up)); opacity: .8 }
 .needle {
   position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; border-radius: 50%;
@@ -48,16 +59,17 @@
   transition: left .7s cubic-bezier(.4, 0, .2, 1);
 }
 .track-legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3) }
-.regime-chips { list-style: none; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px }
-.rchip {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: var(--fs-xs); font-weight: 500; color: var(--text-2);
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 4px 9px;
-}
-.rchip i { width: 6px; height: 6px; border-radius: 50%; display: inline-block }
-.rchip i.u { background: var(--up) }
-.rchip i.d { background: var(--down) }
-.rchip i.m { background: var(--amber) }
+.cbars { list-style: none; display: grid; gap: 5px }
+.cbars li { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 44px; align-items: center; gap: 10px; font-size: var(--fs-xs) }
+.cb-l { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.cb-l em { font-style: normal; color: var(--text-3) }
+.cb-bar { position: relative; height: 6px; background: var(--surface-2); border-radius: 3px }
+.cb-bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border-2) }
+.cb-bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px }
+.cb-bar i.u { background: var(--up) }
+.cb-bar i.d { background: var(--down) }
+.cb-v { text-align: right; color: var(--text-2); font-weight: 600 }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
 
 /* ---------- cards ---------- */
 .card {
@@ -95,6 +107,8 @@
 .note[hidden] { display: none !important }
 .note.u { color: var(--up) }
 .note.d { color: var(--down) }
+.cstats { font-size: var(--fs-xs); color: var(--text-3); margin-top: 5px }
+.cstats[hidden] { display: none !important }
 .spark { height: 40px; margin-top: auto; padding-top: 10px; box-sizing: content-box }
 .spark svg { width: 100%; height: 40px; display: block }
 .no-spark .spark { display: none !important }
@@ -110,6 +124,7 @@
 .method { margin-top: 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 14px 18px }
 .method summary { cursor: pointer; font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
 .method summary:hover { color: var(--text-1) }
+.method h3 { font-size: var(--fs-sm); font-weight: 600; color: var(--text-1); margin-top: 16px }
 .method p { font-size: var(--fs-sm); line-height: 1.65; color: var(--text-2); margin-top: 12px; max-width: 75ch }
 
 /* ---------- detail sheet ---------- */
@@ -150,6 +165,7 @@
 .d-stats div { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px }
 .d-stats dt { font-size: var(--fs-xs); color: var(--text-3) }
 .d-stats dd { font-size: var(--fs-md); font-weight: 600; margin-top: 2px }
+.d-statsnote { font-size: var(--fs-xs); color: var(--text-3); margin-top: 8px }
 .d-source { display: inline-block; margin-top: 16px; font-size: var(--fs-sm); color: var(--accent); text-decoration: none }
 .d-source:hover { text-decoration: underline }
 .d-source[hidden] { display: none }
@@ -159,5 +175,7 @@
   .val { font-size: 23px }
   .ds { display: none !important }
   .d-stats { grid-template-columns: repeat(2, 1fr) }
+  .models { grid-template-columns: 1fr }
+  .m-grid { grid-template-columns: 1fr; gap: 12px }
   .detail { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 18px 18px 0 0; max-height: 92%; padding-bottom: env(safe-area-inset-bottom) }
 }

@@ -2,13 +2,13 @@ import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
 
-import { ALL, ITEM_BY_ID, REFRESH_MS } from "./config.js";
+import { ALL, FETCHABLE, ITEM_BY_ID, REFRESH_MS } from "./config.js";
 import { STATE } from "./state.js";
 import { probe } from "./data/transport.js";
 import { fetchItem } from "./data/sources.js";
 import { computeDerived } from "./model/derived.js";
 import { buildBoard, updateCard } from "./ui/board.js";
-import { renderRegime } from "./ui/regime-panel.js";
+import { renderModels } from "./ui/models-panel.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
 import { tickClocks, initTabs, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
@@ -31,22 +31,21 @@ function stampText() {
 async function refresh() {
   if (running) return;
   running = true;
-  const fetchables = ALL.filter(it => !it.computed);
   if (!reachable) {
     progStart("Probing feeds", 1);
     reachable = await probe();
   }
-  progStart("Pulling feeds", fetchables.length);
+  progStart("Pulling feeds", FETCHABLE.length);
 
   if (reachable) {
-    await Promise.allSettled(fetchables.map((it, i) =>
-      wait(i * 140).then(() => fetchItem(it)).finally(progBump)
+    await Promise.allSettled(FETCHABLE.map((it, i) =>
+      wait(i * 110).then(() => fetchItem(it)).finally(progBump)
     ));
   }
-  ALL.forEach(it => { if (!it.computed && !STATE[it.id]) STATE[it.id] = { error: true }; });
+  FETCHABLE.forEach(it => { if (!STATE[it.id]) STATE[it.id] = { error: true }; });
   computeDerived();
   ALL.forEach(updateCard);
-  renderRegime();
+  renderModels();
   refreshDetail();
   progEnd();
 

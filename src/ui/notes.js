@@ -1,64 +1,55 @@
-/* One-line plain-English read for each indicator. Returns { t, c } or null,
-   where c is "" (neutral), "u" (supportive) or "d" (warning). */
+/* One-line read per indicator: { t, c } with c "" (neutral), "u" (supportive)
+   or "d" (warning). Definitional thresholds where the indicator has them
+   (NFCI 0, VIX term structure 1, curve inversion); otherwise where the value
+   sits in its own one-year distribution. */
 import { ok } from "../state.js";
+import { recessionProbability } from "../quant/models.js";
+import { robustZ } from "../quant/stats.js";
+import { ordinal } from "./format.js";
 
-export function noteFor(item, s) {
-  const pctCh = s.prev && s.price != null ? (s.price - s.prev) / s.prev * 100 : null;
+function rangeNote(item, st) {
+  if (!st || st.pct1y == null) return null;
+  const p = Math.round(st.pct1y * 100);
+  const extreme = p >= 90 || p <= 10;
+  const high = p >= 50;
+  const tone = !extreme ? "" : (high !== !!item.invert ? "u" : "d");
+  const where = p >= 90 ? "Top decile" : p <= 10 ? "Bottom decile" : ordinal(p) + " pct";
+  return { t: where + " of 1Y range · z " + (st.z1y >= 0 ? "+" : "") + st.z1y.toFixed(1), c: tone };
+}
+
+export function noteFor(item, s, st) {
   const v = s.price;
   switch (item.id) {
-    case "us2y":
-      if (!s.src) return null;
-      return s.src === "fred"
-        ? { t: "Fed H.15 daily close · cash market", c: "" }
-        : { t: "Futures proxy · can drift from cash", c: "" };
-    case "fedfunds":
-      return s.src === "fred" ? { t: "NY Fed EFFR · official daily", c: "" } : null;
     case "boj": {
       const ff = ok("fedfunds");
-      const gap = ff ? " · US-JP gap " + (ff.price - v).toFixed(2) + " pts" : "";
-      const tag = s.src === "boj" ? "Live from boj.or.jp" : "Fallback value";
-      return { t: tag + (s.asOf ? ", " + s.asOf : "") + gap, c: "" };
+      const gap = ff ? " · US–JP gap " + (ff.price - v).toFixed(2) + " pp" : "";
+      return { t: (s.src === "boj" ? "Live from boj.or.jp" : "Fallback value") + (s.asOf ? ", " + s.asOf : "") + gap, c: "" };
     }
-    case "usdjpy":
-      if (pctCh == null) return null;
-      if (pctCh <= -0.7) return { t: "Yen surging · carry unwind risk", c: "d" };
-      if (pctCh <= -0.3) return { t: "Yen bid", c: "" };
-      if (pctCh >= 0.4) return { t: "Yen soft · carry supportive", c: "u" };
-      return { t: "Carry steady", c: "" };
-    case "jpycot":
-      if (v < -100) return { t: "Extreme yen short · unwind fuel high", c: "d" };
-      if (v < -25) return { t: "Crowded yen short · CFTC weekly", c: "" };
-      if (v > 75) return { t: "Specs heavily long yen · carry unwound", c: "" };
-      if (v > 25) return { t: "Specs long yen · CFTC weekly", c: "" };
-      return { t: "Balanced positioning · CFTC weekly", c: "" };
-    case "carryvol": {
-      const parts = "gap " + (s.gap != null ? s.gap.toFixed(2) : "?") + "pp / 21d vol " + (s.vol != null ? s.vol.toFixed(1) : "?") + "%";
-      if (v >= 0.5) return { t: "Fat carry per unit risk · " + parts, c: "u" };
-      if (v >= 0.3) return { t: "Fair compensation · " + parts, c: "" };
-      if (v >= 0.18) return { t: "Thin cushion · " + parts, c: "" };
-      return { t: "Vol eating the carry · " + parts, c: "d" };
-    }
-    case "vix":
-      if (v < 14) return { t: "Complacency zone", c: "u" };
-      if (v < 20) return { t: "Normal chop", c: "" };
-      if (v < 28) return { t: "Elevated stress", c: "" };
-      return { t: "Panic conditions", c: "d" };
+    case "carryvol":
+      return {
+        t: `gap ${s.gap.toFixed(2)} pp ÷ EWMA vol ${s.vol.toFixed(1)}%` + (v >= 0.5 ? " · rich" : v < 0.2 ? " · vol eating carry" : ""),
+        c: v >= 0.5 ? "u" : v < 0.2 ? "d" : "",
+      };
     case "spread":
-      if (v < 0) return { t: "Inverted · classic recession warning", c: "d" };
-      if (v < 25) return { t: "Barely positive · late-cycle shape", c: "" };
-      return { t: "Positively sloped · curve behaving", c: "u" };
-    case "hyg":
-      if (pctCh == null) return null;
-      if (pctCh <= -0.5) return { t: "Credit cracking today", c: "d" };
-      if (pctCh <= -0.15) return { t: "Credit going soft", c: "" };
-      if (pctCh >= 0.15) return { t: "Credit well bid", c: "u" };
-      return { t: "Credit quiet", c: "" };
-    case "hyoas":
-      if (v < 3.2) return { t: "Tight · credit fully embraced", c: "u" };
-      if (v < 4.5) return { t: "Normal range", c: "" };
-      if (v < 6) return { t: "Widening · late-cycle caution", c: "" };
-      return { t: "Stress territory", c: "d" };
+      return v < 0 ? { t: "Inverted · " + (rangeNote(item, st)?.t || ""), c: "d" } : rangeNote(item, st);
+    case "spread3m":
+      return { t: "Implies " + (recessionProbability(v) * 100).toFixed(0) + "% 12M recession odds (spot)" + (v < 0 ? " · inverted" : ""), c: v < 0 ? "d" : "" };
+    case "vixts":
+      if (v >= 1) return { t: "Backwardation · near-term fear above 3M", c: "d" };
+      if (v < 0.9) return { t: "Steep contango · calm regime", c: "u" };
+      return { t: "Mild contango", c: "" };
+    case "nfci":
+      return { t: (v > 0 ? "Tighter" : "Looser") + " than average · as of " + s.asOf, c: v > 0 ? "d" : "u" };
+    case "stlfsi":
+      return { t: (v > 0 ? "Above-average" : "Below-average") + " stress · as of " + s.asOf, c: v > 0 ? "d" : "u" };
+    case "jpycot": {
+      const z = s.values && s.values.length >= 20 ? robustZ(v, s.values) : null;
+      return { t: "Positioning z " + (z == null ? "n/a" : (z >= 0 ? "+" : "−") + Math.abs(z).toFixed(1)) + " vs 3Y · as of " + s.asOf, c: z != null && z < -1.5 ? "d" : "" };
+    }
+    case "us2y":
+    case "us10y":
+      return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
     default:
-      return null;
+      return rangeNote(item, st);
   }
 }

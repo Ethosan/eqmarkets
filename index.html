@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Equarian Markets</title>
-<meta name="description" content="Live macro indicator dashboard: rates, risk gauges, carry and the tape, with a Risk Appetite Index.">
+<meta name="description" content="Live macro indicator dashboard: rates, risk gauges, carry and the tape, with a Risk Appetite Index, absorption ratio and recession probability.">
 <meta name="theme-color" content="#0A0B0F">
 <meta name="color-scheme" content="dark">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -59,33 +59,65 @@
     <button class="tab" role="tab" aria-selected="false" data-filter="tape">Tape</button>
   </div>
 
-  <section class="regime" aria-labelledby="regimeKicker">
-    <div class="regime-top">
-      <h2 class="regime-kicker" id="regimeKicker">Risk regime</h2>
-      <span class="regime-label" id="regimeLabel" aria-live="polite">Reading the tape...</span>
-      <span class="regime-rai num" id="regimeRai"></span>
+  <section class="models" aria-labelledby="modelsKicker">
+    <h2 class="sr-only" id="modelsKicker">Models</h2>
+    <div class="m-card m-rai">
+      <div class="m-top">
+        <h3 class="m-kicker">Risk Appetite Index</h3>
+        <span class="regime-label" id="raiLabel" aria-live="polite">Reading the tape...</span>
+        <span class="m-sub num" id="raiValue"></span>
+      </div>
+      <div class="track" id="raiTrack" role="meter" aria-label="Risk appetite, risk-off to risk-on, in sigma" aria-valuemin="-2" aria-valuemax="2" aria-valuenow="0">
+        <div class="needle" id="needle"></div>
+      </div>
+      <div class="track-legend" aria-hidden="true"><span>Risk-off −2σ</span><span>0</span><span>+2σ Risk-on</span></div>
+      <div class="m-grid">
+        <div>
+          <p class="m-cap">1Y history · shaded band ±0.75σ</p>
+          <div class="m-chart rai-chart" id="raiChart"></div>
+        </div>
+        <div>
+          <p class="m-cap">Input scores today (σ, clipped ±3)</p>
+          <ul class="cbars" id="raiBars" aria-label="Input contributions"></ul>
+        </div>
+      </div>
     </div>
-    <div class="rai-chart" id="raiChart" hidden></div>
-    <div class="track" id="regimeTrack" role="meter" aria-label="Risk appetite, risk-off to risk-on" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
-      <div class="needle" id="needle"></div>
+    <div class="m-card">
+      <h3 class="m-kicker">Absorption Ratio</h3>
+      <span class="m-value num" id="arValue">—</span>
+      <p class="m-sub" id="arSub">Systemic fragility: how much cross-asset variance one or two factors absorb</p>
+      <div class="m-chart" id="arChart"></div>
+      <p class="m-cap" id="arAssets"></p>
     </div>
-    <div class="track-legend" aria-hidden="true"><span>Risk-off</span><span>Risk-on</span></div>
-    <ul class="regime-chips" id="regimeChips" aria-label="Regime inputs"></ul>
+    <div class="m-card">
+      <h3 class="m-kicker">Recession Probability, 12M</h3>
+      <span class="m-value num" id="recValue">—</span>
+      <p class="m-sub" id="recSub">NY Fed yield-curve probit on the 3m10y spread</p>
+      <div class="m-chart" id="recChart"></div>
+      <p class="m-cap">2Y history · dashed line 30%</p>
+    </div>
   </section>
 
   <div id="board" tabindex="-1"></div>
 
   <details class="method">
     <summary>Methodology</summary>
-    <p>The needle is a Risk Appetite Index in the practitioner tradition of the Credit Suisse and Goldman Sachs risk appetite indicators (academic root: Kumar and Persaud, IMF, 2002). Each input is standardized against roughly its last 200 daily closes, z = (x - &mu;) / &sigma;, then combined: risk-on inputs (ES, BTC, USD/JPY) enter positively and stress inputs (VIX, high-yield OAS, DXY) enter negatively. RAI is the weighted mean of those z-scores, shown in sigma units.</p>
-    <p>Credit is measured with the ICE BofA US High Yield option-adjusted spread (FRED series BAMLH0A0HYM2), the standard series in the credit literature (Gilchrist and Zakrajsek, AER, 2012), rather than an ETF price. The cross-asset &rho; chip is the average absolute pairwise correlation of daily log returns across ES, BTC, DXY, USD/JPY, and gold over about two months; readings above 0.55 indicate a macro-driven risk-on/risk-off regime in the RORO sense. Yen positioning comes from the CFTC Commitments of Traders report (Legacy Futures Only, non-commercial net contracts in JPY futures, weekly Tuesday data released Fridays). The carry-to-vol ratio divides the Fed-BOJ differential by 21-day realized USD/JPY volatility, a stated free proxy for the implied vol used in practice. The remaining chips show same-day moves for immediacy and do not drive the needle when z-history is available.</p>
-    <p>Index weights are the loadings of the first principal component of the standardized input panel (~150 overlapping days), recomputed live each refresh, with an equal-weight fallback when history is insufficient. Positioning and the carry-to-vol ratio are context cards, not RAI inputs, to keep the index strictly daily. This is decision support and context, not a mechanical trading signal. <span id="pcaWeights"></span></p>
+    <h3>Units and statistics</h3>
+    <p>Each series has a kind that sets its units everywhere. <b>Prices</b> (ES, DXY, USD/JPY…) show % changes and annualized volatility of daily log returns. <b>Rates and spreads</b> show changes in basis points and annualized normal (bp) volatility of daily changes, the convention on rates desks. <b>Levels</b> (VIX, NFCI…) show point changes. Volatility is both a 21-day sample standard deviation and RiskMetrics EWMA, &sigma;&sup2;<sub>t</sub> = &lambda;&sigma;&sup2;<sub>t−1</sub> + (1−&lambda;)r&sup2;<sub>t−1</sub>, &lambda; = 0.94, annualized by &radic;252 (&radic;365 for Bitcoin, &radic;52 for weekly series). Range position is the mid-rank percentile of today's value against the prior year, plus a robust z-score, (x − median) / (1.4826 · MAD), which is not distorted by the fat tails and spikes that dominate stress series.</p>
+    <h3>Risk Appetite Index</h3>
+    <p>A composite in the Credit Suisse / Goldman Sachs risk-appetite tradition (Kumar &amp; Persaud, IMF 2002), with transforms matched to the statistics of each input. Trending assets (ES, Bitcoin, USD/JPY, inverse DXY) enter as volatility-scaled momentum: the 21-day log return divided by EWMA vol &times; &radic;21, a t-statistic-like score. Mean-reverting stress gauges (VIX, VIX/VIX3M, MOVE, high-yield OAS) enter as robust z-scores of their level against the trailing year, sign-flipped. Scores are clipped to &plusmn;3 and averaged with equal weight, so no single gauge can dominate and the result needs no unstable PCA re-weighting. The label uses a 3-day mean: &ge; +0.75&sigma; risk-on, &le; −0.75&sigma; risk-off. Every point in the history uses only data available on that date.</p>
+    <h3>Absorption ratio</h3>
+    <p>Kritzman, Li, Page &amp; Rigobon (2011, <i>Journal of Portfolio Management</i>): the fraction of total variance explained by the top fifth of eigenvectors of the correlation matrix of daily returns (yield changes for the 10Y) across ten assets, over a 63-day window. A high ratio means markets are tightly coupled and shocks propagate broadly. The standardized shift, &Delta;AR = (15-day mean − 1-year mean) / 1-year std, is the signal the authors found preceded drawdowns; above +1&sigma; is flagged.</p>
+    <h3>Recession probability</h3>
+    <p>The New York Fed model (Estrella &amp; Mishkin 1996; Estrella &amp; Trubin 2006): P(recession in 12 months) = &Phi;(&alpha; + &beta;&middot;S), where S is the one-month average of the 10-year minus 3-month Treasury spread in percentage points, with the published coefficients &alpha; = −0.5333, &beta; = −0.6330. Both legs are FRED H.15 constant-maturity closes. The NY Fed uses monthly averages and the bond-equivalent 3-month yield, so values can differ from its published table by a point or two.</p>
+    <h3>Other series</h3>
+    <p>Curve spreads use H.15 closes on both legs, never a live quote against a stale one. Credit is the ICE BofA option-adjusted spreads (Gilchrist &amp; Zakraj&scaron;ek 2012). The term premium is the Kim–Wright estimate from the Fed Board. NFCI (Chicago Fed) and STLFSI4 (St. Louis Fed) are weekly composites centred on zero. Yen positioning is CFTC Legacy non-commercial net futures, with a robust z-score against three years. Carry-to-vol divides the Fed–BOJ gap by EWMA-annualized USD/JPY vol, a free proxy for the implied vol used in practice. This is decision support, not a trading signal.</p>
   </details>
 
 </main>
 
 <footer>
-  Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Netlify proxy. Tap any card for its full history. Sparklines show 3-month daily closes; yield changes are in basis points. Built for context, not advice.<span id="modeNote"></span>
+  Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Netlify proxy. Tap any card for its full history. Sparklines show three months of history; rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span>
 </footer>
 
 <dialog id="detail" class="detail" aria-labelledby="dName">
@@ -104,6 +136,7 @@
     <div class="d-ranges" id="dRanges" role="group" aria-label="Chart range"></div>
     <div class="d-chart" id="dChart"></div>
     <dl class="d-stats" id="dStats"></dl>
+    <p class="d-statsnote" id="dStatsNote"></p>
     <a class="d-source" id="dSource" target="_blank" rel="noopener">View source data ↗</a>
   </div>
 </dialog>

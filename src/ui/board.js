@@ -1,6 +1,7 @@
 import { GROUPS } from "../config.js";
 import { STATE } from "../state.js";
-import { $, fmtNum, fmtChange, lineChart } from "./format.js";
+import { seriesStats } from "../quant/models.js";
+import { $, fmtNum, fmtChange, fmtDelta, fmtVol, lineChart } from "./format.js";
 import { noteFor } from "./notes.js";
 
 /* Build the empty card grid once; updateCard fills it as data arrives. */
@@ -14,7 +15,7 @@ export function buildBoard(onOpen) {
     sec.setAttribute("aria-labelledby", "grp-" + g.tab);
     sec.innerHTML =
       '<div class="group-head"><h2 class="group-title" id="grp-' + g.tab + '">' + g.label + "</h2>" +
-      '<span class="group-sub">3-month daily closes</span></div>';
+      '<span class="group-sub">3M history</span></div>';
     const grid = document.createElement("div");
     grid.className = "grid";
     for (const it of g.items) {
@@ -30,6 +31,7 @@ export function buildBoard(onOpen) {
         '<span class="nm">' + it.name + "</span>" +
         '<span class="ds">' + it.desc + "</span>" +
         '<span class="note" data-el="note" hidden></span>' +
+        '<span class="cstats num" data-el="stats" hidden></span>' +
         '<span class="spark" data-el="spark"></span>';
       card.addEventListener("click", () => onOpen(it));
       grid.appendChild(card);
@@ -45,7 +47,7 @@ export function updateCard(item) {
   const card = $("card-" + item.id);
   const s = STATE[item.id];
   const el = name => card.querySelector('[data-el="' + name + '"]');
-  const val = el("val"), pill = el("pill"), note = el("note"), spark = el("spark");
+  const val = el("val"), pill = el("pill"), note = el("note"), spark = el("spark"), stats = el("stats");
   val.classList.remove("skel");
   pill.classList.remove("skel");
 
@@ -57,6 +59,7 @@ export function updateCard(item) {
     note.hidden = false;
     note.textContent = "Feed unreachable · retrying next cycle";
     note.className = "note d";
+    stats.hidden = true;
     card.setAttribute("aria-label", item.name + ": unavailable");
     return;
   }
@@ -77,7 +80,9 @@ export function updateCard(item) {
     pill.className = "pill num " + ch.tone;
   }
 
-  const nt = noteFor(item, s);
+  const hasHist = s.values && s.values.length > 1;
+  const st = hasHist ? seriesStats({ dates: s.dates, values: s.values }, item.kind, item.ppy || (item.weekly ? 52 : 252)) : null;
+  const nt = noteFor(item, s, st);
   const stale = s.stale ? "Last good value · feed retrying" : null;
   if (stale || nt) {
     note.hidden = false;
@@ -87,11 +92,19 @@ export function updateCard(item) {
     note.hidden = true;
   }
 
-  if (s.closes && s.closes.length > 1) {
+  /* Compact stats: one-month change and annualized EWMA vol in the series' units. */
+  if (st && !item.weekly) {
+    stats.hidden = false;
+    stats.textContent = "1M " + fmtDelta(item, st.chg.m1) + " · σ " + fmtVol(item, st.volEwma);
+  } else {
+    stats.hidden = true;
+  }
+
+  if (hasHist) {
     card.classList.remove("no-spark");
-    const recent = s.closes.slice(-63);
+    const recent = s.values.slice(item.weekly ? -52 : -63);
     const trendUp = recent[recent.length - 1] >= recent[0];
-    spark.innerHTML = lineChart(recent, { good: item.invert ? !trendUp : trendUp, id: item.id });
+    spark.innerHTML = lineChart(recent, { good: item.invert ? !trendUp : trendUp, id: item.id, zero: item.id === "spread" || item.id === "spread3m" || item.id === "nfci" || item.id === "stlfsi" });
   } else {
     card.classList.add("no-spark");
     spark.innerHTML = "";

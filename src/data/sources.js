@@ -1,41 +1,63 @@
+/* Upstream data sources. Every series is normalised to
+   { price, prev, dates: [YYYY-MM-DD], values: [], src, asOf }. */
 import { BOJ_RATE } from "../config.js";
 import { STATE } from "../state.js";
 import { viaTransports } from "./transport.js";
 
-/* Yahoo Finance daily chart: one year of closes. */
+/* Two years of history so one-year rolling statistics have a full window. */
+const YAHOO_RANGE = "2y";
+const FRED_DAYS = 800;
+
+const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
+
+/* Yahoo Finance daily chart. Bar timestamps are in exchange time: FX bars, for
+   example, open at 00:00 London, which is 23:00 UTC the day before. Shifting by
+   meta.gmtoffset gives each bar its exchange-local trading date, so series from
+   different venues line up on the same calendar. */
 async function yahooSeries(symbol) {
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) +
-    "?range=1y&interval=1d&includePrePost=false&cb=" + Date.now();
+    "?range=" + YAHOO_RANGE + "&interval=1d&includePrePost=false&cb=" + Date.now();
   return viaTransports(url, async r => {
     const j = await r.json();
-    const res = j && j.chart && j.chart.result && j.chart.result[0];
-    if (!res || !res.indicators) return null;
-    const rawTs = res.timestamp || [];
-    const rawCl = (res.indicators.quote[0] || {}).close || [];
-    const ts = [], closes = [];
-    rawCl.forEach((c, n) => { if (c != null && isFinite(c)) { ts.push(rawTs[n]); closes.push(c); } });
-    if (!closes.length) return null;
+    const res = j?.chart?.result?.[0];
+    if (!res?.indicators) return null;
     const meta = res.meta || {};
-    const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length - 1];
-    const prev = closes.length > 1 ? closes[closes.length - 2] : meta.chartPreviousClose ?? null;
-    return { price, prev, ts, closes };
+    const off = (meta.gmtoffset || 0) * 1000;
+    const ts = res.timestamp || [];
+    const cl = res.indicators.quote?.[0]?.close || [];
+    const dates = [], values = [];
+    cl.forEach((c, i) => {
+      if (c == null || !isFinite(c)) return;
+      const d = isoDay(ts[i] * 1000 + off);
+      if (dates.length && dates[dates.length - 1] === d) values[values.length - 1] = c; /* duplicate bar: keep latest */
+      else { dates.push(d); values.push(c); }
+    });
+    if (values.length < 2) return null;
+    /* Fold the live quote into today's bar, or append it if it starts a new session. */
+    if (meta.regularMarketPrice != null && meta.regularMarketTime) {
+      const liveDay = isoDay(meta.regularMarketTime * 1000 + off);
+      if (liveDay === dates[dates.length - 1]) values[values.length - 1] = meta.regularMarketPrice;
+      else if (liveDay > dates[dates.length - 1]) { dates.push(liveDay); values.push(meta.regularMarketPrice); }
+    }
+    const n = values.length;
+    return { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] };
   });
 }
 
-/* FRED CSV download for a series id. */
-async function fredSeries(id, days = 400) {
-  const iso = d => d.toISOString().slice(0, 10);
+/* FRED CSV (no API key). Missing observations are "." and are skipped. */
+async function fredSeries(id) {
   const url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + id +
-    "&cosd=" + iso(new Date(Date.now() - days * 864e5)) + "&coed=" + iso(new Date());
+    "&cosd=" + isoDay(Date.now() - FRED_DAYS * 864e5) + "&coed=" + isoDay(Date.now());
   return viaTransports(url, async r => {
     const lines = (await r.text()).trim().split("\n").slice(1);
-    const ts = [], closes = [];
+    const dates = [], values = [];
     for (const ln of lines) {
       const [date, v] = ln.split(",");
       const f = parseFloat(v);
-      if (isFinite(f)) { ts.push(Math.floor(Date.parse(date) / 1000)); closes.push(f); }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date) && isFinite(f)) { dates.push(date); values.push(f); }
     }
-    return closes.length > 1 ? { price: closes[closes.length - 1], prev: closes[closes.length - 2], ts, closes } : null;
+    const n = values.length;
+    return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
   });
 }
 
@@ -60,10 +82,11 @@ async function bojRate() {
   return bojCache;
 }
 
-/* CFTC Commitments of Traders: non-commercial net yen futures, in thousands of contracts. */
+/* CFTC Legacy Futures-Only COT: non-commercial net yen futures (thousands),
+   three years of weekly reports for a positioning z-score. */
 async function cotSeries() {
   const sel = "$select=report_date_as_yyyy_mm_dd,noncomm_positions_long_all,noncomm_positions_short_all";
-  const tail = "&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=60";
+  const tail = "&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=160";
   const queries = [
     sel + "&$where=cftc_contract_market_code=%27097741%27" + tail,
     sel + "&$where=starts_with(market_and_exchange_names,%27JAPANESE%20YEN%27)" + tail,
@@ -72,43 +95,45 @@ async function cotSeries() {
     const out = await viaTransports("https://publicreporting.cftc.gov/resource/6dca-aqww.json?" + q, async r => {
       const rows = await r.json();
       if (!Array.isArray(rows) || rows.length < 2) return null;
-      const ts = [], closes = [];
-      rows.slice().reverse().forEach(row => {
+      const dates = [], values = [];
+      for (const row of rows.slice().reverse()) {
         const l = parseFloat(row.noncomm_positions_long_all), s = parseFloat(row.noncomm_positions_short_all);
-        const d = Date.parse(row.report_date_as_yyyy_mm_dd);
-        if (isFinite(l) && isFinite(s) && isFinite(d)) { ts.push(Math.floor(d / 1000)); closes.push((l - s) / 1000); }
-      });
-      return closes.length > 1 ? { price: closes[closes.length - 1], prev: closes[closes.length - 2], ts, closes } : null;
+        const d = String(row.report_date_as_yyyy_mm_dd || "").slice(0, 10);
+        if (isFinite(l) && isFinite(s) && /^\d{4}-\d{2}-\d{2}$/.test(d)) { dates.push(d); values.push((l - s) / 1000); }
+      }
+      const n = values.length;
+      return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
     });
     if (out) return out;
   }
   return null;
 }
 
-/* Fetch one indicator into STATE. Keeps the last good value on failure. */
+/* Fetch one series into STATE. Keeps the last good value (marked stale) on failure.
+   Order: CFTC / BOJ special cases; then Yahoo first for live items, FRED first otherwise. */
 export async function fetchItem(item) {
   const keepLast = () => {
     const last = STATE[item.id];
     STATE[item.id] = last && !last.error ? { ...last, stale: true } : { error: true };
   };
+  const put = (s, src) => { STATE[item.id] = { ...s, error: false, stale: false, src }; };
 
-  if (item.cot) {
-    const s = await cotSeries();
-    if (s) STATE[item.id] = { ...s, error: false, src: "cftc" }; else keepLast();
-    return;
-  }
+  if (item.cot) { const s = await cotSeries(); if (s) put(s, "cftc"); else keepLast(); return; }
   if (item.bojLive) {
     const r = await bojRate();
-    STATE[item.id] = { price: r.value, prev: null, ts: null, closes: null, error: false, src: r.live ? "boj" : "manual", asOf: r.asOf };
+    STATE[item.id] = { price: r.value, prev: null, dates: null, values: null, error: false, src: r.live ? "boj" : "manual", asOf: r.asOf };
     return;
   }
-  if (item.fredId) {
-    const s = await fredSeries(item.fredId, item.fredDays);
-    if (s) { STATE[item.id] = { ...s, error: false, src: "fred" }; return; }
-  }
-  for (const sym of item.symbols) {
-    const s = await yahooSeries(sym);
-    if (s) { STATE[item.id] = { ...s, error: false, src: "yahoo" }; return; }
-  }
-  keepLast();
+  const yahoo = async () => {
+    for (const sym of item.symbols || []) { const s = await yahooSeries(sym); if (s) { put(s, "yahoo"); return true; } }
+    return false;
+  };
+  const fred = async () => {
+    if (!item.fredId) return false;
+    const s = await fredSeries(item.fredId);
+    if (s) { put(s, "fred"); return true; }
+    return false;
+  };
+  const ok = item.live ? (await yahoo()) || (await fred()) : (await fred()) || (await yahoo());
+  if (!ok) keepLast();
 }

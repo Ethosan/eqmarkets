@@ -1,40 +1,36 @@
-import { STATE, ok, dayKey } from "../state.js";
+/* Computed series: curve spreads (H.15 closes on both legs), VIX term structure
+   and carry-to-vol. Each is stored in STATE like a fetched series. */
+import { STATE } from "../state.js";
+import { alignSeries } from "../quant/stats.js";
+import { carryToVol } from "../quant/models.js";
 
-/* 2s10s: 10Y minus 2Y, in basis points, with a matched daily history. */
-function computeSpread() {
-  const a = ok("us10y"), b = ok("us2y");
-  if (!a || !b) { STATE.spread = { error: true }; return; }
-  const closes = [], ts = [];
-  if (a.ts && b.ts && a.closes && b.closes) {
-    const twoY = new Map();
-    b.ts.forEach((t, i) => twoY.set(dayKey(t), b.closes[i]));
-    a.ts.forEach((t, i) => {
-      const k = dayKey(t);
-      if (twoY.has(k)) { closes.push((a.closes[i] - twoY.get(k)) * 100); ts.push(t); }
-    });
-  }
-  const price = (a.price - b.price) * 100;
-  const prev = a.prev != null && b.prev != null ? (a.prev - b.prev) * 100
-    : closes.length > 1 ? closes[closes.length - 2] : null;
-  STATE.spread = { price, prev, ts, closes, error: false };
+const ok = id => {
+  const s = STATE[id];
+  return s && !s.error && s.price != null ? s : null;
+};
+const hasHist = s => s && s.dates && s.dates.length > 1;
+
+/* a − b (or a / b) on common dates. */
+function combine(id, a, b, op) {
+  if (!hasHist(a) || !hasHist(b)) { STATE[id] = { error: true }; return; }
+  const { dates, columns: [x, y] } = alignSeries([{ dates: a.dates, values: a.values }, { dates: b.dates, values: b.values }]);
+  if (dates.length < 2) { STATE[id] = { error: true }; return; }
+  const values = x.map((v, i) => op(v, y[i]));
+  const n = values.length;
+  STATE[id] = { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1], error: false, src: "derived", stale: a.stale || b.stale };
 }
 
-/* Carry-to-vol: Fed-BOJ gap divided by 21-day realized USD/JPY vol (annualized, %). */
-function computeCarry() {
-  const j = ok("usdjpy"), ff = ok("fedfunds"), bj = ok("boj");
-  if (!j || !j.closes || j.closes.length < 25 || !ff || !bj) { STATE.carryvol = { error: true }; return; }
-  const c = j.closes.slice(-22);
-  const rets = [];
-  for (let i = 1; i < c.length; i++) rets.push(Math.log(c[i] / c[i - 1]));
-  const mu = rets.reduce((x, y) => x + y, 0) / rets.length;
-  const sd = Math.sqrt(rets.reduce((x, y) => x + (y - mu) * (y - mu), 0) / rets.length);
-  const vol = sd * Math.sqrt(252) * 100;
-  if (!vol || !isFinite(vol)) { STATE.carryvol = { error: true }; return; }
-  const gap = ff.price - bj.price;
-  STATE.carryvol = { price: gap / vol, prev: null, ts: null, closes: null, error: false, vol, gap };
-}
-
+/* The 10Y leg of the spreads is FRED DGS10 (hidden series), not the live ^TNX
+   quote, so both legs are the same day's H.15 close. */
 export function computeDerived() {
-  computeSpread();
-  computeCarry();
+  const ten = ok("dgs10");
+  combine("spread", ten, ok("us2y")?.src === "fred" ? ok("us2y") : null, (a, b) => a - b);
+  combine("spread3m", ten, ok("us3m"), (a, b) => a - b);
+  combine("vixts", ok("vix"), ok("vix3m"), (a, b) => a / b);
+
+  const j = ok("usdjpy"), ff = ok("fedfunds"), bj = ok("boj");
+  const c = hasHist(j) && ff && bj ? carryToVol(ff.price - bj.price, { dates: j.dates, values: j.values }) : null;
+  STATE.carryvol = c
+    ? { price: c.ratio, prev: null, dates: null, values: null, error: false, src: "derived", vol: c.vol, gap: c.gap }
+    : { error: true };
 }
