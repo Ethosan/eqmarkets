@@ -66,6 +66,21 @@ Caveat: the NY Fed fits its probit to monthly averages and the bond-equivalent 3
 
 Why the regime uses DBC and DBA instead of the grain and energy futures: Yahoo's continuous front-month contracts (`ZC=F` and so on) jump on each roll date, by the gap between the expiring and the next contract. Over a 3-month window that can be several percent of fake "move". The funds hold and roll the futures themselves, so their prices don't jump. The commodity cards still show the futures, and the guide warns that big monthly moves there can include roll.
 
+## Backtest lab (admin)
+
+A hidden **Lab** tab for testing the models as trading signals. Open the site with `?admin=1` to turn it on in that browser (`?admin=0` turns it off). It only hides UI: there is no secret behind it, and the lab code loads as its own chunk the first time the tab opens.
+
+- **Data:** 2Y, 5Y, 10Y or full daily history for the model inputs and the instrument (NQ, ES, NDX, QQQ and SPY total return, gold, Bitcoin).
+- **Point-in-time models:** RAI (raw and 3-day mean), absorption ratio and ΔAR, and the recession probability are rebuilt for every day using only data up to that day. FRED series are treated as known one business day after their date, when they are published.
+- **Overlay:** the price chart is shaded by RAI regime, ΔAR fragility, recession odds or any strategy's position, with the model in a synced pane below.
+- **Strategies:** buy and hold, RAI regime, RAI scaled, absorption ΔAR (Kritzman et al.), recession filter, RAI + ΔAR, a 200-day trend baseline, and a **custom JavaScript rule**. Options: execution on the signal's close or the next one, cost in bp per side, and an EWMA volatility target.
+- **Results:** growth of $1 (log), drawdowns, and CAGR, vol, Sharpe, Sortino, max drawdown, Calmar, exposure, trades per year, hit rate and beta to buy and hold, plus a CSV export. Every strategy is measured over the same window, starting when all selected strategies have a signal.
+- **Console:** `eqlab.test(ctx => ctx.raiS > 0 ? 1 : 0)` prints a rule against buy and hold. `eqlab.frame` has the aligned data.
+
+A rule is the body of `function (ctx)`, called once per bar. It returns a position (1 long, 0 flat, −1 short, clipped to ±3) or `null` to hold. `ctx` exposes only the current and past bars (`ctx.price`, `ctx.raiS`, `ctx.dAR`, `ctx.rec`, `ctx.sma(n)`, `ctx.get(field, k)`…), so a rule can't peek ahead. The engine is `src/quant/backtest.js`, tested in `tests/backtest.test.js` (lag, costs, holding on null, no look-ahead, vol targeting, ΔAR path).
+
+Caveats: futures use Yahoo's continuous front-month series, so roll gaps count as returns. Flat earns nothing, and Sharpe uses a zero risk-free rate. A backtest over a few years of one market is a sanity check, not evidence of an edge.
+
 ## AI explanations (optional)
 
 The **Explain in plain English** button calls `netlify/functions/explain.mjs`, which asks Mistral (`mistral-medium-latest`, Mistral Medium 3.5) for a two-paragraph note.
@@ -94,6 +109,11 @@ src/
     models.js           RAI, absorption ratio, recession probit, per-series stats
     regime.js           vol-scaled moves, growth × inflation regime
     narrative.js        rules behind Today's read
+    backtest.js         backtest engine: simulate, metrics, vol target, rules, presets
+  lab/                  admin backtest lab (separate chunk)
+    lab.js              controls, strategies, results, custom rule editor
+    data.js             long history and the point-in-time model frame
+    plot.js             multi-series chart with shading and synced crosshairs
   ai/
     explain.js          payload validation and prompt building (shared with the function)
   model/
@@ -129,7 +149,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-The local dev server has no `/yf`-style proxies, so data arrives through the public CORS fallbacks, which can be slow or rate-limited. For the real thing, use a Netlify deploy preview or `netlify dev`.
+`vite.config.js` mirrors the `netlify.toml` proxies, so `npm run dev` and `npm run preview` fetch data same-origin like the deployed site. Open `http://localhost:5173/?admin=1&tab=lab` for the lab.
 
 | Script | What it does |
 |---|---|
@@ -137,7 +157,7 @@ The local dev server has no `/yf`-style proxies, so data arrives through the pub
 | `npm run build` | Production build into `dist/` |
 | `npm run preview` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest unit tests for the quant library |
+| `npm test` | Vitest unit tests for the quant library and backtest engine |
 | `npm run audit:design` | [impeccable](https://www.npmjs.com/package/impeccable) design anti-pattern scan (`npx impeccable` if not installed) |
 
 ## Deploy on Netlify

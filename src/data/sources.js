@@ -14,9 +14,9 @@ const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
    example, open at 00:00 London, which is 23:00 UTC the day before. Shifting by
    meta.gmtoffset gives each bar its exchange-local trading date, so series from
    different venues line up on the same calendar. */
-async function yahooSeries(symbol) {
+export async function yahooSeries(symbol, { range = YAHOO_RANGE, adjusted = false } = {}) {
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) +
-    "?range=" + YAHOO_RANGE + "&interval=1d&includePrePost=false&cb=" + Date.now();
+    "?range=" + range + "&interval=1d&includePrePost=false&cb=" + Date.now();
   return viaTransports(url, async r => {
     const j = await r.json();
     const res = j?.chart?.result?.[0];
@@ -24,7 +24,8 @@ async function yahooSeries(symbol) {
     const meta = res.meta || {};
     const off = (meta.gmtoffset || 0) * 1000;
     const ts = res.timestamp || [];
-    const cl = res.indicators.quote?.[0]?.close || [];
+    /* Adjusted closes fold in dividends and splits (total return for ETFs). */
+    const cl = (adjusted && res.indicators.adjclose?.[0]?.adjclose) || res.indicators.quote?.[0]?.close || [];
     const dates = [], values = [];
     cl.forEach((c, i) => {
       if (c == null || !isFinite(c)) return;
@@ -34,7 +35,7 @@ async function yahooSeries(symbol) {
     });
     if (values.length < 2) return null;
     /* Fold the live quote into today's bar, or append it if it starts a new session. */
-    if (meta.regularMarketPrice != null && meta.regularMarketTime) {
+    if (!adjusted && meta.regularMarketPrice != null && meta.regularMarketTime) {
       const liveDay = isoDay(meta.regularMarketTime * 1000 + off);
       if (liveDay === dates[dates.length - 1]) values[values.length - 1] = meta.regularMarketPrice;
       else if (liveDay > dates[dates.length - 1]) { dates.push(liveDay); values.push(meta.regularMarketPrice); }
@@ -45,9 +46,9 @@ async function yahooSeries(symbol) {
 }
 
 /* FRED CSV (no API key). Missing observations are "." and are skipped. */
-async function fredSeries(id) {
+export async function fredSeries(id, days = FRED_DAYS) {
   const url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + id +
-    "&cosd=" + isoDay(Date.now() - FRED_DAYS * 864e5) + "&coed=" + isoDay(Date.now());
+    "&cosd=" + isoDay(Date.now() - days * 864e5) + "&coed=" + isoDay(Date.now());
   return viaTransports(url, async r => {
     const lines = (await r.text()).trim().split("\n").slice(1);
     const dates = [], values = [];

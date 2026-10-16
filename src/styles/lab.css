@@ -1,0 +1,118 @@
+/* Backtest lab (admin only). Loaded with the lab chunk. */
+.lab { margin-bottom: 28px }
+.lab-panel { display: grid; gap: 14px; transition: opacity .2s }
+.lab-panel.busy .lab-card { opacity: .55 }
+.lab-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap }
+.lab-title { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
+.lab-badge {
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--accent);
+  background: var(--accent-soft); border-radius: 6px; padding: 1px 7px;
+}
+.lab-status { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3) }
+
+/* ---------- controls ---------- */
+.lab-controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end }
+.lab-field { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.lab-field > span { font-size: var(--fs-xs); color: var(--text-3) }
+.lab select, .lab input[type="number"] {
+  font: inherit; font-size: var(--fs-sm); color: var(--text-1);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+  padding: 7px 10px; min-height: 36px;
+}
+.lab select:hover, .lab input[type="number"]:hover { border-color: var(--border-2) }
+.lab input[type="number"] { width: 92px }
+.lab input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px }
+.seg { display: inline-flex; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px }
+.seg button {
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-3);
+  background: none; border: 0; border-radius: 7px; padding: 6px 12px; min-height: 28px; cursor: pointer;
+}
+.seg button:hover { color: var(--text-2) }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text-1) }
+
+/* ---------- cards ---------- */
+.lab-card { gap: 0 }
+.lab-card-head { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 10px }
+.lab-card-head .m-kicker { margin-right: auto }
+.lab-inline { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-xs); color: var(--text-3); cursor: pointer }
+.lab-inline select { min-height: 32px; padding: 4px 8px; font-size: var(--fs-xs) }
+.lab-plot { margin-top: 4px }
+.lab-plot[hidden], .m-cap[hidden] { display: none }
+.lab-foot { line-height: 1.6; max-width: 90ch }
+
+/* ---------- plot ---------- */
+.pl-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 6px; font-size: var(--fs-xs); color: var(--text-2) }
+.pl-legend[hidden] { display: none }
+.pl-legend span { display: inline-flex; align-items: center; gap: 6px }
+.pl-legend i, .pl-row i, .lab-chip i, .lab-table th i { width: 10px; height: 3px; border-radius: 2px; flex: none; display: inline-block }
+.pl-body { position: relative }
+.pl-row { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums }
+.pl-row b { font-weight: 600; color: var(--text-1) }
+
+/* ---------- strategies ---------- */
+.lab-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px }
+.lab-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: var(--fs-xs); font-weight: 500; color: var(--text-3);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 12px; min-height: 32px; cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+}
+.lab-chip:hover:not(:disabled) { color: var(--text-2); border-color: var(--border-2) }
+.lab-chip[aria-pressed="true"] { color: var(--text-1); background: var(--surface-2); border-color: var(--border-2) }
+.lab-chip[aria-pressed="false"] i { opacity: .35 }
+.lab-chip:disabled { cursor: not-allowed; opacity: .5 }
+
+.lab-tablewrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--border); border-radius: 10px }
+.lab-table { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); white-space: nowrap }
+.lab-table th, .lab-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border) }
+.lab-table tbody tr:last-child > * { border-bottom: 0 }
+.lab-table thead th { font-weight: 600; color: var(--text-3); background: var(--bg) }
+.lab-table th:first-child { text-align: left; position: sticky; left: 0; background: var(--surface) }
+.lab-table thead th:first-child { background: var(--bg) }
+.lab-table tbody th { font-weight: 500; color: var(--text-1) }
+.lab-table tbody th i { margin-right: 8px; vertical-align: middle }
+.lab-table td { color: var(--text-2) }
+.lab-table td.d { color: var(--down) }
+.lab-table td.best { color: var(--up); font-weight: 600 }
+
+.lab-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px }
+.lab-btn {
+  font-size: var(--fs-sm); font-weight: 500; color: var(--text-1);
+  background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 9px;
+  padding: 7px 14px; min-height: 36px; cursor: pointer;
+}
+.lab-btn:hover { border-color: var(--text-3) }
+.lab-run { background: var(--accent); border-color: var(--accent); color: #0A0B0F; font-weight: 600 }
+.lab-run:hover { border-color: var(--amber); background: var(--amber) }
+.lab-out { font-size: var(--fs-xs); color: var(--text-3) }
+.lab-out.err { color: var(--down) }
+
+/* ---------- editor ---------- */
+.lab-code {
+  width: 100%; min-height: 200px; resize: vertical;
+  font: 13px/1.6 ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; color: var(--text-1);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  tab-size: 2; white-space: pre; overflow-x: auto; font-variant-ligatures: none;
+}
+.lab-code:focus-visible { outline: 2px solid var(--accent); outline-offset: 0 }
+.lab-help { margin-top: 12px; font-size: var(--fs-xs); color: var(--text-2) }
+.lab-help summary { cursor: pointer; color: var(--text-3); font-weight: 600 }
+.lab-help summary:hover { color: var(--text-2) }
+.lab-help p { margin-top: 10px; line-height: 1.6; max-width: 80ch }
+.lab-help dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin-top: 10px }
+.lab-help dd { color: var(--text-3) }
+.lab-help code { font: 12px ui-monospace, "SF Mono", Consolas, monospace; color: var(--text-1); font-variant-ligatures: none }
+
+@media (max-width: 680px) {
+  .lab-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+  .lab-field:first-child { grid-column: 1 / -1 }
+  .lab-field select, .lab input[type="number"] { width: 100%; min-height: 40px }
+  .seg { display: flex }
+  .seg button { flex: 1; min-height: 34px; padding: 6px 4px }
+  .lab-status { margin-left: 0; flex-basis: 100% }
+  .lab-chip { min-height: 36px }
+  .lab-help dl { grid-template-columns: 1fr; gap: 2px }
+  .lab-help dd { margin-bottom: 6px }
+}
+.lab-skip { color: var(--amber) }
+.lab-skip[hidden] { display: none }

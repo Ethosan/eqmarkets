@@ -49,6 +49,7 @@ export function trackAppbar() {
   set();
 }
 const TAB_KEY = "eqm.tab";
+let onSelect = null;
 
 function selectTab(btn, focus) {
   const tabs = [...document.querySelectorAll(".tab")];
@@ -62,6 +63,8 @@ function selectTab(btn, focus) {
   document.querySelectorAll(".group").forEach(sec => sec.classList.toggle("hidden", f !== "all" && sec.dataset.tab !== f));
   $("models").classList.toggle("hidden", f !== "all" && f !== "models");
   $("method").classList.toggle("hidden", f !== "all" && f !== "models");
+  $("lab")?.classList.toggle("hidden", f !== "lab");
+  onSelect?.(f);
   /* Switching after scrolling down: return the bar to its resting spot so the
      chosen group starts right under it. A stuck sticky bar reports its stuck
      offsetTop, so measure the resting spot from the page head above it. */
@@ -75,7 +78,9 @@ function selectTab(btn, focus) {
   try { localStorage.setItem(TAB_KEY, f); } catch { /* storage blocked */ }
 }
 
-export function initTabs() {
+/* onTab(filter) runs after every switch, including the initial one. */
+export function initTabs(onTab) {
+  onSelect = onTab;
   const tabs = [...document.querySelectorAll(".tab")];
   tabs.forEach(b => b.addEventListener("click", () => selectTab(b, false)));
   /* Arrow-key navigation, as in the WAI-ARIA tabs pattern. */

@@ -32,7 +32,7 @@
 .tab:hover { color: var(--text-2) }
 .tab[aria-selected="true"] { background: var(--surface-2); color: var(--text-1) }
 .tabs::-webkit-scrollbar { display: none }
-.models.hidden, .method.hidden { display: none }
+.models.hidden, .method.hidden, .lab.hidden { display: none }
 
 /* ---------- models ---------- */
 .models { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px }

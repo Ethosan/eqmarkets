@@ -71,10 +71,28 @@ async function refresh() {
   running = false;
 }
 
+/* Admin mode: ?admin=1 turns on the backtest lab tab for this browser, ?admin=0
+   turns it off. It only hides UI; the lab uses the same public data. */
+function adminMode() {
+  const q = new URLSearchParams(location.search).get("admin");
+  try {
+    if (q === "1") localStorage.setItem("eqm.admin", "1");
+    else if (q === "0") localStorage.removeItem("eqm.admin");
+    return localStorage.getItem("eqm.admin") === "1";
+  } catch {
+    return q === "1";
+  }
+}
+const ADMIN = adminMode();
+if (!ADMIN) { $("tabLab").remove(); $("lab").remove(); }
+let lab = null;
+/* The lab is its own chunk, fetched the first time its tab opens. */
+const openLab = f => { if (f === "lab" && ADMIN && !lab) lab = import("./lab/lab.js").then(m => m.mountLab($("lab"))); };
+
 trackAppbar();
 /* Cards first: the saved or shortcut tab hides groups, so they must exist. */
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
-initTabs();
+initTabs(openLab);
 initDetail();
 initGuide({ onReplayTour: startTour });
 initRead();

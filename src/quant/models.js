@@ -59,6 +59,18 @@ export function absorptionSeries(seriesList, { window = 63, shortMean = 15, long
   return { dates: arDates, values: ar, latest: ar[ar.length - 1], shift, n: seriesList.length, k: Math.max(1, Math.round(seriesList.length / 5)) };
 }
 
+/* Point-in-time ΔAR for every day: the same standardized shift as above, using
+   only AR values up to that day. null until minObs values exist. */
+export function absorptionShiftPath(ar, { shortMean = 15, longWindow = 252, minObs = shortMean + 20 } = {}) {
+  const out = new Array(ar.length).fill(null);
+  for (let t = Math.max(minObs, shortMean) - 1; t < ar.length; t++) {
+    const long = ar.slice(Math.max(0, t - longWindow + 1), t + 1);
+    const sd = std(long);
+    if (sd > 0) out[t] = (mean(ar.slice(t - shortMean + 1, t + 1)) - mean(long)) / sd;
+  }
+  return out;
+}
+
 /* ------------------------------------------------- risk appetite (v2) */
 /* Two input transforms:
    - "trend": 21-day log return divided by EWMA vol × √21, a volatility-scaled
