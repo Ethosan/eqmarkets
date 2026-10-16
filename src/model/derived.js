@@ -31,6 +31,6 @@ export function computeDerived() {
   const j = ok("usdjpy"), ff = ok("fedfunds"), bj = ok("boj");
   const c = hasHist(j) && ff && bj ? carryToVol(ff.price - bj.price, { dates: j.dates, values: j.values }) : null;
   STATE.carryvol = c
-    ? { price: c.ratio, prev: null, dates: null, values: null, error: false, src: "derived", vol: c.vol, gap: c.gap }
+    ? { price: c.ratio, prev: null, dates: null, values: null, error: false, src: "derived", vol: c.vol, gap: c.gap, stale: !!(j.stale || ff.stale || bj.stale) }
     : { error: true };
 }

@@ -93,6 +93,8 @@ export function initTabs() {
   });
   let saved = null;
   try { saved = localStorage.getItem(TAB_KEY); } catch { /* storage blocked */ }
+  /* Home-screen shortcuts open a group directly: /?tab=rates */
+  saved = new URLSearchParams(location.search).get("tab") || saved;
   selectTab(tabs.find(b => b.dataset.filter === saved) || tabs[0]);
 }
 

@@ -13,6 +13,8 @@ import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
 import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
 import { initGuide } from "./ui/guide.js";
+import { loadSnapshot, saveSnapshot } from "./data/snapshot.js";
+import { initPwa } from "./pwa.js";
 import { maybeStartTour, startTour } from "./ui/tour.js";
 
 const STALE_AFTER = 5 * 60_000;
@@ -53,10 +55,13 @@ async function refresh() {
   refreshDetail();
   progEnd();
 
-  const anyOk = ALL.some(it => STATE[it.id] && !STATE[it.id].error && !STATE[it.id].stale);
-  if (anyOk) lastOk = Date.now();
+  /* Fresh data means a feed answered this cycle; derived cards don't count. */
+  const anyOk = FETCHABLE.some(it => STATE[it.id] && !STATE[it.id].error && !STATE[it.id].stale);
+  if (anyOk) { lastOk = Date.now(); saveSnapshot(); }
   $("liveDot").classList.toggle("on", anyOk);
-  $("stamp").textContent = stampText() || "Feeds unreachable · tap to retry";
+  $("stamp").textContent = !anyOk && !navigator.onLine && lastOk
+    ? "Offline · saved " + clockIn("Asia/Singapore", { at: lastOk }) + " SGT"
+    : stampText() || "Feeds unreachable · tap to retry";
   $("modeNote").textContent = reachable ? "" :
     " · No data source answered. If you opened this file directly or in a sandboxed preview, deploy it to Netlify: quotes load there through the site's own proxy.";
   if (!anyOk) reachable = null; /* probe again next cycle */
@@ -66,17 +71,27 @@ async function refresh() {
 }
 
 trackAppbar();
+/* Cards first: the saved or shortcut tab hides groups, so they must exist. */
+buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 initTabs();
 initDetail();
 initGuide({ onReplayTour: startTour });
-buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 tickClocks();
+/* Paint the last session's data straight away (also the offline view), then refresh. */
+const savedAt = loadSnapshot();
+if (savedAt) {
+  computeDerived();
+  ALL.forEach(updateCard);
+  renderModels();
+  lastOk = savedAt;
+  $("stamp").textContent = stampText();
+}
 refresh();
 
 setInterval(() => {
   tickClocks();
   if (!running) {
-    const t = stampText();
+    const t = navigator.onLine ? stampText() : null;
     if (t) $("stamp").textContent = t;
     if (Date.now() >= nextAt) refresh();
   }
@@ -87,8 +102,4 @@ document.addEventListener("visibilitychange", () => {
 });
 $("stamp").addEventListener("click", refresh);
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-}
+initPwa();

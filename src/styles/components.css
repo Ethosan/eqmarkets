@@ -278,7 +278,7 @@
 .g-terms dt b { color: var(--text-1); margin-right: 4px }
 .g-terms dd { font-size: var(--fs-sm); line-height: 1.5; max-width: 72ch; color: var(--text-3); margin-top: 1px }
 .g-meta { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--text-3); opacity: .85 }
-.g-end { padding: 18px 0 4px; display: flex; justify-content: center }
+.g-end { padding: 18px 0 4px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap }
 
 /* ---------- tour ---------- */
 .tour-ov { position: fixed; inset: 0; z-index: 100 }
@@ -322,3 +322,29 @@ html.touring { overflow: hidden }
   .tour-pop { left: 12px !important; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); top: auto !important; width: auto }
   .t-btn { min-height: 42px }
 }
+
+/* ---------- install bar / update notice ---------- */
+.pwa-bar {
+  position: fixed; z-index: 60; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom)); width: min(460px, calc(100vw - 24px));
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 14px;
+  padding: 10px 10px 10px 12px; box-shadow: 0 14px 34px rgba(0, 0, 0, .5);
+  animation: pwa-in .3s cubic-bezier(.2, .8, .2, 1);
+}
+.pwa-bar[hidden] { display: none }
+.pwa-bar img { width: 40px; height: 40px; border-radius: 10px; flex: none }
+.pwa-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.pwa-txt b { font-size: var(--fs-sm); font-weight: 600; color: var(--text-1) }
+.pwa-txt span { font-size: var(--fs-xs); line-height: 1.45; color: var(--text-2) }
+.pwa-txt span b { font-size: inherit }
+.pwa-go { flex: none }
+.pwa-x {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; font-size: 18px; line-height: 1;
+  color: var(--text-3); background: none; border: 0; cursor: pointer;
+}
+.pwa-x:hover { color: var(--text-1) }
+@keyframes pwa-in { from { opacity: 0; transform: translate(-50%, 12px) } }
+@media (prefers-reduced-motion: reduce) { .pwa-bar { animation: none } }
+/* Installed app: no browser chrome, so leave room for the home indicator. */
+@media (display-mode: standalone) { footer { padding-bottom: calc(26px + env(safe-area-inset-bottom)) } }

@@ -221,6 +221,7 @@ function end() {
   removeEventListener("scroll", place);
   window.scrollTo({ top: 0, behavior: reduced() ? "auto" : "smooth" });
   lastFocus?.focus?.({ preventScroll: true });
+  dispatchEvent(new Event("eqm:tourend"));
 }
 
 /* Called after each refresh; starts the tour once, after the first real data. */

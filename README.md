@@ -12,7 +12,7 @@ A live macro dashboard for futures traders: rates, credit, carry and the tape on
 - **Unit-aware statistics:** each series has a `kind`. Prices use % changes and log-return vol; rates and spreads use bp changes and normal (bp) vol; indices use points. Cards show the 1M change and EWMA vol. The detail sheet adds 1W/1M/3M/YTD/1Y changes, 21-day and EWMA (λ = 0.94) vol, 1Y percentile, robust z, high/low and max drawdown.
 - **Correct alignment:** Yahoo bars are dated in exchange-local time via `gmtoffset`, so FX and futures share a calendar. Curve spreads use H.15 closes on both legs. Models use as-of joins with a 7-day staleness cap.
 - **Live, honest status:** a 60-second refresh, market session chips (NYSE cash, CME Globex) for Singapore and New York, and a stale marker if the feeds stop answering. Cards keep their last good value instead of blanking.
-- **Installable PWA** that opens offline (data needs a connection).
+- **Installable app (PWA):** an install bar uses the browser's own prompt on Android and desktop, and shows the Share → Add to Home Screen steps on iPhone. It's also in the Guide. The last good data is saved on the device, so the app opens instantly and still shows the last values offline ("Offline · saved 14:31 SGT"). Long-press the home-screen icon for shortcuts to Models, Rates, Risk and the Tape (`/?tab=rates`). A notice offers a reload when a new version is deployed.
 
 ## Data sources
 
@@ -60,11 +60,13 @@ Caveat: the NY Fed fits its probit to monthly averages and the bond-equivalent 3
 index.html              page shell and static markup
 src/
   main.js               boot, refresh loop
+  pwa.js                service worker, install bar, update notice
   config.js             indicator list, BOJ fallback, refresh interval
   state.js              latest series per indicator
   data/
     transport.js        proxy fallbacks and timeouts
     sources.js          Yahoo, FRED, BOJ and CFTC fetchers
+    snapshot.js         last good data saved on the device for instant and offline launch
   quant/
     stats.js            statistics: EWMA, robust z, percentiles, eigenvalues, alignment
     models.js           RAI, absorption ratio, recession probit, per-series stats

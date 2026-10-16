@@ -1,7 +1,7 @@
 import { GROUPS } from "../config.js";
 import { STATE } from "../state.js";
 import { seriesStats } from "../quant/models.js";
-import { $, fmtNum, fmtChange, fmtDelta, fmtVol, lineChart } from "./format.js";
+import { $, clockIn, fmtNum, fmtChange, fmtDelta, fmtVol, lineChart } from "./format.js";
 import { noteFor } from "./notes.js";
 
 /* Build the empty card grid once; updateCard fills it as data arrives. */
@@ -83,7 +83,7 @@ export function updateCard(item) {
   const hasHist = s.values && s.values.length > 1;
   const st = hasHist ? seriesStats({ dates: s.dates, values: s.values }, item.kind, item.ppy || (item.weekly ? 52 : 252)) : null;
   const nt = noteFor(item, s, st);
-  const stale = s.stale ? "Last good value · feed retrying" : null;
+  const stale = s.cached ? "Saved copy from " + clockIn("Asia/Singapore", { at: s.savedAt }) + " SGT" : s.stale ? "Last good value · feed retrying" : null;
   if (stale || nt) {
     note.hidden = false;
     note.textContent = stale || nt.t;

@@ -49,3 +49,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Re-read on every launch so name, icon and shortcut changes reach installed apps.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "no-cache"

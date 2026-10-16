@@ -2,7 +2,7 @@
    - Pages: network first, cached copy when offline.
    - /assets/* (fingerprinted by Vite): cache first, they never change.
    - Market data (/yf, /fred, /boj, /cftc) and cross-origin requests: never cached. */
-const CACHE = "eqm-v16";
+const CACHE = "eqm-v17";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/favicon-32.png"];
 const LIVE = ["/yf/", "/fred/", "/boj/", "/cftc/"];
 
@@ -33,7 +33,8 @@ self.addEventListener("fetch", e => {
           caches.open(CACHE).then(c => c.put("/", copy));
           return res;
         })
-        .catch(() => caches.match("/"))
+        /* Offline: the cached shell, whatever query the launch URL carries. */
+        .catch(() => caches.match("/", { ignoreSearch: true }))
     );
     return;
   }
