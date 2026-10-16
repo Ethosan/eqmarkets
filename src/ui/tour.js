@@ -46,7 +46,7 @@ const STEPS = [
       const n = document.querySelectorAll("#readList .read-item").length;
       return "The quickest way in: what stands out across markets this month, written by fixed rules from the numbers on the page. " +
         (n > 1 ? "This is the strongest of today's " + n + ". " : "") +
-        "The chips are the exact numbers behind each line, and the button below the list asks Claude for a plain-English note.";
+        "The chips are the exact numbers behind each line, and the button below the list asks Mistral AI for a plain-English note.";
     },
   },
   {

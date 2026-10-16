@@ -40,12 +40,12 @@ function cached(key) {
 function renderAnswer(body) {
   const paras = body.text.split(/\n{2,}/).map(p => "<p>" + esc(p.trim()) + "</p>").join("");
   const at = new Date(body.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
-  showAi(paras + '<p class="ai-meta">Written by Claude from the numbers above at ' + at + " SGT. It can be wrong; check it against the cards. Not advice.</p>");
+  showAi(paras + '<p class="ai-meta">Written by Mistral AI from the numbers above at ' + at + " SGT. It can be wrong; check it against the cards. Not advice.</p>");
 }
 
 const MESSAGES = {
-  not_configured: "AI explanations aren't set up on this site yet. Add an ANTHROPIC_API_KEY in Netlify to turn them on.",
-  bad_key: "The site's AI key was rejected. Check ANTHROPIC_API_KEY in Netlify.",
+  not_configured: "AI explanations aren't set up on this site yet. Add a MISTRAL_API_KEY in Netlify to turn them on.",
+  bad_key: "The site's AI key was rejected. Check MISTRAL_API_KEY in Netlify.",
   busy: "Too many requests right now. Try again in a minute.",
   timeout: "That took too long. Try again.",
 };
@@ -67,7 +67,7 @@ async function explain() {
       renderAnswer(body);
       try { sessionStorage.setItem(AI_CACHE, JSON.stringify({ key, at: Date.now(), body })); } catch { /* storage blocked */ }
     } else if (res.ok && body.refused) {
-      showAi("<p>Claude declined to write a note for this data. The rule-based read above still applies.</p>", "err");
+      showAi("<p>The AI declined to write a note for this data. The rule-based read above still applies.</p>", "err");
     } else {
       const msg = MESSAGES[body.error] || (res.status === 404 ? "AI explanations only work on the deployed site." : "Couldn't get an explanation right now.");
       showAi("<p>" + esc(msg) + "</p>", "err");

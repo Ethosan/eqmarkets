@@ -81,14 +81,14 @@ describe("/api/explain handler", () => {
 
   beforeEach(async () => {
     calls = [];
-    process.env.ANTHROPIC_API_KEY = "sk-ant-test";
+    process.env.MISTRAL_API_KEY = "mistral-test";
     vi.resetModules();
     ({ default: handler } = await import("../netlify/functions/explain.mjs"));
   });
-  afterEach(() => { globalThis.fetch = realFetch; delete process.env.ANTHROPIC_API_KEY; });
+  afterEach(() => { globalThis.fetch = realFetch; delete process.env.MISTRAL_API_KEY; });
 
   it("says when it isn't set up", async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.MISTRAL_API_KEY;
     const res = await handler(post(FACTS));
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("not_configured");
@@ -100,44 +100,51 @@ describe("/api/explain handler", () => {
     expect((await handler(new Request("https://markets.example.com/api/explain"))).status).toBe(405);
   });
 
-  it("calls Claude with the rebuilt prompt and caches the answer", async () => {
+  it("calls Mistral with the rebuilt prompt and caches the answer", async () => {
     apiReply({
-      id: "msg_1", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: "end_turn",
-      content: [{ type: "thinking", thinking: "", signature: "x" }, { type: "text", text: "Markets are leaning risk-off." }],
-      usage: { input_tokens: 900, output_tokens: 120 },
+      id: "cmpl_1", object: "chat.completion", model: "mistral-medium-3-5-26-04",
+      choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "Markets are leaning risk-off." } }],
+      usage: { prompt_tokens: 900, completion_tokens: 120, total_tokens: 1020 },
     });
     const res = await handler(post(FACTS));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.text).toBe("Markets are leaning risk-off.");
+    expect(body.truncated).toBe(false);
 
     expect(calls).toHaveLength(1);
     const sent = calls[0].body;
-    expect(calls[0].url).toMatch(/\/v1\/messages/);
-    expect(sent.model).toBe("claude-opus-5-5");
-    expect(sent.output_config).toEqual({ effort: "low" });
-    expect(sent.fallbacks).toBe("default");
-    expect(sent.thinking).toBeUndefined();
-    expect(sent.system).toBe(SYSTEM_PROMPT);
-    expect(sent.messages[0].content).toMatch(/Rules-engine observations/);
-    expect(String(calls[0].init.headers?.get?.("anthropic-beta") ?? JSON.stringify(calls[0].init.headers))).toMatch(/server-side-fallback-2026-07-01/);
+    expect(calls[0].url).toBe("https://api.mistral.ai/v1/chat/completions");
+    expect(calls[0].init.headers.authorization).toBe("Bearer mistral-test");
+    expect(sent.model).toBe("mistral-medium-latest");
+    expect(sent.messages[0]).toEqual({ role: "system", content: SYSTEM_PROMPT });
+    expect(sent.messages[1].role).toBe("user");
+    expect(sent.messages[1].content).toMatch(/Rules-engine observations/);
 
     const again = await (await handler(post(FACTS))).json();
     expect(again.cached).toBe(true);
     expect(calls).toHaveLength(1);
   });
 
-  it("handles a refusal without showing partial text", async () => {
-    apiReply({ id: "msg_2", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: "refusal",
-      stop_details: { type: "refusal", category: null }, content: [], usage: { input_tokens: 900, output_tokens: 0 } });
+  it("keeps only the text chunks from a reasoning model", async () => {
+    apiReply({ model: "magistral-medium-latest", choices: [{ index: 0, finish_reason: "length", message: { role: "assistant",
+      content: [{ type: "thinking", thinking: [{ type: "text", text: "hmm" }] }, { type: "text", text: "Risk-off." }] } }] });
     const body = await (await handler(post(FACTS))).json();
-    expect(body).toEqual({ text: null, refused: true });
+    expect(body.text).toBe("Risk-off.");
+    expect(body.truncated).toBe(true);
+  });
+
+  it("reports an empty answer", async () => {
+    apiReply({ choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "" } }] });
+    expect((await (await handler(post(FACTS))).json()).error).toBe("empty");
   });
 
   it("maps API errors to short codes", async () => {
-    apiReply({ type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }, 401);
+    apiReply({ message: "Unauthorized" }, 401);
     expect((await (await handler(post(FACTS))).json()).error).toBe("bad_key");
-    apiReply({ type: "error", error: { type: "rate_limit_error", message: "slow down" } }, 429);
+    apiReply({ message: "Requests rate limit exceeded" }, 429);
     expect((await handler(post({ ...FACTS, rec: { prob: 0.2 } }))).status).toBe(429);
+    apiReply({ message: "Internal error" }, 500);
+    expect(await (await handler(post({ ...FACTS, rec: { prob: 0.3 } }))).json()).toEqual({ error: "upstream", status: 500 });
   });
 });
