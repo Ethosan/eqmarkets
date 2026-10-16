@@ -19,7 +19,11 @@ async function fetchWithTimeout(url, ms = 9000) {
   const t = setTimeout(() => c.abort(), ms);
   try {
     const r = await fetch(url, { signal: c.signal, cache: "no-store" });
-    if (!r.ok) throw new Error("http " + r.status);
+    if (!r.ok) {
+      /* Release the unread body, or the connection stays open after the abort timer is cleared. */
+      r.body?.cancel().catch(() => {});
+      throw new Error("http " + r.status);
+    }
     return r;
   } finally {
     clearTimeout(t);

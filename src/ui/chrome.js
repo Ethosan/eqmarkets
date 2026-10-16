@@ -62,10 +62,15 @@ function selectTab(btn, focus) {
   document.querySelectorAll(".group").forEach(sec => sec.classList.toggle("hidden", f !== "all" && sec.dataset.tab !== f));
   $("models").classList.toggle("hidden", f !== "all" && f !== "models");
   $("method").classList.toggle("hidden", f !== "all" && f !== "models");
-  /* Keep the tab bar in view when switching after scrolling down. */
+  /* Switching after scrolling down: return the bar to its resting spot so the
+     chosen group starts right under it. A stuck sticky bar reports its stuck
+     offsetTop, so measure the resting spot from the page head above it. */
   const bar = $("tabs");
-  if (focus !== undefined && bar.getBoundingClientRect().top < 0 || window.scrollY > bar.offsetTop) {
-    window.scrollTo({ top: Math.max(0, bar.offsetTop - appbarHeight() - 4), behavior: "instant" });
+  if (focus !== undefined) {
+    const head = bar.previousElementSibling;
+    const rest = head.getBoundingClientRect().bottom + window.scrollY + parseFloat(getComputedStyle(head).marginBottom);
+    const top = Math.max(0, rest - appbarHeight() - (getComputedStyle(bar).position === "sticky" ? 0 : 4));
+    if (window.scrollY > top) window.scrollTo({ top, behavior: "instant" });
   }
   try { localStorage.setItem(TAB_KEY, f); } catch { /* storage blocked */ }
 }

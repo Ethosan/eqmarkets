@@ -135,6 +135,9 @@ export function initDetail() {
     h.addEventListener("pointermove", move);
     h.addEventListener("pointerup", end);
     h.addEventListener("pointercancel", end);
+    /* touch-action: none still lets Chrome start a fling on a fast flick; once the
+       sheet closes, that fling eats the next tap on a card. */
+    h.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
   }
   /* Close on backdrop click. */
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
