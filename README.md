@@ -7,6 +7,7 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
+- **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
 - **Three models**, each computed in the browser from two years of daily history:
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
   - **Absorption ratio** (Kritzman et al. 2011): the variance share of the top fifth of eigenvectors across a 10-asset return panel, plus the standardized ΔAR shift.
@@ -17,6 +18,20 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 - **Correct alignment:** Yahoo bars are dated in exchange-local time via `gmtoffset`, so FX and futures share a calendar. Curve spreads use H.15 closes on both legs. Models use as-of joins with a 7-day staleness cap.
 - **Live status:** a 60-second refresh and market session chips (NYSE cash, CME Globex) for Singapore and New York. A stale marker appears if the feeds stop answering, and cards keep their last good value instead of blanking.
 - **Installable app (PWA):** an install bar uses the browser's own prompt on Android and desktop, and shows the Share → Add to Home Screen steps on iPhone. It's also in the Guide. The last good data is saved on the device, so the app opens instantly and still shows the last values offline ("Offline · saved 14:31 SGT"). Long-press the home-screen icon for shortcuts to Models, Rates, Risk and the Tape (`/?tab=rates`). A notice offers a reload when a new version is deployed.
+
+## Scope: Markets vs Oracular
+
+Markets and [Oracular](https://oracular.ethantam.dev) are separate tools, and new features should stay on their side of the line.
+
+| Markets (this repo) | Oracular |
+|---|---|
+| Top-down and cross-asset: rates, credit, vol, FX, commodities, index futures | Bottom-up: one company or ticker at a time |
+| Live market data | Synthetic, deterministic data |
+| Regimes, flows, premia and positioning (RAI, absorption, recession odds, CTA, VRP, stock–bond) | Investment memo, verdict badge and seven-factor scorecard |
+| Calendar *events* that move index futures (turn of month, FOMC, expiry, rebalancing), tested as event studies | Per-ticker seasonality tables with t-statistics, lifecycle phase map |
+| Testing whether a signal works (backtest lab, overfitting guards) | Options and derivatives analytics, alternative signals, research chat |
+
+So Markets doesn't show single stocks, fundamentals, options chains, buy/hold verdicts or month-of-year seasonality tables, and Oracular doesn't do macro regimes or cross-asset flows.
 
 ## Data sources
 
@@ -57,8 +72,18 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | Inflation score | mean of 63-day vol-scaled moves in the 10Y breakeven, DBC, DBA (≥ 2 of 3), 5-session mean |
 | Regime | quadrant of (growth, inflation); confidence: clear if both \|score\| ≥ 0.5, tentative if either < 0.2 |
 | Today's read | 16 rules on 21-day vol-scaled moves and VIX/MOVE level z-scores; strength = weakest condition; top 4 shown |
+| CTA position | mean over L ∈ {21, 63, 126, 252} of clip(zₗ / 2, ±1), zₗ = (xₜ − xₜ₋ₗ) / (σ_EWMA · √L), x = ln P (or −yield) |
+| CTA flip level | the close tomorrow at which zₗ changes sign: xₜ₋ₗ₊₁ |
+| CTA ±kσ week | position after xₜ + kσ√5 with every lookback rolled forward 5 days, minus today's |
+| Variance risk premium | VIX − √(252 · mean r²) × 100 over ES's last 21 daily log returns, vol points |
+| Stock–bond correlation | 63-day Pearson correlation of ES log returns with −Δ10Y yield |
+| Month-end gap | ES month-to-date % − 10Y Treasury month-to-date % (≈ −8.5 × Δyield) |
+| Turn of month | last NYSE trading day of the month and the first three of the next (holidays computed from the NYSE rules) |
+| Option expiry | third Friday, or the Thursday before when Friday is a holiday; quad witching in Mar/Jun/Sep/Dec |
 
-All of this lives in `src/quant/` as pure functions, covered by `tests/quant.test.js`. The tests check them against closed-form cases: EWMA convergence to the true σ, eigenvalues of known matrices, an AR near 1 when one factor drives everything and near k/N for independent assets, the NY Fed probit formula, and bp units for rates.
+All of this lives in `src/quant/` as pure functions, covered by `tests/quant.test.js` and `tests/flows.test.js`. The tests check them against closed-form cases: EWMA convergence to the true σ, eigenvalues of known matrices, an AR near 1 when one factor drives everything and near k/N for independent assets, the NY Fed probit formula, and bp units for rates.
+
+References for flows and premia: Moskowitz, Ooi & Pedersen (2012), *Time Series Momentum*, JFE. Hurst, Ooi & Pedersen (2017), *A Century of Evidence on Trend-Following Investing*, JPM. Bollerslev, Tauchen & Zhou (2009), *Expected Stock Returns and Variance Risk Premia*, RFS. Carr & Wu (2009), *Variance Risk Premiums*, RFS. Campbell, Pflueger & Viceira (2020), *Macroeconomic Drivers of Bond and Equity Risks*, JPE. Lakonishok & Smidt (1988), *Are Seasonal Anomalies Real?*, RFS. McConnell & Xu (2008), *Equity Returns at the Turn of the Month*, FAJ. Lucca & Moench (2015), *The Pre-FOMC Announcement Drift*, JF. Ariel (1990), *High Stock Returns before Holidays*, JF.
 
 References: Ilmanen, Maloney & Ross (2014), *Exploring Macroeconomic Sensitivities: How Investments Respond to Different Economic Environments*, JPM. Bridgewater Associates (2012), *The All Weather Story*. Moskowitz, Ooi & Pedersen (2012), *Time Series Momentum*, JFE. Erb & Harvey (2006), *The Strategic and Tactical Value of Commodity Futures*, FAJ. Gorton & Rouwenhorst (2006), *Facts and Fantasies about Commodity Futures*, FAJ. Kumar & Persaud (2002), *Pure Contagion and Investors' Shifting Risk Appetite*, IMF. Kritzman, Li, Page & Rigobon (2011), *Principal Components as a Measure of Systemic Risk*, JPM. Estrella & Mishkin (1996), *The Yield Curve as a Predictor of U.S. Recessions*, NY Fed. Estrella & Trubin (2006), *The Yield Curve as a Leading Indicator*, NY Fed. J.P. Morgan/Reuters (1996), *RiskMetrics Technical Document*. Gilchrist & Zakrajšek (2012), *Credit Spreads and Business Cycle Fluctuations*, AER. Kim & Wright (2005), *An Arbitrage-Free Three-Factor Term Structure Model*, Fed Board.
 
@@ -71,13 +96,19 @@ Why the regime uses DBC and DBA instead of the grain and energy futures: Yahoo's
 A hidden **Lab** tab for testing the models as trading signals. Open the site with `?admin=1` to turn it on in that browser (`?admin=0` turns it off). It only hides UI: there is no secret behind it, and the lab code loads as its own chunk the first time the tab opens.
 
 - **Data:** 2Y, 5Y, 10Y or full daily history for the model inputs and the instrument (NQ, ES, NDX, QQQ and SPY total return, gold, Bitcoin).
-- **Point-in-time models:** RAI (raw and 3-day mean), absorption ratio and ΔAR, and the recession probability are rebuilt for every day using only data up to that day. FRED series are treated as known one business day after their date, when they are published.
-- **Overlay:** the price chart is shaded by RAI regime, ΔAR fragility, recession odds or any strategy's position, with the model in a synced pane below.
-- **Strategies:** buy and hold, RAI regime, RAI scaled, absorption ΔAR (Kritzman et al.), recession filter, RAI + ΔAR, a 200-day trend baseline, and a **custom JavaScript rule**. Options: execution on the signal's close or the next one, cost in bp per side, and an EWMA volatility target.
+- **Point-in-time models:** RAI (raw and 3-day mean), absorption ratio and ΔAR, the recession probability, the variance risk premium, the stock–bond correlation and the trend-follower position are rebuilt for every day using only data up to that day. FRED series are treated as known one business day after their date, when they are published.
+- **Overlay:** the price chart is shaded by RAI regime, ΔAR fragility, recession odds, the variance premium, the stock–bond correlation, trend-follower positioning, the turn of the month or any strategy's position, with the model in a synced pane below.
+- **Strategies:** buy and hold, RAI regime, RAI scaled, absorption ΔAR (Kritzman et al.), recession filter, RAI + ΔAR, variance premium, CTA trend, turn of month, a 200-day trend baseline, and a **custom JavaScript rule**. Options: execution on the signal's close or the next one, cost in bp per side, and an EWMA volatility target.
 - **Results:** growth of $1 (log), drawdowns, and CAGR, vol, Sharpe, Sortino, max drawdown, Calmar, exposure, trades per year, hit rate and beta to buy and hold, plus a CSV export. Every strategy is measured over the same window, starting when all selected strategies have a signal.
-- **Console:** `eqlab.test(ctx => ctx.raiS > 0 ? 1 : 0)` prints a rule against buy and hold. `eqlab.frame` has the aligned data.
+- **Is it real?** Guards against overfitting, the usual way backtests mislead:
+  - an in-sample / out-of-sample split (last 30% or 50%), marked on every chart;
+  - a 90% interval on Sharpe from 600 stationary block-bootstrap resamples (Politis & Romano 1994, 10-day blocks);
+  - the deflated Sharpe ratio (Bailey & López de Prado 2014): the probability the true Sharpe is above zero, after fat tails and after counting every strategy variant tried in the session, including sweep cells;
+  - a parameter sweep: any rule that reads `ctx.p.a` / `ctx.p.b` runs over a grid, shown as a heatmap scored on the in-sample period, with the best cell's out-of-sample Sharpe. A real edge is a broad plateau, not one bright cell.
+- **Calendar effects:** an event study on the instrument's whole history: turn of month, FOMC day and the day before, option-expiry week, quad-witching week, expiry day, pre-holiday, and month-end after stocks led or lagged Treasuries by 2+ points. Each row has the mean event-day and other-day return in bp, Welch's t, a randomization p-value (2,000 same-size random day sets), the hit rate and the share of total return.
+- **Console:** `eqlab.test(ctx => ctx.raiS > 0 ? 1 : 0)` prints a rule against buy and hold. `eqlab.frame` has the aligned data and `eqlab.events` the calendar study.
 
-A rule is the body of `function (ctx)`, called once per bar. It returns a position (1 long, 0 flat, −1 short, clipped to ±3) or `null` to hold. `ctx` exposes only the current and past bars (`ctx.price`, `ctx.raiS`, `ctx.dAR`, `ctx.rec`, `ctx.sma(n)`, `ctx.get(field, k)`…), so a rule can't peek ahead. The engine is `src/quant/backtest.js`, tested in `tests/backtest.test.js` (lag, costs, holding on null, no look-ahead, vol targeting, ΔAR path).
+A rule is the body of `function (ctx)`, called once per bar. It returns a position (1 long, 0 flat, −1 short, clipped to ±3) or `null` to hold. `ctx` exposes only the current and past bars (`ctx.price`, `ctx.raiS`, `ctx.dAR`, `ctx.rec`, `ctx.vrp`, `ctx.sbCorr`, `ctx.trend`, `ctx.sma(n)`, `ctx.get(field, k)`…), so a rule can't peek ahead. The one exception is `ctx.cal(flag, ahead)`: calendar dates are known in advance, so a rule may ask whether the next bar is, say, a turn-of-month day. The engine is `src/quant/backtest.js`, tested in `tests/backtest.test.js` (lag, costs, holding on null, no look-ahead, vol targeting, ΔAR path).
 
 Caveats: futures use Yahoo's continuous front-month series, so roll gaps count as returns. Flat earns nothing, and Sharpe uses a zero risk-free rate. A backtest over a few years of one market is a sanity check, not evidence of an edge.
 
@@ -109,11 +140,14 @@ src/
     models.js           RAI, absorption ratio, recession probit, per-series stats
     regime.js           vol-scaled moves, growth × inflation regime
     narrative.js        rules behind Today's read
-    backtest.js         backtest engine: simulate, metrics, vol target, rules, presets
+    flows.js            variance risk premium, stock–bond correlation, CTA trend positioning
+    calendar.js         NYSE holidays, FOMC dates, turn of month, option expiry, event study
+    backtest.js         backtest engine: simulate, metrics, vol target, rules, presets, bootstrap, deflated Sharpe
   lab/                  admin backtest lab (separate chunk)
     lab.js              controls, strategies, results, custom rule editor
     data.js             long history and the point-in-time model frame
     plot.js             multi-series chart with shading and synced crosshairs
+    insights.js         calendar event study and parameter-sweep heatmap
   ai/
     explain.js          payload validation and prompt building (shared with the function)
   model/
@@ -124,6 +158,7 @@ src/
     board.js            indicator cards
     detail.js           detail sheet (dialog)
     models-panel.js     models section rendering
+    flows-panel.js      CTA positioning, variance premium, stock–bond correlation, calendar
     read-panel.js       Today's read and the AI button
     regime-panel.js     regime map
     chrome.js           clocks, session chips, tabs, progress bar

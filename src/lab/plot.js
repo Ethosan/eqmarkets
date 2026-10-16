@@ -75,6 +75,12 @@ function draw(root, o) {
   }
   if (o.band) el("rect", { x: x0, width: x1 - x0, y: Y(o.band[1]), height: Y(o.band[0]) - Y(o.band[1]), class: "ch-band" }, svg);
   for (const r of o.refs || []) el("line", { x1: x0, x2: x1, y1: Y(r), y2: Y(r), class: "ch-ref" }, svg);
+  /* Vertical markers, e.g. where the out-of-sample period starts. */
+  for (const m of o.marks || []) {
+    if (m.i < 0 || m.i >= n) continue;
+    el("line", { x1: X(m.i), x2: X(m.i), y1: y0, y2: y1, class: "ch-ref" }, svg);
+    if (m.label) el("text", { x: X(m.i) + 5, y: y0 + 9, class: "ch-xlab" }, svg).textContent = m.label;
+  }
 
   const span = (parse(dates[n - 1]) - parse(dates[0])) / 864e5;
   const slots = Math.max(2, Math.min(7, Math.floor((x1 - x0) / 100)));

@@ -407,3 +407,26 @@ html.touring { overflow: hidden }
   .read-item p, .ai-out p { font-size: 14px }
   .read-foot .t-btn { width: 100% }
 }
+
+/* ---------- flows and premia ---------- */
+.cta-side { display: grid; gap: 14px }
+.cta-mkt { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px }
+.cta-h { font-size: var(--fs-sm); color: var(--text-2) }
+.cta-h b { color: var(--text-1); font-weight: 600; margin-right: 4px }
+.cta-flips { list-style: none; margin-top: 6px; display: grid; gap: 3px }
+.cta-flips li { display: flex; justify-content: space-between; gap: 10px; font-size: var(--fs-xs); color: var(--text-3) }
+.cta-flips b { font-weight: 600; color: var(--text-2); white-space: nowrap }
+.cta-flips em { font-style: normal; color: var(--text-3); font-weight: 500 }
+.cta-flow { font-size: var(--fs-xs); color: var(--text-3); margin-top: 8px }
+.cta-flow b { font-weight: 600 }
+.cta-flow .u { color: var(--up) }
+.cta-flow .d { color: var(--down) }
+.cal-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin-top: 4px }
+.cal-list li { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; border-left: 2px solid var(--border-2) }
+.cal-list li.u { border-left-color: var(--up) }
+.cal-list li.a { border-left-color: var(--amber) }
+.cal-k { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2) }
+.cal-v { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5 }
+@media (max-width: 680px) {
+  .cal-list { grid-template-columns: 1fr }
+}

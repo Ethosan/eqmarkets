@@ -86,7 +86,9 @@ describe("rules", () => {
   it("every preset compiles and runs on a frame with model gaps", () => {
     const n = 300, d = dates(n);
     const frame = { dates: d, price: walk(n, 0.01, 2), raiS: d.map((_, i) => (i < 50 ? null : Math.sin(i / 9))),
-      dAR: d.map((_, i) => (i < 80 ? null : 1.5 * Math.cos(i / 13))), rec: d.map(() => 0.2) };
+      dAR: d.map((_, i) => (i < 80 ? null : 1.5 * Math.cos(i / 13))), rec: d.map(() => 0.2),
+      vrp: d.map((_, i) => Math.sin(i / 7)), trend: d.map((_, i) => (i < 30 ? null : Math.cos(i / 20))),
+      cal: { tom: d.map((_, i) => i % 21 < 4) } };
     for (const p of PRESETS) {
       const t = runRule(frame, compileRule(p.code));
       expect(t.length).toBe(n);

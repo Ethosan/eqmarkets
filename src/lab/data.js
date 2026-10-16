@@ -5,6 +5,8 @@ import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS } from "../config.js";
 import { fredSeries, yahooSeries } from "../data/sources.js";
 import { absorptionSeries, absorptionShiftPath, recessionSeries, riskAppetite } from "../quant/models.js";
 import { alignSeries, asOf, mean } from "../quant/stats.js";
+import { calendarFlags } from "../quant/calendar.js";
+import { stockBondCorr, trendPath, vrpSeries } from "../quant/flows.js";
 
 export const INSTRUMENTS = [
   { id: "nq", label: "NQ · Nasdaq 100 futures", symbol: "NQ=F" },
@@ -66,7 +68,7 @@ export function loadInstrument(inst, range) {
 
 /* Model paths on the instrument's calendar. Each value is the as-of reading on
    that date (at most 7 days old), or null. */
-export function buildFrame(S, inst) {
+export function buildFrame(S, inst, { ppy = 252 } = {}) {
   const cal = inst.dates;
   const n = cal.length;
   const empty = () => new Array(n).fill(null);
@@ -103,8 +105,28 @@ export function buildFrame(S, inst) {
     if (r.prob.length) rec = on({ dates: r.dates, values: r.prob });
   }
 
+  /* Flows and premia: VRP (VIX − ES realized vol), stock–bond correlation and
+     the trend-follower position in the instrument itself. */
+  const vrp = S.es && S.vix ? on(vrpSeries(S.es, S.vix)) : empty();
+  const ten = S.us10y || S.dgs10;
+  const sbCorr = S.es && ten ? on(stockBondCorr(S.es, ten)) : empty();
+  const trend = trendPath(inst, { ppy }).values;
+
+  /* Month-to-date gap between the instrument and a 10-year Treasury
+     (≈ −8.5 × the yield change), the trigger for month-end rebalancing. */
+  const rebal = empty();
+  if (ten) {
+    let base = null, baseY = null;
+    for (let i = 1; i < n; i++) {
+      if (cal[i].slice(0, 7) !== cal[i - 1].slice(0, 7)) { base = inst.values[i - 1]; baseY = asOf(ten, cal[i - 1], 7); }
+      const y = asOf(ten, cal[i], 7);
+      if (base != null && baseY != null && y != null) rebal[i] = (inst.values[i] / base - 1) * 100 + 8.5 * (y - baseY);
+    }
+  }
+
   return {
-    dates: cal, price: inst.values, rai, raiS, ar, dAR, rec,
+    dates: cal, price: inst.values, rai, raiS, ar, dAR, rec, vrp, sbCorr, trend, rebal,
+    cal: calendarFlags(cal),
     vix: S.vix ? on(S.vix) : empty(),
     meta: {
       raiInputs: inputs.map(i => i.id), raiTotal: RAI_INPUTS.length,

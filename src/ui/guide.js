@@ -12,6 +12,7 @@ const SECTIONS = [
   { id: "rai", label: "Risk appetite" },
   { id: "ar", label: "Absorption" },
   { id: "rec", label: "Recession" },
+  { id: "flows", label: "Flows" },
   { id: "glossary", label: "Indicators" },
   { id: "timing", label: "Data timing" },
 ];
@@ -105,6 +106,14 @@ const BODY = () => `
   <h3>Recession probability</h3>
   <p>The New York Fed's yield-curve model: the chance of a US recession within 12 months, from the gap between the 10-year and 3-month Treasury yields (averaged over a month). When short rates sit above long rates, the curve is inverted and the odds rise. Every US recession since the late 1960s was preceded by an inversion, though the lead time ranged from about 6 months to 2 years.</p>
   <p>Above 30% has historically been a warning zone (the dashed line on the chart). This version uses daily data, so it can differ from the NY Fed's monthly figure by a point or two.</p>
+</section>
+
+<section id="g-flows" class="g-sec">
+  <h3>Flows, premia and the calendar</h3>
+  <p><b>Trend followers (CTAs).</b> Managed-futures funds run hundreds of billions on rules that buy what's been rising and sell what's been falling. This estimates their position in each market the way the research on them does (Moskowitz, Ooi &amp; Pedersen 2012; Hurst, Ooi &amp; Pedersen 2017): the 1, 3, 6 and 12-month moves, each divided by the move volatility would predict, mapped to a position that's fully long at +2σ and fully short at −2σ, then averaged. The flip levels are where tomorrow's close would turn a signal around. The ±2σ week shows how much they'd have to buy or sell after a big week, as a share of their maximum position. Forced selling after a fall is how trend followers can make a drop worse. It's an estimate from prices, not their actual books.</p>
+  <p><b>Variance risk premium.</b> VIX is what options say volatility will be over the next month. Realized volatility is what ES actually did over the last month. Options usually price more volatility than turns up, and that gap is the premium sellers of insurance earn. Research has found a wide premium was followed by better equity returns (Bollerslev, Tauchen &amp; Zhou 2009). Below zero is the warning sign: markets are moving more than options priced, which tends to happen in selloffs.</p>
+  <p><b>Stock–bond correlation.</b> How ES and Treasury prices moved together over the last 63 sessions. Negative means bonds rallied on the days stocks fell, so a 60/40 portfolio is hedged. Positive means they fell together, as in 2022, when inflation was the shock. When it turns positive, balanced and risk-parity funds have to cut both, and "buy bonds as a hedge" stops working.</p>
+  <p><b>Calendar.</b> Dates that reliably bring flows to index futures. The <i>turn of the month</i> (the last trading day and the first three) has historically carried a large share of equity returns, as salaries, pension contributions and fund inflows arrive (Lakonishok &amp; Smidt 1988; McConnell &amp; Xu 2008). <i>FOMC</i> days bring rate-decision volatility, and stocks have tended to drift up into the announcement (Lucca &amp; Moench 2015). <i>Option expiry</i>, especially quarterly quad witching, brings large hedging flows. <i>Month-end rebalancing</i>: funds that hold a fixed mix of stocks and bonds sell whichever did better that month, so a big lead for stocks can mean selling pressure in the last few sessions.</p>
 </section>
 
 <section id="g-glossary" class="g-sec">

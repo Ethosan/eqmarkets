@@ -116,3 +116,32 @@
 }
 .lab-skip { color: var(--amber) }
 .lab-skip[hidden] { display: none }
+
+/* ---------- robustness, events, sweep ---------- */
+.lab-sub { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; color: var(--text-2); margin-top: 18px }
+.lab-link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px }
+.lab-link:hover { color: var(--amber) }
+.lab-events tbody tr.up td.diff, .lab-events tbody tr.up td.p { color: var(--up); font-weight: 600 }
+.lab-events tbody tr.dn td.diff, .lab-events tbody tr.dn td.p { color: var(--down); font-weight: 600 }
+.lab-events td.muted { color: var(--text-3); text-align: left }
+.lab-trio { display: grid; grid-template-columns: 1fr 1fr 64px; gap: 6px }
+.lab .lab-trio input[type="number"] { width: 100%; min-width: 0 }
+.lab-sweep { margin-top: 4px }
+.lab-heat { margin-top: 14px; overflow-x: auto }
+.hm { display: grid; grid-template-columns: repeat(var(--cols), minmax(42px, 1fr)); gap: 2px; min-width: min-content }
+.hm.two { grid-template-columns: auto repeat(var(--cols), minmax(42px, 1fr)) }
+.hm-c {
+  font-size: 11px; text-align: center; padding: 7px 2px; border-radius: 4px; color: var(--text-1);
+  background: rgba(217, 168, 78, calc(.06 + var(--t) * .78));
+  outline-offset: -2px;
+}
+.hm-c.best { outline: 2px solid var(--text-1) }
+.hm-c.beat { text-decoration: underline; text-underline-offset: 3px }
+.hm-yl, .hm-xl { font-size: 11px; color: var(--text-3); align-self: center; text-align: center; padding: 2px 6px }
+.hm-yl { text-align: right }
+.hm-axes { margin-top: 8px }
+.lab-sweep-sum b { color: var(--text-1); font-weight: 600 }
+.lab code { font: 12px ui-monospace, "SF Mono", Consolas, monospace; color: var(--text-1); font-variant-ligatures: none }
+@media (max-width: 680px) {
+  .lab-sweep .lab-field { grid-column: 1 / -1 }
+}
