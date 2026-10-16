@@ -1,0 +1,51 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Same-origin proxies so the browser can read the market data sources
+# without CORS errors. Status 200 = rewrite, not a redirect.
+[[redirects]]
+  from = "/yf/*"
+  to = "https://query1.finance.yahoo.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/fred/*"
+  to = "https://fred.stlouisfed.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/boj/*"
+  to = "https://www.boj.or.jp/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/cftc/*"
+  to = "https://publicreporting.cftc.gov/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Vite fingerprints everything in /assets, so it can be cached forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
