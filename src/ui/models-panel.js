@@ -86,7 +86,7 @@ function renderRecession() {
   v.textContent = (p * 100).toFixed(1) + "%";
   const s = r.avgSpread[n - 1] * 100;
   const tone = p >= 0.3 ? "d" : p < 0.15 ? "u" : "";
-  sub.innerHTML = '<span class="m-tag ' + tone + '">' + (p >= 0.3 ? "Elevated" : p < 0.15 ? "Low" : "Moderate") + "</span> " +
+  sub.innerHTML = '<span class="m-tag ' + tone + '">' + (p >= 0.3 ? "High" : p < 0.15 ? "Low" : "Moderate") + "</span> " +
     "3m10y 1M avg " + sgn(s, 0) + " bp";
   const k = -504;
   chart(chartEl, {

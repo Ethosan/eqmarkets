@@ -1,6 +1,6 @@
 # Equarian Markets
 
-A live macro dashboard for futures traders: rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
+A live macro dashboard for futures traders. Rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
 
 > **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there.
 
@@ -12,10 +12,10 @@ A live macro dashboard for futures traders: rates, credit, carry and the tape on
   - **Absorption ratio** (Kritzman et al. 2011): the variance share of the top fifth of eigenvectors across a 10-asset return panel, plus the standardized ΔAR shift.
   - **NY Fed yield-curve recession probability:** a probit on the 1-month average 3m10y spread, with a 2Y history.
 - **Tour and guide:** a first-visit spotlight tour walks through each panel using that day's live numbers. The **Guide** button (and a **?** on each model) opens a reference covering a 30-second pre-trade routine, what z-scores, percentiles, bp and vol mean, each model's thresholds and caveats, a glossary of all 27 indicators, and how fresh each feed is. Add `?notour` to the URL to skip the tour.
-- **Interactive charts:** hover, tap or use the arrow keys for a crosshair readout (date and value in the series' units), with a value axis on round-number ticks and a date axis. Used on the detail sheet and all three model charts.
+- **Interactive charts:** hover or tap for a crosshair readout (date and value in the series' units; the arrow keys work too), with a value axis on round-number ticks and a date axis. Used on the detail sheet and all three model charts.
 - **Unit-aware statistics:** each series has a `kind`. Prices use % changes and log-return vol; rates and spreads use bp changes and normal (bp) vol; indices use points. Cards show the 1M change and EWMA vol. The detail sheet adds 1W/1M/3M/YTD/1Y changes, 21-day and EWMA (λ = 0.94) vol, 1Y percentile, robust z, high/low and max drawdown.
 - **Correct alignment:** Yahoo bars are dated in exchange-local time via `gmtoffset`, so FX and futures share a calendar. Curve spreads use H.15 closes on both legs. Models use as-of joins with a 7-day staleness cap.
-- **Live, honest status:** a 60-second refresh, market session chips (NYSE cash, CME Globex) for Singapore and New York, and a stale marker if the feeds stop answering. Cards keep their last good value instead of blanking.
+- **Live status:** a 60-second refresh and market session chips (NYSE cash, CME Globex) for Singapore and New York. A stale marker appears if the feeds stop answering, and cards keep their last good value instead of blanking.
 - **Installable app (PWA):** an install bar uses the browser's own prompt on Android and desktop, and shows the Share → Add to Home Screen steps on iPhone. It's also in the Guide. The last good data is saved on the device, so the app opens instantly and still shows the last values offline ("Offline · saved 14:31 SGT"). Long-press the home-screen icon for shortcuts to Models, Rates, Risk and the Tape (`/?tab=rates`). A notice offers a reload when a new version is deployed.
 
 ## Data sources
