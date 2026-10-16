@@ -2,6 +2,8 @@
 
 A live macro dashboard for futures traders: rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
 
+> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there.
+
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Claude write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
