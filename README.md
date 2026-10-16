@@ -5,7 +5,7 @@ A live macro dashboard for futures traders: rates, credit, carry and the tape on
 > **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there.
 
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
-- **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Claude write a short note from the same numbers (see *AI explanations* below).
+- **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
 - **Three models**, each computed in the browser from two years of daily history:
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
@@ -68,13 +68,13 @@ Why the regime uses DBC and DBA instead of the grain and energy futures: Yahoo's
 
 ## AI explanations (optional)
 
-The **Explain in plain English** button calls `netlify/functions/explain.mjs`, which asks Claude (Opus 5.5, low effort) for a two-paragraph note.
+The **Explain in plain English** button calls `netlify/functions/explain.mjs`, which asks Mistral (`mistral-medium-latest`, Mistral Medium 3.5) for a two-paragraph note.
 
-- **Turn it on:** Netlify → Site configuration → Environment variables → add `ANTHROPIC_API_KEY` (scope: Functions), then redeploy. Without it the button says it isn't set up.
-- **Optional:** `EXPLAIN_MODEL` to use a different model, for example a cheaper one.
+- **Turn it on:** Netlify → Site configuration → Environment variables → add `MISTRAL_API_KEY` (scope: Functions), then redeploy. Create the key at console.mistral.ai → API Keys. Without it the button says it isn't set up.
+- **Optional:** `EXPLAIN_MODEL` to use a different Mistral model, for example `mistral-small-latest` (cheaper and faster) or `mistral-large-latest`.
 - **What it sends:** only numbers. The browser posts the scores behind *Today's read*. The function checks them against a fixed schema (known ids, bounded finite numbers, ISO dates), rebuilds every sentence itself in `src/ai/explain.js`, and only then calls the API, so nothing typed by a visitor can reach the prompt.
-- **Cost control:** a per-IP rate limit of 6 a minute (Netlify's in-code function rate limiting; check it's enabled on your plan), a 30-minute cache per identical data block, a 9-second timeout and bounded output. A call costs roughly 1 to 3 US cents, including the model's thinking tokens. **Set a monthly spend limit on the key in the Anthropic Console** as the backstop, because the endpoint is public.
-- **Safety:** a refusal shows a short notice instead of partial text, and server-side fallbacks are on for the default model.
+- **Cost control:** a per-IP rate limit of 6 a minute (Netlify's in-code function rate limiting; check it's enabled on your plan), a 30-minute cache per identical data block, a 9-second timeout and at most 700 output tokens. A call costs about half a US cent on Medium 3.5 ($1.5/M input, $7.5/M output). **Set a monthly spend limit in the Mistral console (Admin → Limits)** as the backstop, because the endpoint is public.
+- **Errors:** a rejected key, rate limit, timeout or empty answer each shows a short notice instead of partial text.
 
 ## Project structure
 
@@ -116,7 +116,7 @@ src/
   styles/               base tokens, layout, components
 public/                 manifest, icons, service worker (copied as-is)
 netlify/functions/
-  explain.mjs           POST /api/explain (Claude)
+  explain.mjs           POST /api/explain (Mistral)
 netlify.toml            build settings, data proxies, headers
 ```
 
