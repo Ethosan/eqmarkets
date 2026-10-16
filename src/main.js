@@ -10,7 +10,7 @@ import { computeDerived } from "./model/derived.js";
 import { buildBoard, updateCard } from "./ui/board.js";
 import { renderModels } from "./ui/models-panel.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
-import { tickClocks, initTabs, progStart, progBump, progEnd } from "./ui/chrome.js";
+import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
 
 const STALE_AFTER = 5 * 60_000;
@@ -61,6 +61,7 @@ async function refresh() {
   running = false;
 }
 
+trackAppbar();
 initTabs();
 initDetail();
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));

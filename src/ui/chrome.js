@@ -13,7 +13,10 @@ function clockHtml(tz) {
 }
 
 function setStatus(el, text, cls) {
-  el.innerHTML = '<i aria-hidden="true"></i>' + text;
+  const [name, ...rest] = text.split(" ");
+  el.innerHTML = '<i aria-hidden="true"></i>' + name + (rest.length ? '<span class="st-word"> ' + rest.join(" ") + "</span>" : "");
+  el.title = text;
+  el.setAttribute("aria-label", text);
   el.className = "status " + cls;
 }
 
@@ -37,6 +40,14 @@ export function tickClocks() {
 }
 
 /* ------------------------------------------------------------------ tabs */
+const appbarHeight = () => document.querySelector(".appbar").offsetHeight;
+
+/* The sticky tab bar sits under the app bar, whose height changes with wrapping. */
+export function trackAppbar() {
+  const set = () => document.documentElement.style.setProperty("--appbar-h", appbarHeight() + "px");
+  new ResizeObserver(set).observe(document.querySelector(".appbar"));
+  set();
+}
 const TAB_KEY = "eqm.tab";
 
 function selectTab(btn, focus) {
@@ -49,12 +60,19 @@ function selectTab(btn, focus) {
   if (focus) btn.focus();
   const f = btn.dataset.filter;
   document.querySelectorAll(".group").forEach(sec => sec.classList.toggle("hidden", f !== "all" && sec.dataset.tab !== f));
+  $("models").classList.toggle("hidden", f !== "all" && f !== "models");
+  $("method").classList.toggle("hidden", f !== "all" && f !== "models");
+  /* Keep the tab bar in view when switching after scrolling down. */
+  const bar = $("tabs");
+  if (focus !== undefined && bar.getBoundingClientRect().top < 0 || window.scrollY > bar.offsetTop) {
+    window.scrollTo({ top: Math.max(0, bar.offsetTop - appbarHeight() - 4), behavior: "instant" });
+  }
   try { localStorage.setItem(TAB_KEY, f); } catch { /* storage blocked */ }
 }
 
 export function initTabs() {
   const tabs = [...document.querySelectorAll(".tab")];
-  tabs.forEach(b => b.addEventListener("click", () => selectTab(b)));
+  tabs.forEach(b => b.addEventListener("click", () => selectTab(b, false)));
   /* Arrow-key navigation, as in the WAI-ARIA tabs pattern. */
   $("tabs").addEventListener("keydown", e => {
     const i = tabs.indexOf(document.activeElement);

@@ -20,7 +20,7 @@
 
 /* ---------- tabs ---------- */
 .tabs {
-  display: inline-flex; gap: 2px; max-width: 100%; overflow-x: auto;
+  display: inline-flex; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none;
   background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
   padding: 3px; margin-bottom: 22px;
 }
@@ -31,6 +31,8 @@
 }
 .tab:hover { color: var(--text-2) }
 .tab[aria-selected="true"] { background: var(--surface-2); color: var(--text-1) }
+.tabs::-webkit-scrollbar { display: none }
+.models.hidden, .method.hidden { display: none }
 
 /* ---------- models ---------- */
 .models { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px }
@@ -88,8 +90,8 @@
 .g-risk .gdot { background: var(--dot-risk) }
 .g-tape .gdot { background: var(--dot-tape) }
 .g-carry .gdot { background: var(--dot-carry) }
-.tk { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; color: var(--text-2) }
-.pill { margin-left: auto; font-size: var(--fs-xs); font-weight: 600; border-radius: 7px; padding: 2px 8px; white-space: nowrap }
+.tk { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+.pill { flex: none; margin-left: auto; font-size: var(--fs-xs); font-weight: 600; border-radius: 7px; padding: 2px 8px; white-space: nowrap }
 .pill.up { color: var(--up); background: var(--up-soft) }
 .pill.down { color: var(--down); background: var(--down-soft) }
 .pill.flat { color: var(--text-3); background: var(--surface-2) }
@@ -134,6 +136,7 @@
 }
 .detail::backdrop { background: rgba(5, 6, 9, .7) }
 .d-in { padding: 20px 22px 22px }
+.d-grab { display: none }
 .d-head { display: flex; align-items: center; justify-content: space-between }
 .d-close {
   width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
@@ -183,12 +186,40 @@
 .d-stats dt { font-size: var(--fs-xs); color: var(--text-3) }
 .d-stats dd { font-size: var(--fs-md); font-weight: 600; margin-top: 2px }
 .d-statsnote { font-size: var(--fs-xs); color: var(--text-3); margin-top: 8px }
-.d-source { display: inline-block; margin-top: 16px; font-size: var(--fs-sm); color: var(--accent); text-decoration: none }
+.d-source { display: inline-block; margin-top: 10px; padding: 10px 0; font-size: var(--fs-sm); color: var(--accent); text-decoration: none }
 .d-source:hover { text-decoration: underline }
 .d-source[hidden] { display: none }
 
 @media (max-width: 680px) {
+  /* Sticky, full-width tab bar with 40px+ targets */
+  .tabs {
+    position: sticky; top: var(--appbar-h, 52px); z-index: 15;
+    display: flex; width: calc(100% + 32px); max-width: none; margin: 0 -16px 18px;
+    border-radius: 0; border-width: 0 0 1px; padding: 6px 16px;
+    background: rgba(10, 11, 15, .9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .tab { flex: 1 0 auto; min-height: 40px; padding: 8px 6px }
+  .stamp { min-height: 40px }
+  .card { padding: 14px 13px 12px }
+  .note { line-height: 1.45 }
+  .m-card { padding: 16px }
+  .m-top { gap: 4px 12px; margin-bottom: 12px }
+  .m-top .m-kicker { flex-basis: 100% }
+  .cbars li { grid-template-columns: minmax(0, 1.4fr) 1fr 40px; gap: 8px }
+  /* Detail sheet: draggable bottom sheet, compact stats list */
+  .d-in { padding: 8px 18px 18px }
+  .d-grab { display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--border-2); margin: 0 auto 8px; touch-action: none }
+  .d-head { touch-action: none }
+  .detail { transition: transform .25s cubic-bezier(.2, .8, .2, 1) }
+  .d-close { width: 44px; height: 44px }
+  .d-value { font-size: 30px }
+  .d-ranges { display: flex; width: 100% }
+  .d-ranges button { flex: 1; min-height: 40px }
+  .d-stats { grid-template-columns: 1fr 1fr; gap: 0 14px }
+  .d-stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; background: none; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 9px 0 }
+  .d-stats dd { margin: 0; font-size: var(--fs-sm); white-space: nowrap }
   .status { padding: 3px 8px }
+  .st-word { display: none }
   .val { font-size: 23px }
   .ds { display: none !important }
   .d-stats { grid-template-columns: repeat(2, 1fr) }

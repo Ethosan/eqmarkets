@@ -85,7 +85,7 @@ function render() {
     ];
     if (st.mdd1y != null) rows.push(["1Y max drawdown", "−" + Math.abs(st.mdd1y).toFixed(1) + "%"]);
     $("dStats").innerHTML = rows.map(([k, v]) => "<div><dt>" + k + '</dt><dd class="num">' + v + "</dd></div>").join("");
-    $("dStatsNote").textContent = "Dashed line: 1Y median. Hover or use arrow keys to read values. Vol is annualized" +
+    $("dStatsNote").textContent = "Dashed line: 1Y median. " + (matchMedia("(hover: none)").matches ? "Touch and drag the chart to read values." : "Hover or use arrow keys to read values.") + " Vol is annualized" +
       (item.kind === "price" ? " (% of log returns)" : item.kind === "rate" ? " (bp of daily changes)" : " (points)") + ".";
     document.querySelectorAll("#dRanges button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.range === range)));
   } else {
@@ -110,6 +110,32 @@ export function initDetail() {
     render();
   });
   $("dClose").addEventListener("click", () => dlg.close());
+  /* Bottom sheet on phones: drag down from the handle or header to dismiss. */
+  let y0 = null, dy = 0;
+  const handles = [$("dGrab"), dlg.querySelector(".d-head")];
+  const move = e => {
+    if (y0 == null) return;
+    dy = Math.max(0, e.clientY - y0);
+    dlg.style.transform = "translateY(" + dy + "px)";
+  };
+  const end = () => {
+    if (y0 == null) return;
+    y0 = null;
+    dlg.style.transition = "";
+    dlg.style.transform = "";
+    if (dy > 90) dlg.close();
+  };
+  for (const h of handles) {
+    h.addEventListener("pointerdown", e => {
+      if (e.pointerType === "mouse" || dlg.scrollTop > 0 || e.target.closest("button")) return;
+      y0 = e.clientY; dy = 0;
+      dlg.style.transition = "none";
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener("pointermove", move);
+    h.addEventListener("pointerup", end);
+    h.addEventListener("pointercancel", end);
+  }
   /* Close on backdrop click. */
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener("close", () => { current = null; });

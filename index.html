@@ -30,7 +30,7 @@
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none"><path d="M3 15.5 8 11l4 4 8-8.5" stroke="#D9A84E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="6.5" r="2.4" fill="#D9A84E"/></svg>
       </span>
-      Equarian Markets
+      <span class="brand-name">Equarian Markets</span>
     </div>
     <div class="appbar-meta">
       <span class="clocks num">SGT <b id="clkSg">--:--:--</b> · NY <b id="clkNy">--:--:--</b></span>
@@ -53,13 +53,14 @@
 
   <div class="tabs" id="tabs" role="tablist" aria-label="Filter groups">
     <button class="tab" role="tab" aria-selected="true" data-filter="all">All</button>
+    <button class="tab" role="tab" aria-selected="false" data-filter="models">Models</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="rates">Rates</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="carry">Carry</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="risk">Risk</button>
+    <button class="tab" role="tab" aria-selected="false" data-filter="carry">Carry</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="tape">Tape</button>
   </div>
 
-  <section class="models" aria-labelledby="modelsKicker">
+  <section class="models" id="models" aria-labelledby="modelsKicker">
     <h2 class="sr-only" id="modelsKicker">Models</h2>
     <div class="m-card m-rai">
       <div class="m-top">
@@ -100,7 +101,7 @@
 
   <div id="board" tabindex="-1"></div>
 
-  <details class="method">
+  <details class="method" id="method">
     <summary>Methodology</summary>
     <h3>Units and statistics</h3>
     <p>Each series has a kind that sets its units everywhere. <b>Prices</b> (ES, DXY, USD/JPY…) show % changes and annualized volatility of daily log returns. <b>Rates and spreads</b> show changes in basis points and annualized normal (bp) volatility of daily changes, the convention on rates desks. <b>Levels</b> (VIX, NFCI…) show point changes. Volatility is both a 21-day sample standard deviation and RiskMetrics EWMA, &sigma;&sup2;<sub>t</sub> = &lambda;&sigma;&sup2;<sub>t−1</sub> + (1−&lambda;)r&sup2;<sub>t−1</sub>, &lambda; = 0.94, annualized by &radic;252 (&radic;365 for Bitcoin, &radic;52 for weekly series). Range position is the mid-rank percentile of today's value against the prior year, plus a robust z-score, (x − median) / (1.4826 · MAD), which is not distorted by the fat tails and spikes that dominate stress series.</p>
@@ -122,6 +123,7 @@
 
 <dialog id="detail" class="detail" aria-labelledby="dName">
   <div class="d-in">
+    <div class="d-grab" id="dGrab" aria-hidden="true"></div>
     <div class="d-head">
       <span class="tk" id="dTicker"></span>
       <button type="button" class="d-close" id="dClose" aria-label="Close">×</button>

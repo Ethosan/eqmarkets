@@ -13,8 +13,8 @@ function rangeNote(item, st) {
   const extreme = p >= 90 || p <= 10;
   const high = p >= 50;
   const tone = !extreme ? "" : (high !== !!item.invert ? "u" : "d");
-  const where = p >= 90 ? "Top decile" : p <= 10 ? "Bottom decile" : ordinal(p) + " pct";
-  return { t: where + " of 1Y range · z " + (st.z1y >= 0 ? "+" : "") + st.z1y.toFixed(1), c: tone };
+  const where = p >= 90 ? "Top decile" : p <= 10 ? "Bottom decile" : ordinal(p) + " pctile";
+  return { t: where + " (1Y) · z\u00a0" + (st.z1y >= 0 ? "+" : "−") + Math.abs(st.z1y).toFixed(1), c: tone };
 }
 
 export function noteFor(item, s, st) {
@@ -33,7 +33,7 @@ export function noteFor(item, s, st) {
     case "spread":
       return v < 0 ? { t: "Inverted · " + (rangeNote(item, st)?.t || ""), c: "d" } : rangeNote(item, st);
     case "spread3m":
-      return { t: "Implies " + (recessionProbability(v) * 100).toFixed(0) + "% 12M recession odds (spot)" + (v < 0 ? " · inverted" : ""), c: v < 0 ? "d" : "" };
+      return { t: (recessionProbability(v) * 100).toFixed(0) + "% recession odds (spot)" + (v < 0 ? " · inverted" : ""), c: v < 0 ? "d" : "" };
     case "vixts":
       if (v >= 1) return { t: "Backwardation · near-term fear above 3M", c: "d" };
       if (v < 0.9) return { t: "Steep contango · calm regime", c: "u" };

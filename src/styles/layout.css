@@ -50,8 +50,11 @@ footer {
 }
 
 @media (max-width: 680px) {
-  .appbar-in { height: auto; min-height: 52px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; row-gap: 8px }
-  .appbar-meta { flex-basis: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; gap: 6px }
+  .appbar-in { height: 52px; padding-left: 16px; padding-right: 16px }
+  .appbar-meta { flex-wrap: nowrap; gap: 6px }
+  .clocks { display: none }
+  .brand { min-width: 0 }
+  .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis }
   .appbar-meta::-webkit-scrollbar { display: none }
   .secs { display: none }
   .wrap { padding-left: 16px; padding-right: 16px }
