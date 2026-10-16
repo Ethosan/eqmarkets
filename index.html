@@ -80,6 +80,22 @@
       </div>
       <div class="ai-out" id="aiOut" hidden aria-live="polite"></div>
     </div>
+    <div class="m-card m-wide" id="biasCard">
+      <div class="m-top">
+        <h3 class="m-kicker">Market bias <button type="button" class="m-help" data-guide="bias" aria-label="How the market bias works">?</button></h3>
+        <div class="bias-inst" id="biasInst" role="group" aria-label="Index">
+          <button type="button" data-inst="es" aria-pressed="true">ES</button><button type="button" data-inst="nq" aria-pressed="false">NQ</button>
+        </div>
+        <span class="m-sub num" id="biasAsOf"></span>
+      </div>
+      <p class="m-cap bias-load" id="biasLoad">Backtesting ES and NQ since 2000…</p>
+      <div id="biasBody" hidden>
+        <div class="bias-cols" role="group" aria-label="Horizon"></div>
+        <p class="m-cap" id="biasDrvCap"></p>
+        <ul class="cbars bias-drivers" aria-label="Signals behind the forecast"></ul>
+        <p class="m-cap bias-track" id="biasTrack"></p>
+      </div>
+    </div>
     <div class="m-card m-rai m-wide">
       <div id="raiHead">
       <div class="m-top">

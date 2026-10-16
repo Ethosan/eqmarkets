@@ -16,7 +16,9 @@ const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
    different venues line up on the same calendar. */
 export async function yahooSeries(symbol, { range = YAHOO_RANGE, adjusted = false } = {}) {
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) +
-    "?range=" + range + "&interval=1d&includePrePost=false&cb=" + Date.now();
+    /* range=max comes back as monthly bars; an explicit period keeps it daily. */
+    (range === "max" ? "?period1=0&period2=" + Math.floor(Date.now() / 1000) : "?range=" + range) +
+    "&interval=1d&includePrePost=false&cb=" + Date.now();
   return viaTransports(url, async r => {
     const j = await r.json();
     const res = j?.chart?.result?.[0];
@@ -59,7 +61,7 @@ export async function fredSeries(id, days = FRED_DAYS) {
     }
     const n = values.length;
     return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
-  });
+  }, days > 1000 ? 25000 : undefined); /* long histories are slow to generate */
 }
 
 /* BOJ policy rate, scraped from the BOJ English homepage, cached 30 min. */

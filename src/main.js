@@ -9,6 +9,8 @@ import { fetchItem } from "./data/sources.js";
 import { computeDerived } from "./model/derived.js";
 import { buildBoard, updateCard } from "./ui/board.js";
 import { renderModels } from "./ui/models-panel.js";
+import { renderFlows } from "./ui/flows-panel.js";
+import { loadFomc } from "./data/fomc.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
 import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
@@ -106,7 +108,12 @@ if (savedAt) {
   lastOk = savedAt;
   $("stamp").textContent = stampText();
 }
-refresh();
+/* After the first paint of live data: read the Fed's FOMC calendar, and start
+   the market-bias model (its own chunk, ten years of history, cached). */
+refresh().finally(() => {
+  loadFomc().then(ok => { if (ok) renderFlows(); }).catch(() => {});
+  import("./ui/bias-panel.js").then(m => m.initBias()).catch(() => {});
+});
 
 setInterval(() => {
   tickClocks();

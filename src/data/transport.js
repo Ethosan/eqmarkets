@@ -6,6 +6,7 @@ const TRANSPORTS = [
     .replace("https://query1.finance.yahoo.com", "/yf")
     .replace("https://fred.stlouisfed.org", "/fred")
     .replace("https://www.boj.or.jp", "/boj")
+    .replace("https://www.federalreserve.gov", "/fed")
     .replace("https://publicreporting.cftc.gov", "/cftc"),
   u => "https://corsproxy.io/?url=" + encodeURIComponent(u),
   u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),

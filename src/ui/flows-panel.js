@@ -2,6 +2,7 @@
    premium, the stock–bond correlation and the market calendar. */
 import { buildCalendar, buildStockBond, buildTrend, buildVrp } from "../model/models.js";
 import { fmtDay } from "../quant/calendar.js";
+import { FOMC_STATE } from "../data/fomc.js";
 import { percentileRank } from "../quant/stats.js";
 import { $, fmtNum, ordinal, stepDp } from "./format.js";
 import { chart } from "./chart.js";
@@ -93,7 +94,8 @@ function renderCalendar() {
   } else if (c.tomStart) {
     rows.push(["Turn of month", fmtDay(c.tomStart.date) + ", " + sessions(c.tomStart.sessions, c.tradingToday) + ". The last trading day and the first three of the next month.", ""]);
   }
-  rows.push(["FOMC statement", c.fomc ? fmtDay(c.fomc.date) + ", 2 pm ET, " + sessions(c.fomc.sessions, c.tradingToday) : "Next year's dates aren't in the calendar yet", c.fomc && c.fomc.sessions <= 1 ? "a" : ""]);
+  const fomcSrc = FOMC_STATE.source === "built-in" ? " Dates from the built-in schedule (federalreserve.gov not reached yet)." : " Dates read from federalreserve.gov.";
+  rows.push(["FOMC statement", (c.fomc ? fmtDay(c.fomc.date) + ", 2 pm ET, " + sessions(c.fomc.sessions, c.tradingToday) + "." : "No meeting scheduled in the calendar yet.") + fomcSrc, c.fomc && c.fomc.sessions <= 1 ? "a" : ""]);
   if (c.opex) {
     rows.push(["Option expiry", fmtDay(c.opex.date) + ", " + sessions(c.opex.sessions, c.tradingToday) + (c.opex.quad ? ". Quarterly: stock options, index options and futures expire together (quad witching)." : ". Monthly expiry."), c.opex.quad && c.opex.sessions <= 5 ? "a" : ""]);
   }

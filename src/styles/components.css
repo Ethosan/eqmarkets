@@ -430,3 +430,35 @@ html.touring { overflow: hidden }
 @media (max-width: 680px) {
   .cal-list { grid-template-columns: 1fr }
 }
+
+/* ---------- market bias ---------- */
+.bias-inst { display: inline-flex; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 2px }
+.bias-inst button { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); background: none; border: 0; border-radius: 7px; padding: 4px 12px; min-height: 28px; cursor: pointer }
+.bias-inst button[aria-pressed="true"] { background: var(--surface-2); color: var(--text-1) }
+.bias-load { margin: 6px 0 }
+.bias-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px }
+.bias-col {
+  display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  transition: border-color .15s;
+}
+.bias-col:hover { border-color: var(--border-2) }
+.bias-col[aria-pressed="true"] { border-color: var(--text-3); background: var(--surface-2) }
+.bias-h { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3) }
+.bias-l { font-size: 24px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2 }
+.bias-l.u { color: var(--up) }
+.bias-l.d { color: var(--down) }
+.bias-l.n { color: var(--text-2) }
+.bias-p { font-size: var(--fs-xs); color: var(--text-2); line-height: 1.5 }
+.bias-conf { align-self: flex-start; font-size: var(--fs-xs); font-weight: 600; border-radius: 6px; padding: 1px 7px; margin-top: 2px }
+.bias-conf.high { color: var(--up); background: var(--up-soft) }
+.bias-conf.medium { color: var(--amber); background: var(--accent-soft) }
+.bias-conf.low, .bias-conf.n { color: var(--text-3); background: var(--surface-2) }
+.bias-why { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.45 }
+.bias-drivers { margin-top: 4px }
+.bias-track { line-height: 1.6; margin-top: 12px }
+.bias-track b { color: var(--text-2); font-weight: 600 }
+@media (max-width: 680px) {
+  .bias-cols { grid-template-columns: 1fr; gap: 8px }
+  .bias-l { font-size: 21px }
+}

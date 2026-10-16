@@ -8,7 +8,7 @@
 import { clip, ewmaVolPath, logReturns, maxDrawdown, mean, moments, normCdf, normInv, rng, std } from "./stats.js";
 
 /* Rule fields a strategy can read: the instrument price and the model paths. */
-export const FIELDS = ["price", "rai", "raiS", "ar", "dAR", "rec", "vix", "vrp", "sbCorr", "trend"];
+export const FIELDS = ["price", "rai", "raiS", "ar", "dAR", "rec", "vix", "vrp", "sbCorr", "trend", "f1", "f5", "f21", "p1", "p5", "p21"];
 
 export function simulate(prices, targets, { lag = 1, costBp = 0, start = 0 } = {}) {
   const n = prices.length;
@@ -207,6 +207,16 @@ return ctx.trend;`,
     code: `// Lakonishok & Smidt (1988): equities earn much of their return around the turn
 // of the month. ctx.cal looks at the bar the position will be held into.
 return ctx.cal("tom") ? 1 : 0;`,
+  },
+  {
+    id: "bias", name: "Market bias", desc: "Mean–variance sizing on the walk-forward monthly bias forecast (γ = 3), 0 to 1.5×.",
+    code: `// Rapach, Strauss & Zhou (2010): size by the combination forecast.
+// w = E[r] / (γ σ²), clipped to 0–1.5. Sweep: a = risk aversion γ.
+if (ctx.f21 == null) return null;
+const v = ctx.vol(63);
+if (!v) return null;
+const s2 = v * v * 21 / 252;
+return Math.min(1.5, Math.max(0, ctx.f21 / ((ctx.p.a ?? 3) * s2)));`,
   },
   {
     id: "trend", name: "Trend 200d", desc: "Long above the 200-day average. A non-model baseline.",

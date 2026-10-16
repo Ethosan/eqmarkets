@@ -6,20 +6,21 @@
    sweep. Also a calendar-effect event study. Everything runs in the browser;
    window.eqlab exposes it to the console. */
 import "../styles/lab.css";
-import { INSTRUMENTS, MODEL_COUNT, buildFrame, loadInstrument, loadModelSeries } from "./data.js";
+import { INSTRUMENTS, MODEL_COUNT, buildFrame, loadInstrument, loadModelSeries } from "../model/history.js";
 import { plot } from "./plot.js";
 import { EVENTS, renderEvents, renderHeatmap, runEvents } from "./insights.js";
 import {
   PRESETS, bootstrapSharpe, compileRule, deflatedSharpe, drawdownPath, metrics, runRule, simulate, startIndex, volTarget,
 } from "../quant/backtest.js";
 import { regimeLabel } from "../quant/models.js";
+import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
 import { mean, std } from "../quant/stats.js";
 import { stepDp } from "../ui/format.js";
 
 const KEY = "eqm.lab";
 const COLORS = {
   bh: "#8B92A0", rai: "#D9A84E", raiscale: "#E58F5B", ar: "#6E8BD9", rec: "#9C8FE0",
-  combo: "#E56E76", vrp: "#5FC9A0", cta: "#C58BD9", tom: "#D9C24E", trend: "#4FC1D9", custom: "#F2F3F5",
+  combo: "#E56E76", vrp: "#5FC9A0", cta: "#C58BD9", tom: "#D9C24E", bias: "#F28C5B", trend: "#4FC1D9", custom: "#F2F3F5",
 };
 const RANGE_LABEL = { "2y": "2Y", "5y": "5Y", "10y": "10Y", max: "Max" };
 const SPLITS = { 0: "Off", 0.3: "Last 30%", 0.5: "Last 50%" };
@@ -52,7 +53,7 @@ const sync = new Set();
 /* Strategy variants evaluated this session (key → per-day Sharpe), the trial
    count behind the deflated Sharpe. */
 const trials = new Map();
-let frame = null, custom = null, loadToken = 0, last = null, events = null, sweepToken = 0;
+let frame = null, custom = null, loadToken = 0, last = null, events = null, sweepToken = 0, composite = null, biasH = "m";
 let q;
 
 /* ------------------------------------------------------------- formatting */
@@ -141,6 +142,21 @@ function skeleton() {
 
   <div class="m-card lab-card">
     <div class="lab-card-head">
+      <h3 class="m-kicker">Market bias model</h3>
+      <div class="seg" id="labBiasH" role="group" aria-label="Horizon">${HORIZONS.map(H => `<button type="button" data-h="${H.key}" aria-pressed="false">${H.label}</button>`).join("")}</div>
+    </div>
+    <p class="m-cap" id="labBiasNow"></p>
+    <div class="lab-tablewrap"><table class="lab-table num" id="labBiasTable"></table></div>
+    <p class="m-cap">Cumulative squared-error advantage over the long-run average (Goyal &amp; Welch 2008). Rising = the model is beating it; falling = losing.</p>
+    <div id="labBiasCum" class="lab-plot"></div>
+    <p class="m-cap">Weights over time (inverse discounted out-of-sample error)</p>
+    <div id="labBiasW" class="lab-plot"></div>
+    <div class="lab-tablewrap"><table class="lab-table num" id="labBiasCal"></table></div>
+    <p class="m-cap lab-foot">Walk-forward combination forecast of the instrument's log return over the horizon (Rapach, Strauss &amp; Zhou 2010): one sign-restricted regression per signal on an expanding window of known outcomes (Campbell &amp; Thompson 2008), combined by inverse discounted out-of-sample error (Stock &amp; Watson 2004, half-life one year). R² is out of sample against the prevailing historical mean; Clark–West (2007) is one-sided with Newey–West errors; the utility gain is for a mean–variance investor (γ = 3) rebalancing every horizon. Rule fields: <code>ctx.f1</code>, <code>ctx.f5</code>, <code>ctx.f21</code> (forecasts) and <code>ctx.p1</code>, <code>ctx.p5</code>, <code>ctx.p21</code> (chance up).</p>
+  </div>
+
+  <div class="m-card lab-card">
+    <div class="lab-card-head">
       <h3 class="m-kicker">Custom rule · JavaScript</h3>
       <label class="lab-inline">Load <select id="labPreset"><option value="">a preset…</option>${PRESETS
         .map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}<option value="default">the example</option></select></label>
@@ -162,6 +178,8 @@ function skeleton() {
         <dt><code>ctx.sbCorr</code></dt><dd>63-day correlation of ES with Treasury price moves (−1 to 1)</dd>
         <dt><code>ctx.trend</code></dt><dd>trend-follower position in this instrument (−1 to 1)</dd>
         <dt><code>ctx.vix</code></dt><dd>VIX close</dd>
+        <dt><code>ctx.f1</code> · <code>ctx.f5</code> · <code>ctx.f21</code></dt><dd>market-bias forecast of the log return over the next 1, 5, 21 bars (walk-forward)</dd>
+        <dt><code>ctx.p1</code> · <code>ctx.p5</code> · <code>ctx.p21</code></dt><dd>its chance the instrument is higher at the end of that horizon</dd>
         <dt><code>ctx.cal(flag, ahead = 1)</code></dt><dd>calendar flag on the bar <code>ahead</code> bars from now: tom, monthEnd, fomc, preFomc, opex, opexWeek, quadWeek, preHoliday. With "Signal close", ahead 1 is the bar the position is held into.</dd>
         <dt><code>ctx.sma(n)</code> · <code>ctx.ret(n)</code> · <code>ctx.vol(n)</code></dt><dd>n-bar average, log return, annualized vol of the instrument</dd>
         <dt><code>ctx.get(field, k)</code></dt><dd>any field k bars ago</dd>
@@ -231,12 +249,19 @@ async function load() {
   frame.meta.symbol = it.symbol;
   frame.meta.ppy = it.ppy || 252;
   events = runEvents(frame);
+  composite = HORIZONS.map(H => {
+    const res = combinationForecast(frame, H.h);
+    frame["f" + H.h] = res.F;
+    frame["p" + H.h] = res.pUp;
+    return { H, res, ev: evaluate(res, { band: H.band, dates: frame.dates, ppy: frame.meta.ppy }) };
+  });
   frame.meta.ms = Math.round(performance.now() - t0);
   q("labPanel").classList.remove("busy");
   const meta = frame.meta;
   q("labMeta").textContent = "RAI from " + meta.raiInputs.length + "/" + meta.raiTotal + " inputs · AR over " + meta.arAssets.length + " assets" +
     (meta.missing.length ? " · didn't load: " + meta.missing.join(", ") + " (pick the range again to retry)" : "") + ".";
   renderEventsCard();
+  renderBias();
   q("swMap").innerHTML = ""; q("swSum").textContent = ""; q("swOut").textContent = "";
   run();
 }
@@ -326,7 +351,7 @@ function run() {
 /* ----------------------------------------------------------------- render */
 function overlayOptions() {
   const base = [["rai", "RAI regime"], ["dar", "Fragility (ΔAR)"], ["rec", "Recession odds"], ["vrp", "Variance premium"],
-    ["sb", "Stock–bond correlation"], ["trend", "Trend followers"], ["tom", "Turn of month"], ["none", "Nothing"]];
+    ["sb", "Stock–bond correlation"], ["trend", "Trend followers"], ["bias", "Market bias, monthly"], ["tom", "Turn of month"], ["none", "Nothing"]];
   const pos = (last?.active || []).filter(s => s.id !== "bh").map(s => ["pos:" + s.id, "Position · " + s.name]);
   const opts = [...base, ...pos];
   if (!opts.some(([v]) => v === settings.overlay)) settings.overlay = "rai";
@@ -377,6 +402,12 @@ function renderPrice(win) {
     cap = "Estimated trend-follower position in this instrument, −1 to +1 (1, 3, 6 and 12-month signals). Darker beyond ±0.5.";
     model = { series: [{ label: "CTA", values: slice("trend"), color: COLORS.cta }], refs: [0], domain: [-1.05, 1.05],
       format: v => sgn(v), tick: v => (Math.abs(v) < 1e-9 ? "0" : sgn(v, 1)) };
+  } else if (ov === "bias") {
+    const band = HORIZONS[2].band;
+    shade = shadeRuns(slice("p21"), v => (v >= 0.5 + band ? GREEN(0.14) : v <= 0.5 - band ? RED(0.18) : null));
+    cap = "Market bias: walk-forward chance of a higher close in 21 sessions. Green: bullish (55%+), red: bearish (45% or less).";
+    model = { series: [{ label: "Chance up", values: slice("p21"), color: COLORS.bias }], refs: [0.5 - band, 0.5, 0.5 + band], domain: [0.2, 0.8],
+      format: v => pct(v, 0), tick: v => pct(v, 0) };
   } else if (ov === "tom") {
     shade = shadeRuns(frame.cal.tom.slice(s0).map(x => (x ? 1 : null)), () => AMBER(0.22));
     cap = "";
@@ -471,6 +502,53 @@ function renderEventsCard() {
     " (" + n.toLocaleString("en-US") + " sessions). FOMC rows start in 2010. Each row compares the average return on those days with every other day.";
 }
 
+function renderBias() {
+  q("labBiasH").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.h === biasH)));
+  const c = composite?.find(x => x.H.key === biasH);
+  if (!c || !c.ev) {
+    q("labBiasNow").textContent = "Not enough history for a walk-forward record. The model needs about three years before its first forecast; try 10Y or Max.";
+    ["labBiasTable", "labBiasCal"].forEach(id => { q(id).innerHTML = ""; });
+    plot(q("labBiasCum"), { dates: null, series: [] }); plot(q("labBiasW"), { dates: null, series: [] });
+    return;
+  }
+  const { H, res, ev } = c;
+  const now = readNow(res, ev, H.band);
+  q("labBiasNow").textContent = now
+    ? H.label + ": " + now.label + ", " + pct(now.p, 0) + " chance higher vs " + pct(now.base, 0) + " normally, expected " + sgn((Math.exp(now.F) - 1) * 100, 2) + "%" +
+      (now.confidence ? ", " + now.confidence.toLowerCase() + " confidence" : "") + ". Models' weight against the long-run average now " + pct(now.lambda, 0) +
+      " (average " + pct(ev.lambdaMean, 0) + "). Out of sample " + longDate(ev.from) + " to " + longDate(ev.to) + "."
+    : "";
+  const cols = ["Forecast", "Forecasts", "R² out of sample", "Clark–West p", "Bullish calls beat avg", "Bearish calls below avg", "Neutral", "Utility gain / yr", "Weight now"];
+  const t = res.F.length - 1;
+  const r2 = x => (x == null ? "—" : sgn(x * 100, 2) + "%");
+  const rows = [
+    `<tr><th scope="row"><b>Final (λ blend)</b></th><td>${ev.n.toLocaleString("en-US")}</td><td${ev.r2 < 0 ? ' class="d"' : ev.cwP < 0.1 ? ' class="best"' : ""}>${r2(ev.r2)}</td>` +
+      `<td>${ev.cwP < 0.001 ? "<0.001" : ev.cwP.toFixed(3)}</td><td>${ev.bull.n ? pct(ev.bull.right, 0) + " of " + ev.bull.n : "—"}</td>` +
+      `<td>${ev.bear.n ? pct(ev.bear.right, 0) + " of " + ev.bear.n : "—"}</td><td>${pct(ev.neutralShare, 0)}</td><td${ev.cerGain < 0 ? ' class="d"' : ""}>${sgn(ev.cerGain * 100, 2)}%</td><td>λ ${pct(res.lambda[t], 0)}</td></tr>`,
+    `<tr><th scope="row">Models alone (raw combination)</th><td></td><td${ev.r2Raw < 0 ? ' class="d"' : ""}>${r2(ev.r2Raw)}</td><td colspan="6" class="muted">Before the encompassing weight λ shrinks it toward the long-run average.</td></tr>`,
+    `<tr><th scope="row">Equal weights</th><td></td><td${ev.r2Equal < 0 ? ' class="d"' : ""}>${r2(ev.r2Equal)}</td><td colspan="6" class="muted">Same signals, 1/N weights: the check that the weighting itself isn't overfit (DeMiguel, Garlappi &amp; Uppal 2009).</td></tr>`,
+    ...ev.single.map((s, k) => `<tr><th scope="row" title="${esc(s.src)}">${esc(s.label)}</th><td>${s.n.toLocaleString("en-US")}</td><td${s.r2 != null && s.r2 < 0 ? ' class="d"' : ""}>${r2(s.r2)}</td>` +
+      `<td colspan="5" class="muted">${esc(s.src)}</td><td>${pct(res.w[k][t], 0)}</td></tr>`),
+  ];
+  q("labBiasTable").innerHTML = "<thead><tr>" + cols.map(x => `<th scope="col">${x}</th>`).join("") + "</tr></thead><tbody>" + rows.join("") + "</tbody>";
+  q("labBiasCal").innerHTML = "<thead><tr><th scope=\"col\">Model's chance up</th><th scope=\"col\">Forecasts</th><th scope=\"col\">Average forecast</th><th scope=\"col\">Actually up</th></tr></thead><tbody>" +
+    ev.calib.map(b => `<tr><th scope="row">${Math.round(b.lo * 100)}–${Math.min(100, Math.round(b.hi * 100))}%</th><td>${b.n.toLocaleString("en-US")}</td><td>${pct(b.mean, 1)}</td><td>${pct(b.up, 1)}</td></tr>`).join("") +
+    "</tbody>";
+  plot(q("labBiasCum"), {
+    dates: ev.cumSse.dates, height: 160, label: "Cumulative squared-error advantage", refs: [0],
+    series: [{ label: "Final", values: ev.cumSse.values, color: COLORS.bias }, { label: "Models alone", values: ev.cumSse.raw, color: "#8B92A0", dash: "4 3", width: 1.3 }],
+    format: v => sgn(v * 1e4, 2) + " (×10⁻⁴)", tick: v => (Math.abs(v) < 1e-12 ? "0" : sgn(v * 1e4, 1)),
+  });
+  const i0 = res.F.findIndex(x => x != null);
+  const wd = frame.dates.slice(i0);
+  const palette = ["#C58BD9", "#5FC9A0", "#D9A84E", "#6E8BD9", "#9C8FE0", "#D9C24E", "#E56E76", "#4FC1D9"];
+  plot(q("labBiasW"), {
+    dates: wd, height: 160, label: "Weights over time", domain: [0, Math.max(0.4, ...res.w.flatMap(a => a.slice(i0).filter(v => v != null))) * 1.05],
+    series: res.preds.map((p, k) => ({ label: p.label, values: res.w[k].slice(i0), color: palette[k % palette.length], width: 1.4 })),
+    format: v => pct(v, 0), tick: v => pct(v, 0),
+  });
+}
+
 function renderChips() {
   const all = [...PRESETS, { id: "custom", name: "Custom", desc: custom ? "Your rule from the editor below" : "Run a rule in the editor below to enable" }];
   q("labChips").innerHTML = all.map(s => {
@@ -559,13 +637,13 @@ async function runSweep() {
 function downloadCsv() {
   if (!last) return;
   const { active, sims, start } = last;
-  const head = ["date", "price", "rai", "rai_3d", "ar", "dar", "rec_prob", "vrp", "stock_bond_corr", "cta_trend", "turn_of_month",
+  const head = ["date", "price", "rai", "rai_3d", "ar", "dar", "rec_prob", "vrp", "stock_bond_corr", "cta_trend", "turn_of_month", "bias_f21", "bias_p21",
     ...active.flatMap(s => ["pos_" + s.id, "equity_" + s.id])];
   const f = (v, dp = 6) => (v == null || !isFinite(v) ? "" : +v.toFixed(dp));
   const rows = [head.join(",")];
   for (let i = start; i < frame.dates.length; i++) {
     rows.push([frame.dates[i], f(frame.price[i], 4), f(frame.rai[i]), f(frame.raiS[i]), f(frame.ar[i]), f(frame.dAR[i]), f(frame.rec[i]),
-      f(frame.vrp[i], 3), f(frame.sbCorr[i], 4), f(frame.trend[i], 4), frame.cal.tom[i] ? 1 : 0,
+      f(frame.vrp[i], 3), f(frame.sbCorr[i], 4), f(frame.trend[i], 4), frame.cal.tom[i] ? 1 : 0, f(frame.f21[i]), f(frame.p21[i], 4),
       ...active.flatMap(s => [f(sims[s.id].pos[i], 4), f(sims[s.id].equity[i] / sims[s.id].equity[start])])].join(","));
   }
   const a = document.createElement("a");
@@ -650,6 +728,10 @@ export function mountLab(root) {
   q("labCsv").addEventListener("click", downloadCsv);
   q("labRun").addEventListener("click", () => { if (compileCustom()) run(); });
   q("swRun").addEventListener("click", runSweep);
+  q("labBiasH").addEventListener("click", e => {
+    const b = e.target.closest("button[data-h]");
+    if (b) { biasH = b.dataset.h; renderBias(); }
+  });
   q("labCode").addEventListener("keydown", e => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (compileCustom()) run(); }
   });
@@ -669,6 +751,7 @@ export function mountLab(root) {
     get frame() { return frame; },
     get results() { return last; },
     get events() { return events?.map(e => ({ event: e.name, ...e.stats })); },
+    get bias() { return composite; },
     eventDefs: EVENTS,
     presets: PRESETS,
     compileRule, runRule, simulate, metrics, volTarget, bootstrapSharpe, deflatedSharpe,

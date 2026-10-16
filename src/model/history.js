@@ -1,6 +1,7 @@
-/* Long daily history for the lab, and the model "frame": RAI, absorption ratio,
-   ΔAR and recession probability rebuilt point-in-time on the instrument's
-   calendar, so a backtest only ever uses what was known on each date. */
+/* Long daily history and the model "frame": every model rebuilt point-in-time
+   on an instrument's calendar, so a backtest or the market-bias model only
+   ever uses what was known on each date. Used by the backtest lab and by the
+   market-bias card. */
 import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS } from "../config.js";
 import { fredSeries, yahooSeries } from "../data/sources.js";
 import { absorptionSeries, absorptionShiftPath, recessionSeries, riskAppetite } from "../quant/models.js";
@@ -133,4 +134,16 @@ export function buildFrame(S, inst, { ppy = 252 } = {}) {
       arAssets: universe, missing: MODEL_IDS.filter(id => !S[id]),
     },
   };
+}
+
+/* The same model paths on another instrument's calendar (ES → NQ), without
+   rebuilding the models; the trend signal and calendar are the instrument's own. */
+export function reframe(base, inst, { ppy = 252 } = {}) {
+  const at = new Map(base.dates.map((d, i) => [d, i]));
+  const pick = arr => inst.dates.map(d => { const i = at.get(d); return i == null ? null : arr[i]; });
+  const out = { dates: inst.dates, price: inst.values, meta: base.meta };
+  for (const k of ["rai", "raiS", "ar", "dAR", "rec", "vrp", "sbCorr", "vix", "rebal"]) out[k] = pick(base[k]);
+  out.trend = trendPath(inst, { ppy }).values;
+  out.cal = calendarFlags(inst.dates);
+  return out;
 }

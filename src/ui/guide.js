@@ -7,6 +7,7 @@ import { swipeToClose } from "./sheet.js";
 const SECTIONS = [
   { id: "routine", label: "Routine" },
   { id: "read", label: "Today's read" },
+  { id: "bias", label: "Market bias" },
   { id: "regime", label: "Regime" },
   { id: "numbers", label: "The numbers" },
   { id: "rai", label: "Risk appetite" },
@@ -50,6 +51,20 @@ const BODY = () => `
   <p>σ here is a <b>vol-scaled move</b>: the 1-month change divided by the move you'd normally expect over a month, given that market's volatility <i>before</i> the move started. So 1σ in natural gas is a much bigger price change than 1σ in the S&amp;P, but both are equally unusual for that market. A bell curve says moves beyond 2σ happen about 1 month in 20; real markets have fat tails, so they happen more often than that.</p>
   <p>These are rules of thumb from standard cross-asset practice, not forecasts. When nothing fires, it says so.</p>
   <p><b>Explain in plain English</b> sends the same numbers (only numbers, never text) to Mistral AI, which writes a two-paragraph note. It's told to use only the data on the page, to say "likely" rather than claim causes, and never to give trade advice. It can still be wrong, so treat it as a second opinion and check it against the cards.</p>
+</section>
+
+<section id="g-bias" class="g-sec">
+  <h3>Market bias</h3>
+  <p>One read for ES or NQ over the next day, week and month, built from every model on this page: trend followers, the variance risk premium, risk appetite, the absorption shift and the yield-curve recession odds, plus turn-of-month, FOMC and pre-holiday timing for the day and week.</p>
+  <p><b>How the signals are weighted.</b> It follows the method that has held up best in research on forecasting stock returns, chosen so the weights are never fitted to the period they're judged on:</p>
+  <ol class="g-steps">
+    <li><b>One simple forecast per signal.</b> Each signal gets its own regression of future returns on the signal, using only past data where the outcome was already known. Big all-in-one models fit history well and then fail on new data (Goyal &amp; Welch 2008); simple ones combined do much better (Rapach, Strauss &amp; Zhou 2010).</li>
+    <li><b>The sign comes from the research.</b> Each signal can only push the way its research says (a high recession probability can only be bearish, for example). If the data says otherwise, that signal is switched off rather than flipped (Campbell &amp; Thompson 2008).</li>
+    <li><b>Weights earned, not fitted.</b> The forecasts are averaged, weighted by how accurate each one has been on forecasts it made before seeing the outcome, with older errors counting less (half-life one year; Stock &amp; Watson 2004). A new signal gets an equal share until it has a year of its own record.</li>
+  </ol>
+  <p><b>The label.</b> The forecast is turned into a chance the index is higher at the end of the horizon, using today's volatility. Bullish or bearish needs that chance to be at least 52% / 48% for a day, 53.5% / 46.5% for a week and 55% / 45% for a month; anything closer to a coin flip is neutral. These bands were set in advance, not tuned. Daily moves are mostly noise, so the daily read is usually neutral, and that's the honest answer.</p>
+  <p><b>Confidence</b> asks three things: when the model made this call in the past, was it right more often than chance (by at least 5 points for high, 2 for medium, over enough calls)? Do most of the signals' weight agree? And does the model beat the long-run average with statistical significance (Clark &amp; West 2007, p below 0.10)? All three for high, the first two for medium, otherwise low.</p>
+  <p><b>Track record.</b> The model is re-run over the full daily history since 2000 (at most every six hours, on your device), walking forward one day at a time. The longer the record, the harder it is for luck to look like skill. Out-of-sample R² compares its squared errors with simply forecasting the long-run average; for stock returns anything above zero is meaningful, and a few percent is a lot at monthly horizons. The utility gain is how much more a mean–variance investor would have earned per year, after risk, by sizing with this forecast instead of the long-run average. These are backtests on one market's history: they can and will be wrong.</p>
 </section>
 
 <section id="g-regime" class="g-sec">

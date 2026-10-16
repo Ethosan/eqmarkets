@@ -11,8 +11,10 @@
    - Pre-holiday: the trading day before a weekday holiday (Ariel 1990). */
 import { mean, rng, std } from "./stats.js";
 
-/* Scheduled FOMC statement days. Add each new year from federalreserve.gov
-   (the Fed publishes the next year's calendar in the summer). */
+/* Scheduled FOMC statement days. The app reads the Fed's own calendar page at
+   startup (parseFomcCalendar + useFomcDates) and merges it over this list, so
+   new years and reschedules arrive on their own; this list is the offline
+   fallback and the history for the event study. */
 export const FOMC_DATES = [
   "2010-01-27", "2010-03-16", "2010-04-28", "2010-06-23", "2010-08-10", "2010-09-21", "2010-11-03", "2010-12-14",
   "2011-01-26", "2011-03-15", "2011-04-27", "2011-06-22", "2011-08-09", "2011-09-21", "2011-11-02", "2011-12-13",
@@ -34,8 +36,54 @@ export const FOMC_DATES = [
   /* 2027: tentative schedule from the Fed's 5 Sep 2025 release. */
   "2027-01-27", "2027-03-17", "2027-04-28", "2027-06-09", "2027-07-28", "2027-09-15", "2027-10-27", "2027-12-08",
 ];
-const FOMC = new Set(FOMC_DATES);
+let FOMC = new Set(FOMC_DATES);
+let fomcList = FOMC_DATES.slice();
 export const FOMC_COVERAGE = [FOMC_DATES[0], FOMC_DATES[FOMC_DATES.length - 1]];
+export const fomcDates = () => fomcList;
+
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+/* Statement days from the Fed's FOMC calendar page
+   (federalreserve.gov/monetarypolicy/fomccalendars.htm). Each year panel lists
+   meetings as a month ("March", or "Apr/May" across a month end) and a day
+   range ("17-18*", "30-1"); the statement comes on the last day. Notation
+   votes and unscheduled calls are skipped. Returns sorted ISO dates. */
+export function parseFomcCalendar(html) {
+  const out = new Set();
+  const panels = html.split(/(?=<h4[^>]*>\s*<a[^>]*>\s*\d{4} FOMC Meetings)/);
+  for (const panel of panels) {
+    const ym = panel.match(/(\d{4}) FOMC Meetings/);
+    if (!ym) continue;
+    const year = +ym[1];
+    const re = /fomc-meeting__month[^>]*>\s*<strong>([^<]+)<\/strong>[\s\S]*?fomc-meeting__date[^>]*>([^<]+)</g;
+    let m;
+    while ((m = re.exec(panel))) {
+      const monthTxt = m[1].trim().toLowerCase(), dayTxt = m[2].trim();
+      if (/notation|unscheduled|conference|call/i.test(dayTxt)) continue;
+      const days = dayTxt.replace(/\*/g, "").match(/\d{1,2}/g);
+      if (!days) continue;
+      const parts = monthTxt.split("/").map(s => s.trim());
+      const last = parts[parts.length - 1];
+      const mi = MONTHS.findIndex(x => x.startsWith(last.slice(0, 3)));
+      if (mi < 0) continue;
+      const d = +days[days.length - 1];
+      /* "Dec/Jan" style ranges would roll the year; none so far, but handle it. */
+      const y = parts.length > 1 && mi === 0 && MONTHS.findIndex(x => x.startsWith(parts[0].slice(0, 3))) === 11 ? year + 1 : year;
+      out.add(y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"));
+    }
+  }
+  return [...out].sort();
+}
+
+/* Merge dates read from the Fed: for every year they cover, they replace the
+   built-in list; other years keep the built-in dates. */
+export function useFomcDates(dates) {
+  if (!dates || dates.length < 4) return false;
+  const years = new Set(dates.map(d => d.slice(0, 4)));
+  fomcList = [...FOMC_DATES.filter(d => !years.has(d.slice(0, 4))), ...dates].sort();
+  FOMC = new Set(fomcList);
+  return true;
+}
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const iso = d => d.toISOString().slice(0, 10);
@@ -159,7 +207,7 @@ export function upcoming(today) {
   const sessionsTo = d => days.filter(x => x > today && x <= d).length;
   const nowInfo = info.get(today) || null;
   const tomStart = days.find((d, i) => i > 0 && info.get(d)?.tomDay === -1) || null;
-  const fomc = FOMC_DATES.find(d => d >= today) || null;
+  const fomc = fomcList.find(d => d >= today) || null;
   const opex = days.find(d => info.get(d)?.opex) || null;
   const y = +today.slice(0, 4);
   const hol = [...nyseHolidays(y), ...nyseHolidays(y + 1)].find(h => h.date > today) || null;

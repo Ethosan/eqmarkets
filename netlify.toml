@@ -26,6 +26,12 @@
   force = true
 
 [[redirects]]
+  from = "/fed/*"
+  to = "https://www.federalreserve.gov/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/cftc/*"
   to = "https://publicreporting.cftc.gov/:splat"
   status = 200
