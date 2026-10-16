@@ -14,7 +14,8 @@ function rangeNote(item, st) {
   const high = p >= 50;
   const tone = !extreme ? "" : (high !== !!item.invert ? "u" : "d");
   const where = p >= 90 ? "Top decile" : p <= 10 ? "Bottom decile" : ordinal(p) + " pctile";
-  return { t: where + " (1Y) · z\u00a0" + (st.z1y >= 0 ? "+" : "−") + Math.abs(st.z1y).toFixed(1), c: tone };
+  const z = st.z1y == null ? "" : " · z\u00a0" + (st.z1y >= 0 ? "+" : "−") + Math.abs(st.z1y).toFixed(1);
+  return { t: where + " (1Y)" + z, c: tone };
 }
 
 export function noteFor(item, s, st) {
@@ -47,6 +48,8 @@ export function noteFor(item, s, st) {
       return { t: "Positioning z " + (z == null ? "n/a" : (z >= 0 ? "+" : "−") + Math.abs(z).toFixed(1)) + " vs 3Y · as of " + s.asOf, c: z != null && z < -1.5 ? "d" : "" };
     }
     case "us2y":
+      if (s.src === "yahoo") return { t: "Futures proxy (2YY=F) · can drift from cash", c: "" };
+      return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
     case "us10y":
       return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
     default:

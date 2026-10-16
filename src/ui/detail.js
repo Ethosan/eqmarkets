@@ -40,7 +40,7 @@ function render() {
   if (!s || s.error || s.price == null) {
     $("dValue").textContent = "----";
     $("dChange").textContent = "";
-    $("dNote").textContent = "Feed unreachable right now. It retries every minute.";
+    $("dNote").textContent = s?.reason || "Feed unreachable right now. It retries every minute.";
     chart($("dChart"), { dates: null, values: [] });
     $("dStats").innerHTML = "";
     $("dStatsNote").textContent = "";

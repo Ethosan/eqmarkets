@@ -15,7 +15,7 @@ export function buildRai() {
   const cal = calendar();
   if (!cal) return null;
   const inputs = RAI_INPUTS
-    .map(i => ({ ...i, series: hist(i.id, 80) }))
+    .map(i => ({ ...i, series: hist(i.id, 80), ppy: ITEM_BY_ID[i.id].ppy || 252 }))
     .filter(i => i.series);
   if (inputs.length < 4) return null;
   const r = riskAppetite(inputs, cal);

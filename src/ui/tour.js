@@ -201,6 +201,8 @@ export function startTour() {
   if (active) return;
   if (!el) mount();
   lastFocus = document.activeElement;
+  /* The first steps point at the models, which a saved or shortcut tab can hide. */
+  document.querySelector('.tab[data-filter="all"]:not([aria-selected="true"])')?.click();
   active = true;
   i = 0;
   document.documentElement.classList.add("touring");

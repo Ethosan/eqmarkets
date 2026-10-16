@@ -119,13 +119,18 @@ function draw(root, o) {
    opts: dates, values, format(v) for the readout, tick(v, step) for axis labels,
    height, color | good, zero, ref, band [lo, hi], domain [min, max], label. */
 export function chart(root, opts) {
-  if (!opts.dates || opts.values.length < 2) { root.innerHTML = ""; charts.delete(root); return; }
   let st = charts.get(root);
+  if (!opts.dates || opts.values.length < 2) {
+    /* Keep the state (and its listeners) for the next series; just go blank. */
+    if (st) Object.assign(st, { opts: null, idx: null, show: null, hide: null });
+    root.innerHTML = "";
+    root.removeAttribute("tabindex");
+    root.removeAttribute("role");
+    root.removeAttribute("aria-label");
+    return;
+  }
   if (!st) {
-    root.innerHTML = '<div class="ch-tip" hidden></div>';
     root.classList.add("ch");
-    root.tabIndex = 0;
-    root.setAttribute("role", "img");
     st = { opts: null, idx: null };
     charts.set(root, st);
     root.addEventListener("pointermove", e => st.show?.(st.indexAt(e.clientX)));
@@ -133,6 +138,7 @@ export function chart(root, opts) {
     root.addEventListener("pointerleave", () => st.hide?.());
     root.addEventListener("blur", () => st.hide?.());
     root.addEventListener("keydown", e => {
+      if (!st.opts) return;
       const n = st.opts.values.length;
       const step = e.shiftKey ? 10 : 1;
       let i = st.idx ?? n - 1;
@@ -147,6 +153,10 @@ export function chart(root, opts) {
     });
     new ResizeObserver(() => { if (st.opts && root.isConnected) draw(root, st.opts); }).observe(root);
   }
+  /* The caller may have replaced the contents (e.g. an empty-state message). */
+  if (!root.querySelector(".ch-tip")) root.innerHTML = '<div class="ch-tip" hidden></div>';
+  root.tabIndex = 0;
+  root.setAttribute("role", "img");
   st.opts = { height: 160, id: ++uid, format: v => String(v), tick: v => String(v), ...opts };
   const { dates, values, format } = st.opts;
   root.setAttribute("aria-label", (opts.label ? opts.label + ": " : "") + "from " + format(values[0], 0) + " on " + longDate(dates[0]) +

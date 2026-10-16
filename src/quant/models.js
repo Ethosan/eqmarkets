@@ -66,12 +66,14 @@ export function absorptionSeries(seriesList, { window = 63, shortMean = 15, long
    - "level": robust z-score of the level against its trailing year, for
      mean-reverting stress gauges (VIX, MOVE, credit spreads, VIX term structure).
    Each score is multiplied by its sign (+1 risk-on, −1 stress) and clipped to ±3. */
-const TREND_H = 21, LEVEL_W = 252;
+const LEVEL_W = 252;
 
-export function scorePath(series, transform, sign) {
+export function scorePath(series, transform, sign, ppy = 252) {
   const { dates, values } = series;
   const out = { dates: [], values: [] };
   if (transform === "trend") {
+    /* One month of observations: 21 trading days, or 30 for a 365-day market. */
+    const TREND_H = Math.round(21 * ppy / 252);
     const r = logReturns(values);
     const vol = ewmaVolPath(r);
     for (let i = TREND_H; i < values.length; i++) {
@@ -95,7 +97,7 @@ export function scorePath(series, transform, sign) {
 /* Composite on the master calendar: equal-weighted mean of the inputs available
    (as-of, max 7 days old). Requires at least minInputs. */
 export function riskAppetite(inputs, calendar, { minInputs = 4, days = 260 } = {}) {
-  const paths = inputs.map(inp => ({ ...inp, path: scorePath(inp.series, inp.transform, inp.sign) }));
+  const paths = inputs.map(inp => ({ ...inp, path: scorePath(inp.series, inp.transform, inp.sign, inp.ppy) }));
   const cal = calendar.slice(-days);
   const history = { dates: [], values: [] };
   for (const d of cal) {

@@ -10,7 +10,8 @@ export function fmtNum(v, fmt = {}) {
     ? x.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })
     : x.toFixed(dp);
   /* Typographic minus, sign ahead of any prefix: −$1.20, not $-1.20. */
-  return (x < 0 && n !== (0).toFixed(dp) ? "−" : "") + (fmt.prefix || "") + n.replace("-", "") + (fmt.suffix || "");
+  const abs = n.replace("-", "");
+  return (x < 0 && /[1-9]/.test(abs) ? "−" : "") + (fmt.prefix || "") + abs + (fmt.suffix || "");
 }
 
 const signed = (x, dp) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);

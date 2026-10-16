@@ -57,7 +57,7 @@ export function updateCard(item) {
     pill.textContent = "n/a";
     pill.className = "pill flat";
     note.hidden = false;
-    note.textContent = "Feed unreachable · retrying next cycle";
+    note.textContent = s?.reason || "Feed unreachable · retrying next cycle";
     note.className = "note d";
     stats.hidden = true;
     card.setAttribute("aria-label", item.name + ": unavailable");
