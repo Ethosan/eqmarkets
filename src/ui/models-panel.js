@@ -1,7 +1,10 @@
 /* Renders the Models section: Risk Appetite Index, absorption ratio and the
    yield-curve recession probability. */
 import { ITEM_BY_ID } from "../config.js";
-import { buildAbsorption, buildRai, buildRecession } from "../model/models.js";
+import { buildAbsorption, buildRai, buildRecession, buildRegime } from "../model/models.js";
+import { buildFacts } from "../model/facts.js";
+import { renderRead } from "./read-panel.js";
+import { renderRegime } from "./regime-panel.js";
 import { regimeLabel } from "../quant/models.js";
 import { percentileRank } from "../quant/stats.js";
 import { $, ordinal, stepDp } from "./format.js";
@@ -10,7 +13,7 @@ import { chart } from "./chart.js";
 const AMBER = "#D9A84E";
 
 /* Latest model outputs, read by the tour and guide to quote live values. */
-export const LAST = { rai: null, ar: null, rec: null };
+export const LAST = { rai: null, ar: null, rec: null, regime: null, facts: null };
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -98,4 +101,8 @@ export function renderModels() {
   renderRai();
   renderAbsorption();
   renderRecession();
+  LAST.regime = buildRegime();
+  renderRegime(LAST.regime);
+  LAST.facts = buildFacts(LAST);
+  renderRead(LAST.facts);
 }

@@ -1,8 +1,10 @@
 # Equarian Markets
 
-A live macro dashboard for futures traders: rates, credit, carry and the tape on one screen, read through three quantitative models: a **Risk Appetite Index**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
+A live macro dashboard for futures traders: rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
 
-- **27 indicators** in four groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Tape:** ES, NQ, gold, crude.
+- **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
+- **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Claude write a short note from the same numbers (see *AI explanations* below).
+- **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
 - **Three models**, each computed in the browser from two years of daily history:
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
   - **Absorption ratio** (Kritzman et al. 2011): the variance share of the top fifth of eigenvectors across a 10-asset return panel, plus the standardized ΔAR shift.
@@ -26,6 +28,7 @@ A live macro dashboard for futures traders: rates, credit, carry and the tape on
 | Fed funds | FRED (NY Fed) | `DFF` | `/fred/*` |
 | BOJ policy rate | boj.or.jp homepage | scraped | `/boj/*` proxy, manual fallback in `src/config.js` |
 | Yen speculative positioning | CFTC Legacy COT (Socrata `6dca-aqww`) | non-commercial net, 3 years | `/cftc/*` proxy |
+| Commodities | Yahoo Finance chart API | `HG=F SI=F NG=F ZC=F ZW=F ZS=F DBC DBA` | `/yf/*` proxy |
 
 All of these are free and need no API key.
 
@@ -47,12 +50,29 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | ΔAR | (15-day mean AR − 252-day mean AR) / 252-day std AR |
 | Recession probability | Φ(−0.5333 − 0.6330 · S̄), S̄ = 21-day mean of DGS10 − DGS3MO in pp |
 | Carry-to-vol | (EFFR − BOJ) / annualized EWMA vol of USD/JPY |
+| Vol-scaled move | Δₕ / (σ_EWMA at window start · √h): log change for prices, point change for rates; clipped ±3 |
+| Growth score | mean of 63-day vol-scaled moves in ES, copper/gold, −HY OAS (≥ 2 of 3), 5-session mean |
+| Inflation score | mean of 63-day vol-scaled moves in the 10Y breakeven, DBC, DBA (≥ 2 of 3), 5-session mean |
+| Regime | quadrant of (growth, inflation); confidence: clear if both \|score\| ≥ 0.5, tentative if either < 0.2 |
+| Today's read | 16 rules on 21-day vol-scaled moves and VIX/MOVE level z-scores; strength = weakest condition; top 4 shown |
 
 All of this lives in `src/quant/` as pure functions, covered by `tests/quant.test.js`. The tests check them against closed-form cases: EWMA convergence to the true σ, eigenvalues of known matrices, an AR near 1 when one factor drives everything and near k/N for independent assets, the NY Fed probit formula, and bp units for rates.
 
-References: Kumar & Persaud (2002), *Pure Contagion and Investors' Shifting Risk Appetite*, IMF. Kritzman, Li, Page & Rigobon (2011), *Principal Components as a Measure of Systemic Risk*, JPM. Estrella & Mishkin (1996), *The Yield Curve as a Predictor of U.S. Recessions*, NY Fed. Estrella & Trubin (2006), *The Yield Curve as a Leading Indicator*, NY Fed. J.P. Morgan/Reuters (1996), *RiskMetrics Technical Document*. Gilchrist & Zakrajšek (2012), *Credit Spreads and Business Cycle Fluctuations*, AER. Kim & Wright (2005), *An Arbitrage-Free Three-Factor Term Structure Model*, Fed Board.
+References: Ilmanen, Maloney & Ross (2014), *Exploring Macroeconomic Sensitivities: How Investments Respond to Different Economic Environments*, JPM. Bridgewater Associates (2012), *The All Weather Story*. Moskowitz, Ooi & Pedersen (2012), *Time Series Momentum*, JFE. Erb & Harvey (2006), *The Strategic and Tactical Value of Commodity Futures*, FAJ. Gorton & Rouwenhorst (2006), *Facts and Fantasies about Commodity Futures*, FAJ. Kumar & Persaud (2002), *Pure Contagion and Investors' Shifting Risk Appetite*, IMF. Kritzman, Li, Page & Rigobon (2011), *Principal Components as a Measure of Systemic Risk*, JPM. Estrella & Mishkin (1996), *The Yield Curve as a Predictor of U.S. Recessions*, NY Fed. Estrella & Trubin (2006), *The Yield Curve as a Leading Indicator*, NY Fed. J.P. Morgan/Reuters (1996), *RiskMetrics Technical Document*. Gilchrist & Zakrajšek (2012), *Credit Spreads and Business Cycle Fluctuations*, AER. Kim & Wright (2005), *An Arbitrage-Free Three-Factor Term Structure Model*, Fed Board.
 
 Caveat: the NY Fed fits its probit to monthly averages and the bond-equivalent 3M bill, so this daily version can differ from the published table by a point or two. Check `NYFED_PROBIT` in `src/quant/models.js` against the NY Fed's current release.
+
+Why the regime uses DBC and DBA instead of the grain and energy futures: Yahoo's continuous front-month contracts (`ZC=F` and so on) jump on each roll date, by the gap between the expiring and the next contract. Over a 3-month window that can be several percent of fake "move". The funds hold and roll the futures themselves, so their prices don't jump. The commodity cards still show the futures, and the guide warns that big monthly moves there can include roll.
+
+## AI explanations (optional)
+
+The **Explain in plain English** button calls `netlify/functions/explain.mjs`, which asks Claude (Opus 5.5, low effort) for a two-paragraph note.
+
+- **Turn it on:** Netlify → Site configuration → Environment variables → add `ANTHROPIC_API_KEY` (scope: Functions), then redeploy. Without it the button says it isn't set up.
+- **Optional:** `EXPLAIN_MODEL` to use a different model, for example a cheaper one.
+- **What it sends:** only numbers. The browser posts the scores behind *Today's read*. The function checks them against a fixed schema (known ids, bounded finite numbers, ISO dates), rebuilds every sentence itself in `src/ai/explain.js`, and only then calls the API, so nothing typed by a visitor can reach the prompt.
+- **Cost control:** a per-IP rate limit of 6 a minute (Netlify's in-code function rate limiting; check it's enabled on your plan), a 30-minute cache per identical data block, a 9-second timeout and bounded output. A call costs roughly 1 to 3 US cents, including the model's thinking tokens. **Set a monthly spend limit on the key in the Anthropic Console** as the backstop, because the endpoint is public.
+- **Safety:** a refusal shows a short notice instead of partial text, and server-side fallbacks are on for the default model.
 
 ## Project structure
 
@@ -70,13 +90,20 @@ src/
   quant/
     stats.js            statistics: EWMA, robust z, percentiles, eigenvalues, alignment
     models.js           RAI, absorption ratio, recession probit, per-series stats
+    regime.js           vol-scaled moves, growth × inflation regime
+    narrative.js        rules behind Today's read
+  ai/
+    explain.js          payload validation and prompt building (shared with the function)
   model/
     derived.js          curve spreads, VIX term structure, carry-to-vol
-    models.js           builds the three models from fetched state
+    models.js           builds the models from fetched state
+    facts.js            the numbers behind Today's read and the AI note
   ui/
     board.js            indicator cards
     detail.js           detail sheet (dialog)
     models-panel.js     models section rendering
+    read-panel.js       Today's read and the AI button
+    regime-panel.js     regime map
     chrome.js           clocks, session chips, tabs, progress bar
     notes.js            one-line reads per indicator
     chart.js            interactive chart: axes, crosshair, tooltip, keyboard
@@ -86,6 +113,8 @@ src/
     format.js           number formatting and sparklines
   styles/               base tokens, layout, components
 public/                 manifest, icons, service worker (copied as-is)
+netlify/functions/
+  explain.mjs           POST /api/explain (Claude)
 netlify.toml            build settings, data proxies, headers
 ```
 

@@ -74,6 +74,26 @@ export const GROUPS = [
     { id: "carryvol", computed: true, kind: "level", ticker: "C/V", name: "Carry-to-Vol",
       desc: "Fed–BOJ gap divided by EWMA-annualized USD/JPY vol.", fmt: { dp: 2 }, pillOverride: "ratio" },
   ]},
+  { label: "Commodities", tab: "cmdty", cls: "g-cmdty", items: [
+    { id: "hg", symbols: ["HG=F"], kind: "price", ticker: "HG", name: "Copper Futures",
+      desc: "Dr Copper: the industrial metal most tied to global growth. $/lb.", fmt: { dp: 3, prefix: "$" } },
+    { id: "cugold", computed: true, kind: "price", ticker: "Cu/Au", name: "Copper/Gold Ratio",
+      desc: "Growth metal over haven metal (×1000). Rises with growth expectations and tends to track the 10Y yield.", fmt: { dp: 3, scale: 1000 } },
+    { id: "si", symbols: ["SI=F"], kind: "price", ticker: "SI", name: "Silver Futures",
+      desc: "Half precious metal, half industrial input. $/oz.", fmt: { dp: 2, prefix: "$" } },
+    { id: "ng", symbols: ["NG=F"], kind: "price", ticker: "NG", name: "Natural Gas",
+      desc: "Henry Hub, $/MMBtu. Weather and storage driven, far more volatile than oil.", fmt: { dp: 3, prefix: "$" } },
+    { id: "zc", symbols: ["ZC=F"], kind: "price", ticker: "ZC", name: "Corn",
+      desc: "CBOT corn, cents per bushel. Feed, food and ethanol.", fmt: { dp: 2, suffix: "¢" } },
+    { id: "zw", symbols: ["ZW=F"], kind: "price", ticker: "ZW", name: "Wheat",
+      desc: "CBOT wheat, cents per bushel. The most geopolitics-sensitive grain.", fmt: { dp: 2, suffix: "¢" } },
+    { id: "zs", symbols: ["ZS=F"], kind: "price", ticker: "ZS", name: "Soybeans",
+      desc: "CBOT soybeans, cents per bushel. China demand and South American weather.", fmt: { dp: 2, suffix: "¢" } },
+    { id: "dbc", symbols: ["DBC"], kind: "price", ticker: "DBC", name: "Broad Commodities",
+      desc: "Invesco DB Commodity fund: 14 futures, energy-heavy, rolled for you (no roll jumps).", fmt: { dp: 2, prefix: "$" } },
+    { id: "dba", symbols: ["DBA"], kind: "price", ticker: "DBA", name: "Agriculture Basket",
+      desc: "Invesco DB Agriculture fund: grains, softs and livestock, rolled for you.", fmt: { dp: 2, prefix: "$" } },
+  ]},
   { label: "The tape", tab: "tape", cls: "g-tape", items: [
     { id: "es", symbols: ["ES=F"], kind: "price", ticker: "ES", name: "S&P 500 Futures",
       desc: "The market's heartbeat. What your MES tracks tick for tick.", fmt: { dp: 2 } },
@@ -101,6 +121,23 @@ export const RAI_INPUTS = [
   { id: "move", label: "Rates vol (MOVE)", transform: "level", sign: -1 },
   { id: "hyoas", label: "HY credit spread", transform: "level", sign: -1 },
 ];
+
+/* Growth × inflation regime inputs: vol-scaled 3-month changes.
+   Commodity exposure comes from rolled funds (DBC, DBA) rather than front-month
+   futures, whose continuous price jumps at each contract roll. sign: +1 when a
+   rise means more growth / more inflation. */
+export const REGIME_INPUTS = [
+  { id: "es", axis: "growth", sign: 1, label: "Equities (ES)" },
+  { id: "cugold", axis: "growth", sign: 1, label: "Copper/gold" },
+  { id: "hyoas", axis: "growth", sign: -1, label: "HY credit spread" },
+  { id: "be10", axis: "inflation", sign: 1, label: "10Y breakeven" },
+  { id: "dbc", axis: "inflation", sign: 1, label: "Broad commodities" },
+  { id: "dba", axis: "inflation", sign: 1, label: "Agriculture" },
+];
+
+/* Series scored for "Today's read" (1-month vol-scaled moves). */
+export const READ_IDS = ["es", "nq", "btc", "gc", "si", "hg", "cugold", "cl", "ng", "zc", "zw", "zs", "dbc", "dba",
+  "dxy", "usdjpy", "hyoas", "be10", "us10y", "us2y", "real10"];
 
 /* Absorption-ratio universe: a cross-asset panel of daily returns (yield changes for rates). */
 export const AR_UNIVERSE = ["es", "nq", "btc", "gc", "cl", "dxy", "usdjpy", "hyg", "us10y", "vix"];

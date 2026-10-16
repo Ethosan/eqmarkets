@@ -19,6 +19,7 @@
   --dot-risk: #E56E76;
   --dot-tape: #D9A84E;
   --dot-carry: #9C8FE0;
+  --dot-cmdty: #7FB574;
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --radius: 14px;
   /* Type ramp. Nothing functional goes below 12px. */

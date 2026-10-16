@@ -8,6 +8,10 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: globals.browser },
   },
   {
+    files: ["netlify/**/*.mjs", "tests/**/*.js", "*.config.js"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     files: ["public/sw.js"],
     languageOptions: { sourceType: "script", globals: globals.serviceworker },
   },

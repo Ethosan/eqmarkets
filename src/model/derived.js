@@ -31,6 +31,7 @@ export function computeDerived() {
     two && two.src !== "fred" ? "Needs the H.15 2Y close · the futures proxy isn't comparable" : undefined);
   combine("spread3m", ten, ok("us3m"), (a, b) => a - b);
   combine("vixts", ok("vix"), ok("vix3m"), (a, b) => a / b);
+  combine("cugold", ok("hg"), ok("gc"), (a, b) => a / b);
 
   const j = ok("usdjpy"), ff = ok("fedfunds"), bj = ok("boj");
   const c = hasHist(j) && ff && bj ? carryToVol(ff.price - bj.price, { dates: j.dates, values: j.values }) : null;

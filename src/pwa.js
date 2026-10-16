@@ -60,7 +60,7 @@ function offerBar() {
   if (!canInstall() || dismissedRecently()) return;
   if (document.documentElement.classList.contains("touring") || document.querySelector("dialog[open]")) return;
   let seenTour = true;
-  try { seenTour = !!localStorage.getItem("eqm.tour.v1"); } catch { /* storage blocked */ }
+  try { seenTour = !!localStorage.getItem("eqm.tour.v2"); } catch { /* storage blocked */ }
   if (!seenTour) return;
   const el = bar();
   el.innerHTML =

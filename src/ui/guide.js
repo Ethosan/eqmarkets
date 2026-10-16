@@ -6,6 +6,8 @@ import { swipeToClose } from "./sheet.js";
 
 const SECTIONS = [
   { id: "routine", label: "Routine" },
+  { id: "read", label: "Today's read" },
+  { id: "regime", label: "Regime" },
   { id: "numbers", label: "The numbers" },
   { id: "rai", label: "Risk appetite" },
   { id: "ar", label: "Absorption" },
@@ -31,13 +33,38 @@ const BODY = () => `
 <section id="g-routine" class="g-sec">
   <h3>A 30-second read before you trade</h3>
   <ol class="g-steps">
-    <li><b>Regime.</b> Read the Risk Appetite label, then glance at its history: is it drifting toward risk-off or recovering? The direction over the last week matters as much as the level.</li>
+    <li><b>Today's read.</b> Start with the sentences at the top. Each one names the numbers behind it, so you can check it against the cards.</li>
+    <li><b>Mood.</b> Read the Risk Appetite label, then glance at its history: is it drifting toward risk-off or recovering? The direction over the last week matters as much as the level.</li>
     <li><b>Drivers.</b> Look at which bars are red. Stress in rates vol (MOVE) or credit (HY spread) that stocks haven't followed yet is a divergence. Those don't always resolve with stocks falling, but they're worth respecting.</li>
     <li><b>Fragility.</b> If the absorption ratio's ΔAR is above +1, markets are moving as one block and a selloff can spread fast. That's a reason to cut size, not a reason to short.</li>
-    <li><b>Backdrop.</b> Recession odds move slowly. They tell you what kind of year it is, not what to do today.</li>
+    <li><b>Backdrop.</b> The macro regime and the recession odds move slowly. They tell you what kind of quarter or year it is, not what to do today.</li>
     <li><b>Your market.</b> Tap its card. Check where it sits in its 1-year range, and compare EWMA vol with 1-month vol: if EWMA is higher, volatility is picking up right now, so size down.</li>
   </ol>
   <p class="g-note">None of this is a trade signal. It's context, so you know what kind of tape you're stepping into.</p>
+</section>
+
+<section id="g-read" class="g-sec">
+  <h3>Today's read</h3>
+  <p>A short list of what stands out across markets this month, written by fixed rules rather than a model. Each rule looks for a specific pattern, and fires only when the numbers cross its thresholds. For example: "energy and food rising while stocks fall" needs oil up at least 1σ, grains up at least 0.75σ and ES down at least 0.75σ, then checks whether 10Y breakevens confirm it. The strongest four are shown, and the chips under each one are the exact numbers it used.</p>
+  <p>σ here is a <b>vol-scaled move</b>: the 1-month change divided by the move you'd normally expect over a month, given that market's volatility <i>before</i> the move started. So 1σ in natural gas is a much bigger price change than 1σ in the S&amp;P, but both are equally unusual for that market. A bell curve says moves beyond 2σ happen about 1 month in 20; real markets have fat tails, so they happen more often than that.</p>
+  <p>These are rules of thumb from standard cross-asset practice, not forecasts. When nothing fires, it says so.</p>
+  <p><b>Explain in plain English</b> sends the same numbers (only numbers, never text) to Claude, which writes a two-paragraph note. It's told to use only the data on the page, to say "likely" rather than claim causes, and never to give trade advice. It can still be wrong, so treat it as a second opinion and check it against the cards.</p>
+</section>
+
+<section id="g-regime" class="g-sec">
+  <h3>Macro regime</h3>
+  <p>Most of what drives asset prices comes down to two questions: is growth surprising up or down, and is inflation? That gives four regimes, the framing behind Bridgewater's All Weather portfolio and AQR's research on macro sensitivities (Ilmanen, Maloney &amp; Ross, 2014).</p>
+  <table class="g-table">
+    <thead><tr><th>Regime</th><th>Growth · Inflation</th></tr></thead>
+    <tbody>
+      <tr><td>Goldilocks</td><td>↑ · ↓ Stocks and credit have done best</td></tr>
+      <tr><td>Reflation</td><td>↑ · ↑ Commodities and cyclicals have led</td></tr>
+      <tr><td>Stagflation</td><td>↓ · ↑ The hardest mix; cash and commodities held up</td></tr>
+      <tr><td>Slowdown</td><td>↓ · ↓ Government bonds have done best</td></tr>
+    </tbody>
+  </table>
+  <p>Each axis is read from markets, which move before GDP and CPI are published. <b>Growth</b> averages the 3-month vol-scaled moves in ES, the copper/gold ratio and the high-yield credit spread (flipped, since wider spreads mean weaker growth). <b>Inflation</b> averages the 10-year breakeven, broad commodities (DBC) and agriculture (DBA). The commodity funds are used instead of front-month futures because continuous futures prices jump at every contract roll, which would show up as fake moves.</p>
+  <p>The dot is a 5-day average so one day can't flip the regime. The trail shows the last 13 weeks. "Clear" means both scores are at least 0.5 from zero, "tentative" means one is within 0.2, so the regime could flip easily. Averages of three inputs rarely go past ±2, which is why the map stops there.</p>
 </section>
 
 <section id="g-numbers" class="g-sec">
@@ -89,6 +116,7 @@ const BODY = () => `
   <h3>How fresh is the data?</h3>
   <dl class="g-defs">
     <div><dt>Futures, FX, VIX, crypto</dt><dd>Yahoo Finance, refreshed every minute. Exchange quotes can run up to about 15 minutes behind.</dd></div>
+    <div><dt>Commodity futures</dt><dd>Front-month contracts (copper, grains, gas, silver). The continuous price jumps when the front contract rolls, so a few percent of a big monthly move can be roll, not market. The regime model uses the rolled funds DBC and DBA to avoid this.</dd></div>
     <div><dt>Treasury yields, spreads, credit</dt><dd>FRED (St. Louis Fed), daily closes, usually a business day behind. The live 10Y card uses the CBOE quote instead.</dd></div>
     <div><dt>NFCI and STLFSI</dt><dd>Weekly. NFCI comes out on Wednesdays, the St. Louis index on Thursdays.</dd></div>
     <div><dt>Yen positioning (COT)</dt><dd>CFTC, weekly. Positions as of Tuesday, released Friday afternoon New York time, so it's always a few days old.</dd></div>

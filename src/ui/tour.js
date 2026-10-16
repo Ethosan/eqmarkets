@@ -1,13 +1,15 @@
 /* First-run spotlight tour. Dims the page, cuts a hole around one real panel
    at a time and explains it with today's live values. Shown once per device
    after the first data load; replay from the guide. */
-import { ITEM_BY_ID } from "../config.js";
+import { ALL, ITEM_BY_ID } from "../config.js";
+import { QUADRANTS } from "../quant/regime.js";
 import { regimeLabel } from "../quant/models.js";
 import { ok } from "../state.js";
 import { LAST } from "./models-panel.js";
 import { fmtNum } from "./format.js";
 
-const KEY = "eqm.tour.v1";
+/* v2: the tour gained Today's read and the macro regime, so show it once more. */
+const KEY = "eqm.tour.v2";
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const narrow = () => matchMedia("(max-width: 680px)").matches;
@@ -38,6 +40,16 @@ function sampleCard() {
 
 const STEPS = [
   {
+    sel: "#readList .read-item",
+    title: "Today's read",
+    body: () => {
+      const n = document.querySelectorAll("#readList .read-item").length;
+      return "The quickest way in: what stands out across markets this month, written by fixed rules from the numbers on the page. " +
+        (n > 1 ? "This is the strongest of today's " + n + ". " : "") +
+        "The chips are the exact numbers behind each line, and the button below the list asks Claude for a plain-English note.";
+    },
+  },
+  {
     sel: "#raiHead",
     title: "Risk Appetite Index",
     body: () => "One number for how much risk the market wants to take, from 8 inputs across stocks, crypto, FX, vol and credit. Left is risk-off, right is risk-on. " + raiNow(),
@@ -52,6 +64,15 @@ const STEPS = [
     title: "Read any day",
     body: () => (matchMedia("(hover: none)").matches ? "Touch and drag" : "Hover over") +
       " any chart to see the value on a given day. The shaded band is the in-between zone: above it is risk-on, below it is risk-off.",
+  },
+  {
+    sel: "#regMap",
+    title: "Macro regime",
+    body: () => {
+      const r = LAST.regime;
+      const now = r ? " Right now: <b>" + r.label + "</b> (" + r.confidence + "). " + QUADRANTS[r.quadrant].blurb : "";
+      return "Is growth rising or falling, and is inflation? Four regimes, read from 3-month market moves. The trail shows the last 13 weeks." + now;
+    },
   },
   {
     sel: "#arCard",
@@ -74,7 +95,7 @@ const STEPS = [
   {
     sel: "#tabs",
     title: "Jump to a group",
-    body: () => "Rates, Risk, Carry and the Tape each have a tab. Models shows just these three panels.",
+    body: () => "Rates, Risk, Carry, Commodities and the Tape each have a tab. Models shows just the model panels.",
     before: () => document.querySelector('.tab[data-filter="all"]')?.click(),
   },
   {
@@ -89,7 +110,7 @@ const STEPS = [
   {
     sel: "#guideBtn",
     title: "The full guide",
-    body: () => "A 30-second routine before you trade, what every number means, each model explained, and a glossary of all 27 indicators. You can replay this tour from there too.",
+    body: () => "A 30-second routine before you trade, what every number means, each model explained, and a glossary of all " + ALL.length + " indicators. You can replay this tour from there too.",
   },
 ];
 
@@ -129,11 +150,16 @@ function place() {
     width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px",
   });
   if (narrow()) { pop.style.left = ""; pop.style.top = ""; return; }
-  const pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 14;
-  let top = r.bottom + gap;
-  if (top + ph > innerHeight - 12) top = r.top - gap - ph;
-  if (top < 12) top = Math.min(innerHeight - ph - 12, Math.max(12, r.top + 12));
-  const left = Math.min(innerWidth - pw - 16, Math.max(16, r.left));
+  const pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 14, m = 12;
+  /* Below, then above, then beside the target; overlap only as a last resort. */
+  let top = r.bottom + gap, left = Math.min(innerWidth - pw - 16, Math.max(16, r.left));
+  if (top + ph > innerHeight - m) top = r.top - gap - ph;
+  if (top < m) {
+    top = Math.min(innerHeight - ph - m, Math.max(m, r.top));
+    if (r.right + gap + pw <= innerWidth - 16) left = r.right + gap;
+    else if (r.left - gap - pw >= 16) left = r.left - gap - pw;
+    else top = Math.min(innerHeight - ph - m, Math.max(m, r.top + m));
+  }
   pop.style.left = left + "px";
   pop.style.top = top + "px";
 }

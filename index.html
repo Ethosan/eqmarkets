@@ -61,12 +61,25 @@
     <button class="tab" role="tab" aria-selected="false" data-filter="rates">Rates</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="risk">Risk</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="carry">Carry</button>
+    <button class="tab" role="tab" aria-selected="false" data-filter="cmdty">Cmdty</button>
     <button class="tab" role="tab" aria-selected="false" data-filter="tape">Tape</button>
   </div>
 
   <section class="models" id="models" aria-labelledby="modelsKicker">
     <h2 class="sr-only" id="modelsKicker">Models</h2>
-    <div class="m-card m-rai">
+    <div class="m-card m-wide" id="readCard">
+      <div class="m-top">
+        <h3 class="m-kicker">Today's read <button type="button" class="m-help" data-guide="read" aria-label="How Today's read works">?</button></h3>
+        <span class="m-sub num" id="readAsOf"></span>
+      </div>
+      <ul class="read-list" id="readList" aria-live="polite"><li class="read-item n"><p>Reading the tape…</p></li></ul>
+      <div class="read-foot">
+        <p class="m-cap">Fixed rules on the numbers on this page. σ is a move measured in that market's own typical 1-month move: 1σ is unusual, 2σ rare.</p>
+        <button type="button" class="t-btn ghost" id="aiBtn">Explain in plain English</button>
+      </div>
+      <div class="ai-out" id="aiOut" hidden aria-live="polite"></div>
+    </div>
+    <div class="m-card m-rai m-wide">
       <div id="raiHead">
       <div class="m-top">
         <h3 class="m-kicker">Risk Appetite Index <button type="button" class="m-help" data-guide="rai" aria-label="How to read the Risk Appetite Index">?</button></h3>
@@ -86,6 +99,23 @@
         <div>
           <p class="m-cap">What's driving it · each input's z-score, capped at ±3</p>
           <ul class="cbars" id="raiBars" aria-label="Input contributions"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="m-card m-wide" id="regimeCard">
+      <div class="m-top">
+        <h3 class="m-kicker">Macro regime <button type="button" class="m-help" data-guide="regime" aria-label="How the macro regime works">?</button></h3>
+        <span class="regime-label" id="regLabel">Reading the tape...</span>
+        <span class="m-sub num" id="regSub"></span>
+      </div>
+      <div class="reg-grid">
+        <div class="reg-map" id="regMap" role="img"></div>
+        <div class="reg-side">
+          <p class="reg-blurb" id="regBlurb"></p>
+          <p class="m-cap">Growth inputs · 3-month moves, vol-scaled</p>
+          <ul class="cbars" id="regGrowth"></ul>
+          <p class="m-cap">Inflation inputs</p>
+          <ul class="cbars" id="regInfl"></ul>
         </div>
       </div>
     </div>
@@ -117,6 +147,10 @@
     <p>Kritzman, Li, Page &amp; Rigobon (2011, <i>Journal of Portfolio Management</i>): the fraction of total variance explained by the top fifth of eigenvectors of the correlation matrix of daily returns (yield changes for the 10Y) across ten assets, over a 63-day window. A high ratio means markets are tightly coupled and shocks propagate broadly. The standardized shift, &Delta;AR = (15-day mean − 1-year mean) / 1-year std, is the signal the authors found preceded drawdowns; above +1&sigma; is flagged.</p>
     <h3>Recession probability</h3>
     <p>The New York Fed model (Estrella &amp; Mishkin 1996; Estrella &amp; Trubin 2006): P(recession in 12 months) = &Phi;(&alpha; + &beta;&middot;S), where S is the one-month average of the 10-year minus 3-month Treasury spread in percentage points, with the published coefficients &alpha; = −0.5333, &beta; = −0.6330. Both legs are FRED H.15 constant-maturity closes. The NY Fed uses monthly averages and the bond-equivalent 3-month yield, so values can differ from its published table by a point or two.</p>
+    <h3>Macro regime</h3>
+    <p>Growth and inflation are each scored from market prices, in the four-quadrant framework of Bridgewater's All Weather work and Ilmanen, Maloney &amp; Ross (2014, <i>Journal of Portfolio Management</i>). Each input is a volatility-scaled 3-month change, z = &Delta;<sub>63</sub> / (&sigma;<sub>ex-ante</sub> &middot; &radic;63), following the time-series momentum convention of Moskowitz, Ooi &amp; Pedersen (2012): log change for prices, point change for rates, divided by the EWMA volatility known when the window opened, so a large move does not inflate its own denominator. On simulated random walks the scores are unbiased with unit variance (a test in the repo checks this over 2,000 independent paths). Growth averages ES, the copper/gold ratio and the inverted high-yield OAS; inflation averages the 10-year breakeven and the DBC and DBA commodity funds, which roll their futures and so avoid the roll gaps in continuous front-month prices (Erb &amp; Harvey 2006; Gorton &amp; Rouwenhorst 2006). Scores are clipped at &plusmn;3, averaged with equal weights, and smoothed over 5 sessions. The regime is the quadrant of the smoothed point; confidence is the distance from the nearer axis.</p>
+    <h3>Today's read</h3>
+    <p>Fixed rules over 1-month vol-scaled moves (same formula, 21 sessions; 30 for Bitcoin) and the level z-scores of VIX and MOVE. Each rule has explicit thresholds and a strength equal to its weakest condition, and the four strongest are shown. The optional AI note sends only these numbers to the site's own function, which validates them against a fixed schema and rebuilds the text itself before calling Claude.</p>
     <h3>Other series</h3>
     <p>Curve spreads use H.15 closes on both legs, never a live quote against a stale one. Credit is the ICE BofA option-adjusted spreads (Gilchrist &amp; Zakraj&scaron;ek 2012). The term premium is the Kim–Wright estimate from the Fed Board. NFCI (Chicago Fed) and STLFSI4 (St. Louis Fed) are weekly composites centred on zero. Yen positioning is CFTC Legacy non-commercial net futures, with a robust z-score against three years. Carry-to-vol divides the Fed–BOJ gap by EWMA-annualized USD/JPY vol, a free proxy for the implied vol used in practice. This is decision support, not a trading signal.</p>
   </details>

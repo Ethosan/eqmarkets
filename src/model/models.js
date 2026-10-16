@@ -1,10 +1,12 @@
 /* Builds the three dashboard models from STATE:
    - Risk Appetite Index v2 (vol-scaled trend + robust level z-scores)
    - Absorption ratio (cross-asset systemic fragility)
-   - NY Fed yield-curve recession probability */
-import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS } from "../config.js";
+   - NY Fed yield-curve recession probability
+   - Growth × inflation regime */
+import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS, REGIME_INPUTS } from "../config.js";
 import { hist } from "../state.js";
 import { absorptionSeries, recessionSeries, riskAppetite } from "../quant/models.js";
+import { regimeModel } from "../quant/regime.js";
 
 /* Master calendar: the ES futures session dates, else the VIX dates. */
 function calendar() {
@@ -34,4 +36,13 @@ export function buildRecession() {
   if (!ten || !three) return null;
   const r = recessionSeries(ten, three);
   return r.prob.length ? r : null;
+}
+
+export function buildRegime() {
+  const cal = calendar();
+  if (!cal) return null;
+  const inputs = REGIME_INPUTS
+    .map(i => ({ ...i, kind: ITEM_BY_ID[i.id].kind, ppy: ITEM_BY_ID[i.id].ppy || 252, series: hist(i.id, 130) }))
+    .filter(i => i.series);
+  return regimeModel(inputs, cal);
 }

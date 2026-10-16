@@ -37,7 +37,7 @@
 /* ---------- models ---------- */
 .models { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px }
 .m-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; display: flex; flex-direction: column; min-width: 0 }
-.m-rai { grid-column: 1 / -1 }
+.m-wide { grid-column: 1 / -1 }
 .m-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px }
 .m-kicker { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
 .regime-label { font-size: 21px; font-weight: 600; letter-spacing: -.01em }
@@ -90,6 +90,7 @@
 .g-risk .gdot { background: var(--dot-risk) }
 .g-tape .gdot { background: var(--dot-tape) }
 .g-carry .gdot { background: var(--dot-carry) }
+.g-cmdty .gdot { background: var(--dot-cmdty) }
 .tk { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
 .pill { flex: none; margin-left: auto; font-size: var(--fs-xs); font-weight: 600; border-radius: 7px; padding: 2px 8px; white-space: nowrap }
 .pill.up { color: var(--up); background: var(--up-soft) }
@@ -348,3 +349,61 @@ html.touring { overflow: hidden }
 @media (prefers-reduced-motion: reduce) { .pwa-bar { animation: none } }
 /* Installed app: no browser chrome, so leave room for the home indicator. */
 @media (display-mode: standalone) { footer { padding-bottom: calc(26px + env(safe-area-inset-bottom)) } }
+
+/* ---------- today's read ---------- */
+.read-list { list-style: none; display: grid; gap: 10px }
+/* Tone marker: a dot on the first line (red = warning, green = supportive). */
+.read-item { position: relative; padding-left: 18px }
+.read-item::before {
+  content: ""; position: absolute; left: 2px; top: .55em; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-3);
+}
+.read-item.d::before { background: var(--down) }
+.read-item.u::before { background: var(--up) }
+.read-item p { font-size: 15px; line-height: 1.5; color: var(--text-1); max-width: 72ch }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px }
+.chip {
+  font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px;
+}
+.chip b { font-weight: 600; color: var(--text-1) }
+.read-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px }
+.read-foot .m-cap { margin: 0; max-width: 60ch }
+.read-foot .t-btn:disabled { opacity: .6; cursor: progress }
+.ai-out { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border) }
+.ai-out[hidden] { display: none }
+.ai-out p { font-size: 15px; line-height: 1.6; color: var(--text-1); max-width: 72ch }
+.ai-out p + p { margin-top: 8px }
+.ai-out .ai-meta { font-size: var(--fs-xs); color: var(--text-3) }
+.ai-out.err p, .ai-out .ai-wait { color: var(--text-2); font-size: var(--fs-sm) }
+
+/* ---------- macro regime ---------- */
+.reg-grid { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 24px; align-items: start }
+.reg-map { width: 100%; max-width: 320px; aspect-ratio: 1 }
+.reg-svg { width: 100%; height: 100%; display: block; overflow: visible }
+.rq { fill: rgba(155, 161, 172, .04); stroke: var(--border); stroke-width: 1 }
+.rq.on.stagflation { fill: rgba(242, 85, 90, .13) }
+.rq.on.reflation { fill: rgba(226, 183, 91, .13) }
+.rq.on.goldilocks { fill: rgba(61, 214, 140, .12) }
+.rq.on.disinflation { fill: rgba(110, 139, 217, .14) }
+.rq-lab { fill: var(--text-3); font-size: 11px; font-weight: 600; letter-spacing: .02em; font-family: inherit; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round }
+.rq-grid { stroke: rgba(155, 161, 172, .08); stroke-width: 1; stroke-dasharray: 2 4 }
+.rq-lab.on { fill: var(--text-1) }
+.rq-axis { stroke: var(--border-2); stroke-width: 1 }
+.rq-tick { fill: var(--text-3); font-size: 10px; font-family: inherit; font-variant-numeric: tabular-nums }
+.rq-title { fill: var(--text-2); font-size: 11px; font-family: inherit }
+.rq-trail { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-opacity: .5; stroke-linejoin: round }
+.rq-pt { fill: var(--accent) }
+.rq-now { fill: var(--accent); stroke: var(--bg); stroke-width: 3 }
+.reg-blurb { font-size: 15px; line-height: 1.55; color: var(--text-2); max-width: 60ch; margin-bottom: 6px }
+.reg-side .cbars { margin-bottom: 6px }
+.cb-bar i.pos { background: var(--accent) }
+.cb-bar i.neg { background: #6E8BD9 }
+
+/* Phone layout for the read and regime cards (after their base rules so it wins). */
+@media (max-width: 680px) {
+  .reg-grid { grid-template-columns: 1fr; gap: 14px }
+  .reg-map { max-width: 300px; margin: 0 auto }
+  .read-item p, .ai-out p { font-size: 14px }
+  .read-foot .t-btn { width: 100% }
+}
