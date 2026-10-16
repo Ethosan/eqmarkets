@@ -30,12 +30,16 @@
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none"><path d="M3 15.5 8 11l4 4 8-8.5" stroke="#D9A84E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="6.5" r="2.4" fill="#D9A84E"/></svg>
       </span>
-      <span class="brand-name">Equarian Markets</span>
+      <span class="brand-name">Equarian<span class="brand-sub"> Markets</span></span>
     </div>
     <div class="appbar-meta">
       <span class="clocks num">SGT <b id="clkSg">--:--:--</b> · NY <b id="clkNy">--:--:--</b></span>
       <span class="status" id="chipEq"><i aria-hidden="true"></i>Cash</span>
       <span class="status" id="chipFut"><i aria-hidden="true"></i>Globex</span>
+      <button type="button" class="guide-btn" id="guideBtn" aria-label="Guide: how to read this dashboard">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></svg>
+        <span class="guide-lab">Guide</span>
+      </button>
     </div>
   </div>
   <div class="progress" id="progWrap" hidden>
@@ -63,35 +67,37 @@
   <section class="models" id="models" aria-labelledby="modelsKicker">
     <h2 class="sr-only" id="modelsKicker">Models</h2>
     <div class="m-card m-rai">
+      <div id="raiHead">
       <div class="m-top">
-        <h3 class="m-kicker">Risk Appetite Index</h3>
+        <h3 class="m-kicker">Risk Appetite Index <button type="button" class="m-help" data-guide="rai" aria-label="How to read the Risk Appetite Index">?</button></h3>
         <span class="regime-label" id="raiLabel" aria-live="polite">Reading the tape...</span>
         <span class="m-sub num" id="raiValue"></span>
       </div>
       <div class="track" id="raiTrack" role="meter" aria-label="Risk appetite, risk-off to risk-on, in sigma" aria-valuemin="-2" aria-valuemax="2" aria-valuenow="0">
         <div class="needle" id="needle"></div>
       </div>
-      <div class="track-legend" aria-hidden="true"><span>Risk-off −2σ</span><span>0</span><span>+2σ Risk-on</span></div>
+      <div class="track-legend" aria-hidden="true"><span>Risk-off −2</span><span>0</span><span>+2 Risk-on</span></div>
+      </div>
       <div class="m-grid">
         <div>
-          <p class="m-cap">1Y history · shaded band ±0.75σ (neutral zone)</p>
+          <p class="m-cap">1Y history · shaded band ±0.75 (between the risk-on and risk-off lines)</p>
           <div class="m-chart rai-chart" id="raiChart"></div>
         </div>
         <div>
-          <p class="m-cap">Input scores today (σ, clipped ±3)</p>
+          <p class="m-cap">What's driving it · each input's z-score, capped at ±3</p>
           <ul class="cbars" id="raiBars" aria-label="Input contributions"></ul>
         </div>
       </div>
     </div>
-    <div class="m-card">
-      <h3 class="m-kicker">Absorption Ratio</h3>
+    <div class="m-card" id="arCard">
+      <h3 class="m-kicker">Absorption Ratio <button type="button" class="m-help" data-guide="ar" aria-label="How to read the absorption ratio">?</button></h3>
       <span class="m-value num" id="arValue">—</span>
       <p class="m-sub" id="arSub">Systemic fragility: how much cross-asset variance one or two factors absorb</p>
       <div class="m-chart" id="arChart"></div>
       <p class="m-cap" id="arAssets"></p>
     </div>
-    <div class="m-card">
-      <h3 class="m-kicker">Recession Probability, 12M</h3>
+    <div class="m-card" id="recCard">
+      <h3 class="m-kicker">Recession Probability, 12M <button type="button" class="m-help" data-guide="rec" aria-label="How to read the recession probability">?</button></h3>
       <span class="m-value num" id="recValue">—</span>
       <p class="m-sub" id="recSub">NY Fed yield-curve probit on the 3m10y spread</p>
       <div class="m-chart" id="recChart"></div>
@@ -106,7 +112,7 @@
     <h3>Units and statistics</h3>
     <p>Each series has a kind that sets its units everywhere. <b>Prices</b> (ES, DXY, USD/JPY…) show % changes and annualized volatility of daily log returns. <b>Rates and spreads</b> show changes in basis points and annualized normal (bp) volatility of daily changes, the convention on rates desks. <b>Levels</b> (VIX, NFCI…) show point changes. Volatility is both a 21-day sample standard deviation and RiskMetrics EWMA, &sigma;&sup2;<sub>t</sub> = &lambda;&sigma;&sup2;<sub>t−1</sub> + (1−&lambda;)r&sup2;<sub>t−1</sub>, &lambda; = 0.94, annualized by &radic;252 (&radic;365 for Bitcoin, &radic;52 for weekly series). Range position is the mid-rank percentile of today's value against the prior year, plus a robust z-score, (x − median) / (1.4826 · MAD), which is not distorted by the fat tails and spikes that dominate stress series.</p>
     <h3>Risk Appetite Index</h3>
-    <p>A composite in the Credit Suisse / Goldman Sachs risk-appetite tradition (Kumar &amp; Persaud, IMF 2002), with transforms matched to the statistics of each input. Trending assets (ES, Bitcoin, USD/JPY, inverse DXY) enter as volatility-scaled momentum: the 21-day log return divided by EWMA vol &times; &radic;21, a t-statistic-like score. Mean-reverting stress gauges (VIX, VIX/VIX3M, MOVE, high-yield OAS) enter as robust z-scores of their level against the trailing year, sign-flipped. Scores are clipped to &plusmn;3 and averaged with equal weight, so no single gauge can dominate and the result needs no unstable PCA re-weighting. The label uses a 3-day mean: &ge; +0.75&sigma; risk-on, &le; −0.75&sigma; risk-off. Every point in the history uses only data available on that date.</p>
+    <p>A composite in the Credit Suisse / Goldman Sachs risk-appetite tradition (Kumar &amp; Persaud, IMF 2002), with transforms matched to the statistics of each input. Trending assets (ES, Bitcoin, USD/JPY, inverse DXY) enter as volatility-scaled momentum: the 21-day log return divided by EWMA vol &times; &radic;21, a t-statistic-like score. Mean-reverting stress gauges (VIX, VIX/VIX3M, MOVE, high-yield OAS) enter as robust z-scores of their level against the trailing year, sign-flipped. Scores are clipped to &plusmn;3 and averaged with equal weight, so no single gauge can dominate and the result needs no unstable PCA re-weighting. The label uses a 3-day mean: &ge; +0.75 risk-on, &le; −0.75 risk-off. Every point in the history uses only data available on that date.</p>
     <h3>Absorption ratio</h3>
     <p>Kritzman, Li, Page &amp; Rigobon (2011, <i>Journal of Portfolio Management</i>): the fraction of total variance explained by the top fifth of eigenvectors of the correlation matrix of daily returns (yield changes for the 10Y) across ten assets, over a 63-day window. A high ratio means markets are tightly coupled and shocks propagate broadly. The standardized shift, &Delta;AR = (15-day mean − 1-year mean) / 1-year std, is the signal the authors found preceded drawdowns; above +1&sigma; is flagged.</p>
     <h3>Recession probability</h3>
@@ -140,6 +146,21 @@
     <dl class="d-stats" id="dStats"></dl>
     <p class="d-statsnote" id="dStatsNote"></p>
     <a class="d-source" id="dSource" target="_blank" rel="noopener">View source data ↗</a>
+  </div>
+</dialog>
+
+<dialog id="guide" class="detail guide" aria-labelledby="gTitle">
+  <div class="d-in">
+    <div class="d-grab" id="gGrab" aria-hidden="true"></div>
+    <div class="d-head">
+      <span class="tk">Guide</span>
+      <button type="button" class="d-close" id="gClose" aria-label="Close">×</button>
+    </div>
+    <h2 class="d-name" id="gTitle">How to read this dashboard</h2>
+    <p class="d-desc">What each number means and how to use it before a trade.</p>
+    <nav class="g-nav" id="gNav" aria-label="Guide sections"></nav>
+    <div id="gBody"></div>
+    <div class="g-end"><button type="button" class="t-btn" id="gTour">Replay the tour</button></div>
   </div>
 </dialog>
 

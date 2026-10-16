@@ -5,6 +5,7 @@ import { STATE } from "../state.js";
 import { seriesStats } from "../quant/models.js";
 import { $, fmtNum, fmtChange, fmtDelta, fmtVol, ordinal, tickFmt } from "./format.js";
 import { chart } from "./chart.js";
+import { swipeToClose } from "./sheet.js";
 import { noteFor } from "./notes.js";
 
 const RANGES = [
@@ -110,35 +111,7 @@ export function initDetail() {
     render();
   });
   $("dClose").addEventListener("click", () => dlg.close());
-  /* Bottom sheet on phones: drag down from the handle or header to dismiss. */
-  let y0 = null, dy = 0;
-  const handles = [$("dGrab"), dlg.querySelector(".d-head")];
-  const move = e => {
-    if (y0 == null) return;
-    dy = Math.max(0, e.clientY - y0);
-    dlg.style.transform = "translateY(" + dy + "px)";
-  };
-  const end = () => {
-    if (y0 == null) return;
-    y0 = null;
-    dlg.style.transition = "";
-    dlg.style.transform = "";
-    if (dy > 90) dlg.close();
-  };
-  for (const h of handles) {
-    h.addEventListener("pointerdown", e => {
-      if (e.pointerType === "mouse" || dlg.scrollTop > 0 || e.target.closest("button")) return;
-      y0 = e.clientY; dy = 0;
-      dlg.style.transition = "none";
-      h.setPointerCapture(e.pointerId);
-    });
-    h.addEventListener("pointermove", move);
-    h.addEventListener("pointerup", end);
-    h.addEventListener("pointercancel", end);
-    /* touch-action: none still lets Chrome start a fling on a fast flick; once the
-       sheet closes, that fling eats the next tap on a card. */
-    h.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
-  }
+  swipeToClose(dlg, [$("dGrab"), dlg.querySelector(".d-head")]);
   /* Close on backdrop click. */
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener("close", () => { current = null; });

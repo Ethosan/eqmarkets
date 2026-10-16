@@ -12,6 +12,8 @@ import { renderModels } from "./ui/models-panel.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
 import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
+import { initGuide } from "./ui/guide.js";
+import { maybeStartTour, startTour } from "./ui/tour.js";
 
 const STALE_AFTER = 5 * 60_000;
 let nextAt = Date.now() + REFRESH_MS;
@@ -20,6 +22,7 @@ let lastOk = 0;
 let reachable = null;
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
+const anyOkNow = () => ALL.some(it => STATE[it.id] && !STATE[it.id].error);
 
 function stampText() {
   if (!lastOk) return null;
@@ -46,6 +49,7 @@ async function refresh() {
   computeDerived();
   ALL.forEach(updateCard);
   renderModels();
+  if (anyOkNow()) maybeStartTour();
   refreshDetail();
   progEnd();
 
@@ -64,6 +68,7 @@ async function refresh() {
 trackAppbar();
 initTabs();
 initDetail();
+initGuide({ onReplayTour: startTour });
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 tickClocks();
 refresh();

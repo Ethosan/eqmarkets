@@ -227,3 +227,98 @@
   .m-grid { grid-template-columns: 1fr; gap: 12px }
   .detail { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 18px 18px 0 0; max-height: 92%; padding-bottom: env(safe-area-inset-bottom) }
 }
+
+/* ---------- guide button and model help ---------- */
+.guide-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px;
+  font: inherit; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
+  background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px 3px 8px; cursor: pointer;
+}
+.guide-btn svg { width: 16px; height: 16px; flex: none }
+.guide-btn:hover { color: var(--text-1); border-color: var(--border-2) }
+.m-help {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 4px; vertical-align: 1px;
+  font: inherit; font-size: 11px; font-weight: 700; color: var(--text-3); letter-spacing: 0;
+  background: none; border: 1px solid var(--border-2); border-radius: 50%; cursor: pointer; position: relative;
+}
+.m-help::after { content: ""; position: absolute; inset: -10px }
+.m-help:hover { color: var(--accent); border-color: var(--accent) }
+
+/* ---------- guide sheet ---------- */
+.guide { width: min(620px, calc(100% - 32px)) }
+.g-nav {
+  position: sticky; top: -1px; z-index: 2; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  margin: 16px -22px 4px; padding: 10px 22px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.g-nav::-webkit-scrollbar { display: none }
+.g-nav button {
+  flex: none; min-height: 34px; font: inherit; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+}
+.g-nav button:hover { color: var(--text-1); border-color: var(--border-2) }
+.g-sec { padding: 18px 0 6px; border-bottom: 1px solid var(--border) }
+.g-sec:last-of-type { border-bottom: 0 }
+.g-sec h3 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 8px }
+.g-sec p, .g-sec li, .g-defs dd { font-size: 15px; line-height: 1.6; color: var(--text-2); max-width: 66ch }
+.g-sec p + p { margin-top: 10px }
+.g-sec b { color: var(--text-1); font-weight: 600 }
+.g-steps { padding-left: 20px; display: grid; gap: 8px }
+.g-steps li::marker { color: var(--accent); font-weight: 600 }
+.g-note { margin-top: 12px; font-size: var(--fs-sm) !important; color: var(--text-3) !important }
+.g-defs { display: grid; gap: 12px }
+.g-defs dt { font-size: var(--fs-md); font-weight: 600; color: var(--text-1); margin-bottom: 2px }
+.g-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: var(--fs-sm) }
+.g-table th { text-align: left; font-weight: 600; color: var(--text-3); font-size: var(--fs-xs); padding: 0 0 6px }
+.g-table td { padding: 7px 0; border-top: 1px solid var(--border); color: var(--text-2) }
+.g-table td:first-child { color: var(--text-1); width: 50% }
+.g-group { display: flex; align-items: center; gap: 8px; margin: 16px 0 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
+.g-group:first-of-type { margin-top: 4px }
+.g-terms { display: grid; gap: 10px }
+.g-terms dt { font-size: var(--fs-sm); color: var(--text-2) }
+.g-terms dt b { color: var(--text-1); margin-right: 4px }
+.g-terms dd { font-size: var(--fs-sm); line-height: 1.5; max-width: 72ch; color: var(--text-3); margin-top: 1px }
+.g-meta { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--text-3); opacity: .85 }
+.g-end { padding: 18px 0 4px; display: flex; justify-content: center }
+
+/* ---------- tour ---------- */
+.tour-ov { position: fixed; inset: 0; z-index: 100 }
+.tour-ov[hidden] { display: none }
+.tour-hole {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 200vmax rgba(5, 6, 9, .74);
+  transition: left .35s cubic-bezier(.4, 0, .2, 1), top .35s cubic-bezier(.4, 0, .2, 1), width .35s cubic-bezier(.4, 0, .2, 1), height .35s cubic-bezier(.4, 0, .2, 1);
+}
+.tour-ov.still .tour-hole { transition: none }
+.tour-pop {
+  position: fixed; width: min(360px, calc(100vw - 32px));
+  background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 14px;
+  padding: 16px 18px 14px; box-shadow: 0 18px 40px rgba(0, 0, 0, .5);
+}
+.tour-step { font-size: var(--fs-xs); color: var(--accent); font-weight: 600 }
+.tour-title { font-size: 17px; font-weight: 600; letter-spacing: -.01em; margin-top: 4px }
+.tour-body { font-size: var(--fs-md); line-height: 1.55; color: var(--text-2); margin-top: 6px }
+.tour-body b { color: var(--text-1); font-weight: 600 }
+.tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px }
+.tour-dots { display: flex; gap: 5px }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--border-2) }
+.tour-dots i.on { background: var(--accent) }
+.tour-acts { display: flex; gap: 6px }
+.t-btn {
+  min-height: 38px; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: #0A0B0F;
+  background: var(--accent); border: 1px solid var(--accent); border-radius: 9px; padding: 7px 16px; cursor: pointer;
+}
+.t-btn.ghost { color: var(--text-2); background: none; border-color: var(--border-2) }
+.t-btn.ghost:hover { color: var(--text-1) }
+.t-btn[hidden] { display: none }
+html.touring { overflow: hidden }
+
+@media (max-width: 680px) {
+  .guide-lab { display: none }
+  .guide-btn { padding: 0; width: 34px; justify-content: center; border-radius: 50% }
+  .guide-btn::after { content: ""; position: absolute; inset: -6px }
+  .guide-btn { position: relative }
+  .guide { width: 100% }
+  .g-nav { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px }
+  .tour-pop { left: 12px !important; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); top: auto !important; width: auto }
+  .t-btn { min-height: 42px }
+}

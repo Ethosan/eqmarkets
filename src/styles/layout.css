@@ -55,6 +55,7 @@ footer {
   .clocks { display: none }
   .brand { min-width: 0 }
   .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis }
+  .brand-sub { display: none }
   .appbar-meta::-webkit-scrollbar { display: none }
   .secs { display: none }
   .wrap { padding-left: 16px; padding-right: 16px }

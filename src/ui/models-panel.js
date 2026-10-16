@@ -3,15 +3,20 @@
 import { ITEM_BY_ID } from "../config.js";
 import { buildAbsorption, buildRai, buildRecession } from "../model/models.js";
 import { regimeLabel } from "../quant/models.js";
-import { $, stepDp } from "./format.js";
+import { percentileRank } from "../quant/stats.js";
+import { $, ordinal, stepDp } from "./format.js";
 import { chart } from "./chart.js";
 
 const AMBER = "#D9A84E";
+
+/* Latest model outputs, read by the tour and guide to quote live values. */
+export const LAST = { rai: null, ar: null, rec: null };
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 function renderRai() {
   const r = buildRai();
+  LAST.rai = r;
   const label = $("raiLabel"), val = $("raiValue"), chartEl = $("raiChart"), bars = $("raiBars");
   if (!r) {
     label.textContent = "Insufficient data";
@@ -22,15 +27,20 @@ function renderRai() {
   }
   const x = r.smooth;
   label.textContent = regimeLabel(x);
-  val.textContent = sgn(x) + "σ · " + r.contributions.length + "/" + r.total + " inputs · 3-day mean";
+  /* The index is an average of z-scores, so its own spread is narrower than 1.
+     The percentile against its own past year says how unusual today is. */
+  const pct = r.history.values.length > 60 ? percentileRank(x, r.history.values.slice(0, -1)) : null;
+  r.pct = pct;
+  val.textContent = sgn(x) + (pct == null ? "" : " · " + ordinal(Math.round(pct * 100)) + " pctile (1Y)") +
+    " · " + r.contributions.length + "/" + r.total + " inputs";
   /* ±2σ maps to the ends of the track. */
   const pos = Math.max(0, Math.min(100, 50 + x * 25));
   $("needle").style.left = pos + "%";
   $("raiTrack").setAttribute("aria-valuenow", x.toFixed(2));
-  $("raiTrack").setAttribute("aria-valuetext", regimeLabel(x) + ", " + sgn(x) + " sigma");
+  $("raiTrack").setAttribute("aria-valuetext", regimeLabel(x) + ", " + sgn(x));
   chart(chartEl, {
     dates: r.history.dates, values: r.history.values, zero: true, band: [-0.75, 0.75], color: AMBER, height: 170,
-    label: "Risk Appetite Index history", format: v => sgn(v) + "σ · " + regimeLabel(v), tick: (v, st) => (Math.abs(v) < 1e-9 ? "0" : sgn(v, stepDp(st))) + "σ",
+    label: "Risk Appetite Index history", format: v => sgn(v) + " · " + regimeLabel(v), tick: (v, st) => (Math.abs(v) < 1e-9 ? "0" : sgn(v, stepDp(st))),
   });
 
   const max = 3;
@@ -48,6 +58,7 @@ function renderRai() {
 
 function renderAbsorption() {
   const a = buildAbsorption();
+  LAST.ar = a;
   const v = $("arValue"), sub = $("arSub"), chartEl = $("arChart");
   if (!a) { v.textContent = "—"; sub.textContent = "Needs 5+ assets with 4 months of overlapping history"; chart(chartEl, { dates: null, values: [] }); return; }
   v.textContent = (a.latest * 100).toFixed(0) + "%";
@@ -64,6 +75,7 @@ function renderAbsorption() {
 
 function renderRecession() {
   const r = buildRecession();
+  LAST.rec = r;
   const v = $("recValue"), sub = $("recSub"), chartEl = $("recChart");
   if (!r) { v.textContent = "—"; sub.textContent = "Needs FRED DGS10 and DGS3MO"; chart(chartEl, { dates: null, values: [] }); return; }
   const n = r.prob.length;

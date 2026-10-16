@@ -7,6 +7,7 @@ A live macro dashboard for futures traders: rates, credit, carry and the tape on
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
   - **Absorption ratio** (Kritzman et al. 2011): the variance share of the top fifth of eigenvectors across a 10-asset return panel, plus the standardized ΔAR shift.
   - **NY Fed yield-curve recession probability:** a probit on the 1-month average 3m10y spread, with a 2Y history.
+- **Tour and guide:** a first-visit spotlight tour walks through each panel using that day's live numbers. The **Guide** button (and a **?** on each model) opens a reference covering a 30-second pre-trade routine, what z-scores, percentiles, bp and vol mean, each model's thresholds and caveats, a glossary of all 27 indicators, and how fresh each feed is. Add `?notour` to the URL to skip the tour.
 - **Interactive charts:** hover, tap or use the arrow keys for a crosshair readout (date and value in the series' units), with a value axis on round-number ticks and a date axis. Used on the detail sheet and all three model charts.
 - **Unit-aware statistics:** each series has a `kind`. Prices use % changes and log-return vol; rates and spreads use bp changes and normal (bp) vol; indices use points. Cards show the 1M change and EWMA vol. The detail sheet adds 1W/1M/3M/YTD/1Y changes, 21-day and EWMA (λ = 0.94) vol, 1Y percentile, robust z, high/low and max drawdown.
 - **Correct alignment:** Yahoo bars are dated in exchange-local time via `gmtoffset`, so FX and futures share a calendar. Curve spreads use H.15 closes on both legs. Models use as-of joins with a 7-day staleness cap.
@@ -77,6 +78,9 @@ src/
     chrome.js           clocks, session chips, tabs, progress bar
     notes.js            one-line reads per indicator
     chart.js            interactive chart: axes, crosshair, tooltip, keyboard
+    tour.js             first-run spotlight tour with live values
+    guide.js            "how to read this" guide sheet
+    sheet.js            swipe-to-dismiss for bottom sheets
     format.js           number formatting and sparklines
   styles/               base tokens, layout, components
 public/                 manifest, icons, service worker (copied as-is)
