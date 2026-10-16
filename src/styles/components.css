@@ -45,12 +45,10 @@
 .m-tag { font-weight: 600; color: var(--amber); margin-right: 4px }
 .m-tag.u { color: var(--up) }
 .m-tag.d { color: var(--down) }
-.m-chart { height: 56px; margin-top: auto; padding-top: 10px; box-sizing: content-box }
-.m-chart svg { width: 100%; height: 56px; display: block }
+.m-chart { margin-top: auto; padding-top: 10px }
 .m-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-top: 10px }
 .m-grid > div { display: flex; flex-direction: column; min-width: 0 }
-.rai-chart { height: auto; min-height: 120px; flex: 1; padding-top: 0; margin-top: 0 }
-.rai-chart svg { height: 100%; min-height: 120px }
+.rai-chart { padding-top: 0; margin-top: 0 }
 .track { position: relative; height: 4px; border-radius: 999px; background: linear-gradient(90deg, var(--down), var(--amber) 50%, var(--up)); opacity: .8 }
 .needle {
   position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; border-radius: 50%;
@@ -159,7 +157,26 @@
 }
 .d-ranges button[aria-pressed="true"] { background: var(--surface-2); color: var(--text-1) }
 .d-chart { margin-top: 12px }
-.d-chart svg { width: 100%; height: 160px; display: block }
+/* ---------- interactive chart ---------- */
+.ch { position: relative; cursor: crosshair; touch-action: pan-y; outline: none; border-radius: 6px; -webkit-user-select: none; user-select: none }
+.ch:focus-visible { box-shadow: 0 0 0 2px var(--accent) }
+.ch-svg { display: block; overflow: visible }
+.ch-grid { stroke: rgba(155, 161, 172, .1); stroke-width: 1 }
+.ch-axis { stroke: rgba(155, 161, 172, .28); stroke-width: 1 }
+.ch-ref { stroke: rgba(155, 161, 172, .45); stroke-width: 1; stroke-dasharray: 3 4 }
+.ch-band { fill: rgba(155, 161, 172, .07) }
+.ch-ylab, .ch-xlab { fill: var(--text-3); font-size: 10.5px; font-variant-numeric: tabular-nums; font-family: inherit }
+.ch-cross { stroke: rgba(230, 232, 236, .38); stroke-width: 1 }
+.ch-dot { stroke: var(--bg); stroke-width: 2 }
+.ch-tip {
+  position: absolute; top: 0; left: 0; pointer-events: none; z-index: 2;
+  display: flex; flex-direction: column; gap: 1px; white-space: nowrap;
+  background: rgba(14, 16, 22, .94); border: 1px solid var(--border-2); border-radius: 8px;
+  padding: 5px 9px; box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+.ch-tip[hidden] { display: none }
+.ch-tv { font-size: var(--fs-sm); font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums }
+.ch-td { font-size: var(--fs-xs); color: var(--text-3) }
 .d-empty { font-size: var(--fs-sm); color: var(--text-3); padding: 18px 0 }
 .d-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px }
 .d-stats div { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px }

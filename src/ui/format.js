@@ -9,7 +9,8 @@ export function fmtNum(v, fmt = {}) {
   const n = Math.abs(x) >= 1000
     ? x.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })
     : x.toFixed(dp);
-  return (fmt.prefix || "") + n + (fmt.suffix || "");
+  /* Typographic minus, sign ahead of any prefix: −$1.20, not $-1.20. */
+  return (x < 0 && n !== (0).toFixed(dp) ? "−" : "") + (fmt.prefix || "") + n.replace("-", "") + (fmt.suffix || "");
 }
 
 const signed = (x, dp) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
@@ -83,4 +84,18 @@ export function lineChart(vals, { good = true, id = "s", w = 200, h = 40, pad = 
     '<path d="' + d + "L" + X(n - 1).toFixed(1) + "," + h + "L" + X(0).toFixed(1) + "," + h + 'Z" fill="url(#' + gid + ')"/>' +
     '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
     "</svg>";
+}
+
+/* Axis-label formatter: the item's prefix/suffix, with just enough decimals
+   to tell the tick step apart (step 0.25 → 2 dp, step 50 → 0 dp). */
+export function tickFmt(fmt = {}) {
+  return (v, step) => {
+    return fmtNum(v, { ...fmt, dp: stepDp(step * (fmt.scale || 1)), suffix: (fmt.suffix || "").trim() === "bp" ? "" : fmt.suffix });
+  };
+}
+
+/* Decimals needed to tell ticks `step` apart (0.25 → 2, 2.5 → 1, 50 → 0). */
+export function stepDp(step) {
+  const st = step.toFixed(6).replace(/0+$/, "");
+  return st.includes(".") ? Math.min(st.split(".")[1].length, 4) : 0;
 }

@@ -3,7 +3,8 @@
 import { ITEM_BY_ID } from "../config.js";
 import { buildAbsorption, buildRai, buildRecession } from "../model/models.js";
 import { regimeLabel } from "../quant/models.js";
-import { $, lineChart } from "./format.js";
+import { $, stepDp } from "./format.js";
+import { chart } from "./chart.js";
 
 const AMBER = "#D9A84E";
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
@@ -11,11 +12,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 function renderRai() {
   const r = buildRai();
-  const label = $("raiLabel"), val = $("raiValue"), chart = $("raiChart"), bars = $("raiBars");
+  const label = $("raiLabel"), val = $("raiValue"), chartEl = $("raiChart"), bars = $("raiBars");
   if (!r) {
     label.textContent = "Insufficient data";
     val.textContent = "Needs at least 4 inputs with history";
-    chart.innerHTML = ""; bars.innerHTML = "";
+    chart(chartEl, { dates: null, values: [] }); bars.innerHTML = "";
     $("needle").style.left = "50%";
     return;
   }
@@ -27,7 +28,10 @@ function renderRai() {
   $("needle").style.left = pos + "%";
   $("raiTrack").setAttribute("aria-valuenow", x.toFixed(2));
   $("raiTrack").setAttribute("aria-valuetext", regimeLabel(x) + ", " + sgn(x) + " sigma");
-  chart.innerHTML = lineChart(r.history.values, { id: "rai", w: 600, h: 180, pad: 4, zero: true, band: [-0.75, 0.75], color: AMBER });
+  chart(chartEl, {
+    dates: r.history.dates, values: r.history.values, zero: true, band: [-0.75, 0.75], color: AMBER, height: 170,
+    label: "Risk Appetite Index history", format: v => sgn(v) + "σ · " + regimeLabel(v), tick: (v, st) => (Math.abs(v) < 1e-9 ? "0" : sgn(v, stepDp(st))) + "σ",
+  });
 
   const max = 3;
   bars.innerHTML = r.contributions
@@ -44,21 +48,24 @@ function renderRai() {
 
 function renderAbsorption() {
   const a = buildAbsorption();
-  const v = $("arValue"), sub = $("arSub"), chart = $("arChart");
-  if (!a) { v.textContent = "—"; sub.textContent = "Needs 5+ assets with 4 months of overlapping history"; chart.innerHTML = ""; return; }
+  const v = $("arValue"), sub = $("arSub"), chartEl = $("arChart");
+  if (!a) { v.textContent = "—"; sub.textContent = "Needs 5+ assets with 4 months of overlapping history"; chart(chartEl, { dates: null, values: [] }); return; }
   v.textContent = (a.latest * 100).toFixed(0) + "%";
   const shift = a.shift == null ? "shift n/a" : "ΔAR " + sgn(a.shift, 1) + "σ";
   const tone = a.shift == null ? "" : a.shift >= 1 ? "d" : a.shift <= -1 ? "u" : "";
   sub.innerHTML = '<span class="m-tag ' + tone + '">' + shift + "</span> Top " + a.k + " of " + a.n +
     " eigenvectors · 63-day window";
-  $("arAssets").textContent = "Universe: " + a.ids.map(id => ITEM_BY_ID[id].ticker).join(", ") + ".";
-  chart.innerHTML = lineChart(a.values.slice(-252), { id: "ar", w: 300, h: 56, pad: 4, color: AMBER });
+  $("arAssets").textContent = "1Y history. Universe: " + a.ids.map(id => ITEM_BY_ID[id].ticker).join(", ") + ".";
+  chart(chartEl, {
+    dates: a.dates.slice(-252), values: a.values.slice(-252), color: AMBER, height: 120,
+    label: "Absorption ratio, 1 year", format: x => (x * 100).toFixed(1) + "%", tick: (x, st) => (x * 100).toFixed(stepDp(st * 100)) + "%",
+  });
 }
 
 function renderRecession() {
   const r = buildRecession();
-  const v = $("recValue"), sub = $("recSub"), chart = $("recChart");
-  if (!r) { v.textContent = "—"; sub.textContent = "Needs FRED DGS10 and DGS3MO"; chart.innerHTML = ""; return; }
+  const v = $("recValue"), sub = $("recSub"), chartEl = $("recChart");
+  if (!r) { v.textContent = "—"; sub.textContent = "Needs FRED DGS10 and DGS3MO"; chart(chartEl, { dates: null, values: [] }); return; }
   const n = r.prob.length;
   const p = r.prob[n - 1];
   v.textContent = (p * 100).toFixed(1) + "%";
@@ -66,7 +73,13 @@ function renderRecession() {
   const tone = p >= 0.3 ? "d" : p < 0.15 ? "u" : "";
   sub.innerHTML = '<span class="m-tag ' + tone + '">' + (p >= 0.3 ? "Elevated" : p < 0.15 ? "Low" : "Moderate") + "</span> " +
     "3m10y 1M avg " + sgn(s, 0) + " bp";
-  chart.innerHTML = lineChart(r.prob.slice(-504), { id: "rec", w: 300, h: 56, pad: 4, ref: 0.3, domain: [0, Math.max(0.6, ...r.prob.slice(-504))], color: AMBER });
+  const k = -504;
+  chart(chartEl, {
+    dates: r.dates.slice(k), values: r.prob.slice(k), ref: 0.3, domain: [0, Math.max(0.6, ...r.prob.slice(k)) * 1.05], color: AMBER, height: 120,
+    label: "Recession probability, 2 years",
+    format: (x, i) => (x * 100).toFixed(1) + "% · 3m10y " + sgn(r.avgSpread.slice(k)[i] * 100, 0) + " bp",
+    tick: (x, st) => (x * 100).toFixed(stepDp(st * 100)) + "%",
+  });
 }
 
 export function renderModels() {

@@ -3,7 +3,8 @@
 import { sourceUrl } from "../config.js";
 import { STATE } from "../state.js";
 import { seriesStats } from "../quant/models.js";
-import { $, fmtNum, fmtChange, fmtDelta, fmtVol, lineChart, ordinal } from "./format.js";
+import { $, fmtNum, fmtChange, fmtDelta, fmtVol, ordinal, tickFmt } from "./format.js";
+import { chart } from "./chart.js";
 import { noteFor } from "./notes.js";
 
 const RANGES = [
@@ -24,7 +25,8 @@ function rangeValues(s) {
   const end = new Date(s.dates[n - 1]);
   const start = new Date(end.getTime() - r.days * 365 / 252 * 864e5).toISOString().slice(0, 10);
   const i = s.dates.findIndex(d => d >= start);
-  return s.values.slice(Math.max(0, Math.min(i, n - 2)));
+  const from = Math.max(0, Math.min(i, n - 2));
+  return { dates: s.dates.slice(from), values: s.values.slice(from) };
 }
 
 function render() {
@@ -38,7 +40,7 @@ function render() {
     $("dValue").textContent = "----";
     $("dChange").textContent = "";
     $("dNote").textContent = "Feed unreachable right now. It retries every minute.";
-    $("dChart").innerHTML = "";
+    chart($("dChart"), { dates: null, values: [] });
     $("dStats").innerHTML = "";
     $("dStatsNote").textContent = "";
     $("dRanges").hidden = true;
@@ -57,10 +59,14 @@ function render() {
 
   $("dRanges").hidden = !hasHist;
   if (hasHist) {
-    const vals = rangeValues(s);
+    const win = rangeValues(s);
+    const vals = win.values;
     const first = vals[0], last = vals[vals.length - 1];
     const good = item.invert ? last < first : last >= first;
-    $("dChart").innerHTML = lineChart(vals, { good, id: "detail", w: 600, h: 160, pad: 6, ref: st.med1y });
+    chart($("dChart"), {
+      dates: win.dates, values: vals, good, ref: st.med1y, height: 180, label: item.name,
+      format: v => fmtNum(v, item.fmt), tick: tickFmt(item.fmt),
+    });
     const move = fmtChange(item, last, first);
     const pct = st.pct1y == null ? "—" : ordinal(Math.round(st.pct1y * 100));
     const rows = [
@@ -79,10 +85,11 @@ function render() {
     ];
     if (st.mdd1y != null) rows.push(["1Y max drawdown", "−" + Math.abs(st.mdd1y).toFixed(1) + "%"]);
     $("dStats").innerHTML = rows.map(([k, v]) => "<div><dt>" + k + '</dt><dd class="num">' + v + "</dd></div>").join("");
-    $("dStatsNote").textContent = "Dashed line: 1Y median. Vol is annualized" +
+    $("dStatsNote").textContent = "Dashed line: 1Y median. Hover or use arrow keys to read values. Vol is annualized" +
       (item.kind === "price" ? " (% of log returns)" : item.kind === "rate" ? " (bp of daily changes)" : " (points)") + ".";
     document.querySelectorAll("#dRanges button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.range === range)));
   } else {
+    chart($("dChart"), { dates: null, values: [] });
     $("dChart").innerHTML = '<p class="d-empty">No daily history for this series. It is a policy rate or a derived ratio.</p>';
     $("dStats").innerHTML = "";
     $("dStatsNote").textContent = "";
