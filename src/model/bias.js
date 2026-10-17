@@ -7,14 +7,14 @@
 import { buildFrame, loadModelSeries, reframe } from "./history.js";
 import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
 
-const KEY = "eqm.bias.v3";
+const KEY = "eqm.bias.v5";
 const TTL = 6 * 3600e3;
 export const BIAS_RANGE = "max";
 
 export function cachedBias() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY) || "null");
-    return c && c.v === 3 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
+    return c && c.v === 5 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
   } catch {
     return null;
   }
@@ -23,7 +23,7 @@ export function cachedBias() {
 /* Keep only what the card shows. */
 const slim = ev => ev && {
   n: ev.n, from: ev.from, to: ev.to, r2: ev.r2, r2Raw: ev.r2Raw, r2Equal: ev.r2Equal, cwP: ev.cwP, upRate: ev.upRate, beatRate: ev.beatRate,
-  bull: ev.bull, bear: ev.bear, neutralShare: ev.neutralShare, cerGain: ev.cerGain, single: ev.single,
+  bull: ev.bull, bear: ev.bear, neutralShare: ev.neutralShare, cerGain: ev.cerGain, single: ev.single, byState: ev.byState,
 };
 
 export function biasFromFrame(fr) {
@@ -41,7 +41,7 @@ export async function computeBiasData(range, onProgress) {
   const es = buildFrame(S, S.es);
   const nq = reframe(es, S.nq);
   return {
-    v: 3, ts: Date.now(), range, missing: es.meta.missing,
+    v: 5, ts: Date.now(), range, missing: es.meta.missing,
     es: { asOf: es.dates[es.dates.length - 1], horizons: biasFromFrame(es) },
     nq: { asOf: nq.dates[nq.dates.length - 1], horizons: biasFromFrame(nq) },
   };

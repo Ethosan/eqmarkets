@@ -754,7 +754,7 @@ export function mountLab(root) {
     get bias() { return composite; },
     eventDefs: EVENTS,
     presets: PRESETS,
-    compileRule, runRule, simulate, metrics, volTarget, bootstrapSharpe, deflatedSharpe,
+    compileRule, runRule, simulate, metrics, volTarget, bootstrapSharpe, deflatedSharpe, combinationForecast, evaluate,
     /* eqlab.test(ctx => ctx.raiS > 0 ? 1 : 0) or eqlab.test("return ctx.rec < 0.3 ? 1 : 0;") */
     test(rule, { lag = settings.lag, costBp = settings.cost, params } = {}) {
       if (!frame) throw new Error("Data not loaded yet");

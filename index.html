@@ -90,10 +90,21 @@
       </div>
       <p class="m-cap bias-load" id="biasLoad">Backtesting ES and NQ since 2000…</p>
       <div id="biasBody" hidden>
-        <div class="bias-cols" role="group" aria-label="Horizon"></div>
-        <p class="m-cap" id="biasDrvCap"></p>
-        <ul class="cbars bias-drivers" aria-label="Signals behind the forecast"></ul>
-        <p class="m-cap bias-track" id="biasTrack"></p>
+        <p class="bias-lede" id="biasLede" aria-live="polite"></p>
+        <table class="bias-table">
+          <thead><tr><th scope="col">Horizon</th><th scope="col">Lean</th><th scope="col">Chance higher</th><th scope="col">Confidence</th></tr></thead>
+          <tbody id="biasRows"></tbody>
+        </table>
+        <div class="m-grid bias-grid">
+          <div>
+            <p class="m-cap" id="biasDrvCap"></p>
+            <ul class="cbars" id="biasDrivers" aria-label="Signals behind the forecast"></ul>
+          </div>
+          <div>
+            <p class="m-cap">Its record, tested one day at a time on data it hadn't seen</p>
+            <dl class="bias-record" id="biasRecord"></dl>
+          </div>
+        </div>
       </div>
     </div>
     <div class="m-card m-rai m-wide">

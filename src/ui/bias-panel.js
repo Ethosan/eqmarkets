@@ -1,6 +1,6 @@
-/* Market bias card: next day / week / month read for ES or NQ, with confidence,
-   the signals behind it and the model's out-of-sample record. Loaded after the
-   first refresh so it never delays the dashboard. */
+/* Market bias card: one plain sentence, a small table for the next day, week
+   and month, what's pushing the selected read, and its record in plain
+   answers. Loaded after the first refresh so it never delays the dashboard. */
 import { cachedBias, computeBias } from "../model/bias.js";
 import { $ } from "./format.js";
 
@@ -10,61 +10,86 @@ try { const v = JSON.parse(localStorage.getItem(KEY) || "{}"); inst = v.inst || 
 const saveView = () => { try { localStorage.setItem(KEY, JSON.stringify({ inst, hz })); } catch { /* storage blocked */ } };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const sgn = (x, dp = 1) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
-const pc = (x, dp = 0) => (x == null || !isFinite(x) ? "—" : Math.round(x * 100 * 10 ** dp) / 10 ** dp + "%");
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const monthYear = d => { const t = new Date(d + "T00:00:00Z"); return MON[t.getUTCMonth()] + " " + t.getUTCFullYear(); };
+const pc = x => (x == null || !isFinite(x) ? "—" : Math.round(x * 100) + "%");
+const bp = x => (x >= 0 ? "+" : "−") + Math.abs(x * 1e4).toFixed(1);
+const year = d => d.slice(0, 4);
 const TONE = { Bullish: "u", Bearish: "d", Neutral: "n" };
+const SHORT = { d: "day", w: "week", m: "month" };
+
+/* "ES leans bullish over the next week and month." */
+function lede(name, horizons) {
+  const leaning = horizons.filter(x => x.now && x.now.label !== "Neutral");
+  if (!leaning.length) return "No clear lean on " + name + " right now.";
+  const groups = ["Bullish", "Bearish"].map(lab => leaning.filter(x => x.now.label === lab).map(x => SHORT[x.key])).filter(g => g.length);
+  const words = g => (g.length > 1 ? g.slice(0, -1).join(", ") + " and " + g[g.length - 1] : g[0]);
+  const parts = ["Bullish", "Bearish"].filter(lab => leaning.some(x => x.now.label === lab))
+    .map((lab, i) => lab.toLowerCase() + " over the next " + words(groups[i]));
+  /* Say how much to trust it in the same breath: the weakest grade among the leans. */
+  const order = ["Low", "Medium", "High"];
+  const weakest = leaning.map(x => x.now.confidence).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
+  const noEdge = leaning.some(x => x.now.why?.right != null && x.now.why.right < x.now.why.chance + 0.01);
+  return name + " leans " + parts.join(", and ") + ", with " + weakest.toLowerCase() + " confidence." +
+    (noEdge ? " Past calls like this did no better than other days." : "");
+}
+
+function stateLine(state) {
+  if (state === 1) return "Volatility is above its one-year norm, so it's reading this as a stressed market.";
+  if (state === 0) return "Volatility is below its one-year norm, so it's reading this as a calm market.";
+  return "";
+}
+
+/* Plain-language verdict on out-of-sample R² against the long-run average. */
+const vs = r2 => (r2 == null ? "not enough history" : r2 > 0.001 ? "better than a plain average" : r2 < -0.001 ? "worse than a plain average" : "about the same as a plain average");
 
 function render() {
-  const body = $("biasBody");
   document.querySelectorAll("#biasInst button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.inst === inst)));
   if (!data || !data[inst]) return;
   const d = data[inst];
   const name = inst === "es" ? "ES" : "NQ";
+  const state = d.horizons.find(x => x.now)?.now.state ?? null;
   $("biasAsOf").textContent = "Closes to " + d.asOf + (data.fresh ? "" : " · updating");
+  $("biasLede").innerHTML = "<b>" + esc(lede(name, d.horizons)) + "</b> " + esc(stateLine(state));
 
-  body.querySelector(".bias-cols").innerHTML = d.horizons.map(x => {
+  $("biasRows").innerHTML = d.horizons.map(x => {
     const n = x.now;
-    if (!n) return `<button type="button" class="bias-col" data-hz="${x.key}" aria-pressed="${x.key === hz}"><span class="bias-h">${x.label}</span><span class="bias-l n">—</span><span class="bias-p">Not enough history</span></button>`;
-    const move = (Math.exp(n.F) - 1) * 100, typ = n.sigma * 100;
-    let conf = "";
-    if (n.label === "Neutral") {
-      conf = '<span class="bias-conf n">No tilt</span><span class="bias-why">' +
-        (n.lambda < 0.05 ? "The models haven't beaten the long-run average lately, so they get no weight." : "The models lean too little to call.") + "</span>";
-    } else {
+    const sel = x.key === hz;
+    if (!n) return `<tr><th scope="row">Next ${SHORT[x.key]}</th><td colspan="3" class="muted">Not enough history</td></tr>`;
+    let conf = '<span class="muted">No lean</span>';
+    if (n.label !== "Neutral") {
       const w = n.why;
-      conf = `<span class="bias-conf ${n.confidence.toLowerCase()}">${n.confidence} confidence</span>` +
-        (w?.right != null ? `<span class="bias-why">Past ${n.label.toLowerCase()} calls beat the average ${pc(w.right)} of the time (${w.n.toLocaleString("en-US")} calls) vs ${pc(w.chance)} by chance</span>` : "");
+      conf = `<span class="bias-c ${n.confidence.toLowerCase()}">${n.confidence}</span>` +
+        (w?.right != null ? `<span class="bias-sub">right ${pc(w.right)} of ${w.n.toLocaleString("en-US")} past calls${w.inState ? " in " + (state ? "stressed" : "calm") + " markets" : ""}, vs ${pc(w.chance)} on other days</span>` : "");
     }
-    return `<button type="button" class="bias-col" data-hz="${x.key}" aria-pressed="${x.key === hz}">` +
-      `<span class="bias-h">${x.label}</span><span class="bias-l ${TONE[n.label]}">${n.label}</span>` +
-      `<span class="bias-p num">${pc(n.p)} chance ${name} is higher, vs ${pc(n.base)} normally · expected ${sgn(move, 2)}% (typical move ±${typ.toFixed(1)}%)</span>${conf}</button>`;
+    return `<tr class="${sel ? "on" : ""}"><th scope="row"><button type="button" data-hz="${x.key}" aria-pressed="${sel}">Next ${SHORT[x.key]}</button></th>` +
+      `<td class="bias-l ${TONE[n.label]}">${n.label}</td>` +
+      `<td class="num">${pc(n.p)} <span class="bias-sub">usually ${pc(n.base)}</span></td><td>${conf}</td></tr>`;
   }).join("");
 
   const cur = d.horizons.find(x => x.key === hz) || d.horizons[d.horizons.length - 1];
   const n = cur.now, ev = cur.ev;
-  const bars = body.querySelector(".bias-drivers");
+  const bars = $("biasDrivers");
   if (n) {
     const max = Math.max(1e-9, ...n.contrib.map(c => Math.abs(c.c)));
     bars.innerHTML = n.contrib.slice().sort((a, b) => b.c - a.c).map(c => {
       const w = Math.abs(c.c) / max * 50;
-      return `<li title="${esc(c.src)} · weight ${pc(c.w)}"><span class="cb-l">${esc(c.label)} <em>${pc(c.w)}</em></span>` +
+      return `<li title="${esc(c.src)}"><span class="cb-l">${esc(c.label)}</span>` +
         `<span class="cb-bar"><i class="${c.c >= 0 ? "u" : "d"}" style="${c.c >= 0 ? "left" : "right"}:50%;width:${w.toFixed(1)}%"></i></span>` +
-        `<span class="cb-v num">${sgn(c.c * 1e4, 1)}</span></li>`;
+        `<span class="cb-v num">${bp(c.c)}</span></li>`;
     }).join("");
-    $("biasDrvCap").textContent = cur.label + ": each signal's pull on the forecast versus the long-run average, in bp, after the models' " + pc(n.lambda) +
-      " weight · its share of the combination in grey · " + Math.round(n.agree * 100) + "% of that share leans the same way";
+    $("biasDrvCap").textContent = "What's pushing the next-" + SHORT[cur.key] + " read, in basis points versus a normal " + SHORT[cur.key] +
+      (n.lambda < 0.2 ? ". The models get little say right now because their recent record is weak." : ".");
   } else bars.innerHTML = "";
 
-  $("biasTrack").innerHTML = ev
-    ? `<b>Track record, ${cur.label.toLowerCase()}:</b> ${ev.n.toLocaleString("en-US")} walk-forward forecasts, ${monthYear(ev.from)} to ${monthYear(ev.to)}, each made before its outcome. ` +
-      `Out-of-sample R² ${sgn(ev.r2 * 100, 2)}% against the long-run average (models alone ${sgn(ev.r2Raw * 100, 2)}%, equal weights ${sgn(ev.r2Equal * 100, 2)}%), Clark–West p ${ev.cwP < 0.001 ? "<0.001" : ev.cwP.toFixed(3)}. ` +
-      (ev.bull.n ? `Bullish calls beat the average ${pc(ev.bull.right)} of the time (${ev.bull.n.toLocaleString("en-US")}); ` : "") +
-      (ev.bear.n ? `bearish calls fell short of it ${pc(ev.bear.right)} (${ev.bear.n.toLocaleString("en-US")}); ` : "") +
-      `${name} rose in ${pc(ev.upRate)} of all periods. Using it instead of the long-run average, a mean–variance investor gained ${sgn(ev.cerGain * 100, 2)}% a year in certainty-equivalent return. ` +
-      `Above zero on R² and the utility gain is what would show real skill; below zero, the dashboard says so rather than hiding it.`
-    : "";
+  if (ev) {
+    const calm = ev.byState?.[0], str = ev.byState?.[1];
+    /* A call shows skill if it goes its way more often than on the days it isn't made. */
+    const row = (title, g, what) => `<div><dt>${title}</dt><dd>${g.n >= 20 ? `Right ${pc(g.right)} of the time, vs ${pc(g.others)} on other days <span class="bias-sub">${g.n.toLocaleString("en-US")} calls; right means ${name} ${what} its long-run average</span>` : "Too few calls to judge"}</dd></div>`;
+    $("biasRecord").innerHTML =
+      `<div><dt>Beats a plain average?</dt><dd>${ev.r2 > 0.001 && ev.cwP < 0.1 ? "Yes" : ev.r2 > 0 ? "Slightly, not reliably" : "No"} <span class="bias-sub">${year(ev.from)}–${year(ev.to)}, p ${ev.cwP < 0.001 ? "<0.001" : ev.cwP.toFixed(2)}</span></dd></div>` +
+      `<div><dt>Calm markets</dt><dd>${esc(vs(calm?.r2))}</dd></div>` +
+      `<div><dt>Stressed markets</dt><dd>${esc(vs(str?.r2))}</dd></div>` +
+      row("Bullish calls", ev.bull, "beat") + row("Bearish calls", ev.bear, "fell short of");
+  } else $("biasRecord").innerHTML = "";
 }
 
 async function refresh(force) {

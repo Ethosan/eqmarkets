@@ -59,16 +59,58 @@ function calShare(flags, h) {
   });
 }
 
+/* Market state at each day, from the instrument's own volatility: "stressed"
+   (1) when its EWMA volatility is above the median of the previous year, else
+   "calm" (0). Uses only data up to that day. null during the first year. */
+export function marketState(prices, window = 252) {
+  const vol = ewmaVolPath(logReturns(prices));
+  const v = prices.map((_, t) => (t > 0 && vol[t - 1] > 0 ? vol[t - 1] : null));
+  return v.map((x, t) => {
+    if (x == null || t < window) return null;
+    const past = v.slice(t - window, t).filter(y => y != null).sort((a, b) => a - b);
+    if (past.length < window / 2) return null;
+    const med = past[past.length >> 1];
+    return x > med ? 1 : 0;
+  });
+}
+export const STATE_NAMES = ["Calm", "Stressed"];
+
+/* Discounted regression sums: weights halve every `halfLife` observations. */
+const newSums = () => ({ n: 0, w: 0, sx: 0, sy: 0, sxx: 0, sxy: 0 });
+function addObs(a, x, y, d) {
+  a.n++;
+  a.w = d * a.w + 1; a.sx = d * a.sx + x; a.sy = d * a.sy + y; a.sxx = d * a.sxx + x * x; a.sxy = d * a.sxy + x * y;
+}
+function moments2(a) {
+  const xb = a.sx / a.w, yb = a.sy / a.w, vx = a.sxx / a.w - xb * xb;
+  return { xb, yb, b: vx > 1e-12 ? (a.sxy / a.w - xb * yb) / vx : 0 };
+}
+
 /* Walk-forward combination forecast for horizon h. Every output at index t uses
    prices and signals up to t only (calendar flags are known in advance).
    F: raw combination; G: final forecast after the encompassing weight λ;
-   M: prevailing historical mean (the benchmark). */
-export function combinationForecast(frame, h, { minObs = 504, holdout = 252, halfLife = 252 } = {}) {
+   M: prevailing historical mean (the benchmark).
+
+   Options (all fixed in advance, none tuned on results):
+   - regHalfLife: half-life of the regression weights, in observations (3 years),
+     so relationships can drift (time-varying coefficients, Dangl & Halling 2012).
+     Infinity gives the plain expanding window.
+   - regimes: separate slopes for calm and stressed markets (see marketState),
+     each pulled toward the all-market slope with weight n / (n + kappa), so a
+     state with little history stays close to the pooled estimate. Predictability
+     is known to differ between good and bad times (Rapach, Strauss & Zhou 2010;
+     Henkel, Martin & Nardari 2011). */
+export function combinationForecast(frame, h, {
+  minObs = 504, holdout = 252, halfLife = 252, regHalfLife = 756, regimes = true, kappa = 504, lamHalfLife = 756,
+} = {}) {
   const P = frame.price, n = P.length;
   const preds = PREDICTORS.filter(p => (p.cal ? h <= p.maxH && frame.cal?.[p.cal] : frame[p.id]));
   const X = preds.map(p => (p.cal ? calShare(frame.cal[p.cal], h) : frame[p.id]));
-  const theta = 0.5 ** (1 / halfLife);
-  const sums = preds.map(() => ({ n: 0, sx: 0, sy: 0, sxx: 0, sxy: 0 }));
+  const theta = 0.5 ** (1 / halfLife), thetaL = 0.5 ** (1 / lamHalfLife);
+  const dReg = Number.isFinite(regHalfLife) ? 0.5 ** (1 / regHalfLife) : 1;
+  const R = regimes ? marketState(P) : P.map(() => null);
+  const sums = preds.map(() => newSums());
+  const sumsR = preds.map(() => [newSums(), newSums()]);
   const phi = preds.map(() => 0), seen = preds.map(() => 0);
   const f = preds.map(() => new Array(n).fill(null));
   const w = preds.map(() => new Array(n).fill(null));
@@ -85,16 +127,16 @@ export function combinationForecast(frame, h, { minObs = 504, holdout = 252, hal
       for (let k = 0; k < preds.length; k++) {
         const x = X[k][s];
         if (x != null && isFinite(x)) {
-          const a = sums[k];
-          a.n++; a.sx += x; a.sy += y; a.sxx += x * x; a.sxy += x * y;
+          addObs(sums[k], x, y, dReg);
+          if (R[s] != null) addObs(sumsR[k][R[s]], x, y, dReg);
         }
         if (f[k][s] != null) { phi[k] = theta * phi[k] + (y - f[k][s]) ** 2; seen[k]++; }
       }
       /* Encompassing regression of the benchmark's error on the models' tilt. */
       if (F[s] != null && M[s] != null) {
         const d = F[s] - M[s];
-        encA = theta * encA + (y - M[s]) * d;
-        encB = theta * encB + d * d;
+        encA = thetaL * encA + (y - M[s]) * d;
+        encB = thetaL * encB + d * d;
         encN++;
       }
     }
@@ -105,8 +147,16 @@ export function combinationForecast(frame, h, { minObs = 504, holdout = 252, hal
     for (let k = 0; k < preds.length; k++) {
       const a = sums[k], x = X[k][t];
       if (a.n < minObs || x == null || !isFinite(x)) continue;
-      const xb = a.sx / a.n, yb = a.sy / a.n, vx = a.sxx / a.n - xb * xb;
-      let b = vx > 1e-12 ? (a.sxy / a.n - xb * yb) / vx : 0;
+      let { xb, yb, b } = moments2(a);
+      /* Today's market state: blend its own estimates with the pooled ones. */
+      const r = R[t] != null ? sumsR[k][R[t]] : null;
+      if (r && r.n >= 60) {
+        /* r.w is the state's effective (discounted) observation count. */
+        const m = moments2(r), q = r.w / (r.w + kappa);
+        xb = q * m.xb + (1 - q) * xb;
+        yb = q * m.yb + (1 - q) * yb;
+        b = q * m.b + (1 - q) * b;
+      }
       if (b * preds[k].sign < 0) b = 0;
       f[k][t] = yb + b * (x - xb);
       avail.push(k);
@@ -135,7 +185,7 @@ export function combinationForecast(frame, h, { minObs = 504, holdout = 252, hal
   const sigma = P.map((_, t) => (t > 0 && vol[t - 1] > 0 ? vol[t - 1] * Math.sqrt(h) : null));
   const prob = A => A.map((x, t) => (x == null || sigma[t] == null ? null : normCdf(x / sigma[t])));
   const pUp = prob(G), pBase = prob(M);
-  return { h, P, preds, X, f, w, F, G, EQ, M, lambda, sigma, pUp, pBase };
+  return { h, P, preds, X, f, w, F, G, EQ, M, lambda, sigma, pUp, pBase, state: R };
 }
 
 /* Newey–West t-statistic of a mean, Bartlett kernel with `lag` lags. */
@@ -154,11 +204,11 @@ export function neweyWestT(d, lag) {
 export const biasLabel = (tilt, band) => (tilt == null ? null : tilt >= band ? "Bullish" : tilt <= -band ? "Bearish" : "Neutral");
 
 /* Out-of-sample scorecard of a combinationForecast result. */
-export function evaluate(res, { band = 0.02, gamma = 3, ppy = 252, dates = null } = {}) {
+export function evaluate(res, { band = 0.02, gamma = 3, ppy = 252, dates = null, since = null } = {}) {
   const { h, P, F, G, EQ, M, f, preds, sigma, pUp, pBase, lambda } = res;
   const n = G.length;
   const idx = [];
-  for (let t = 0; t + h < n; t++) if (G[t] != null && M[t] != null) idx.push(t);
+  for (let t = 0; t + h < n; t++) if (G[t] != null && M[t] != null && (!since || !dates || dates[t] >= since)) idx.push(t);
   if (idx.length < 60) return null;
   const y = t => Math.log(P[t + h] / P[t]);
   const r2 = (A, ts) => {
@@ -171,14 +221,31 @@ export function evaluate(res, { band = 0.02, gamma = 3, ppy = 252, dates = null 
 
   /* A tilt call is right when the outcome lands on its side of the long-run average. */
   const calls = idx.map(t => ({ t, lab: biasLabel(pUp[t] - pBase[t], band), beat: y(t) > M[t], up: y(t) > 0 }));
-  const rate = lab => {
-    const g = calls.filter(x => x.lab === lab);
-    if (!g.length) return { n: 0, right: null };
-    const right = lab === "Bearish" ? g.filter(x => !x.beat).length : g.filter(x => x.beat).length;
-    return { n: g.length, right: right / g.length };
+  /* A call is judged against the days the model didn't make it: when it says
+     bullish, did the index beat its average more often than on other days? */
+  const hitRate = (set, lab) => {
+    const went = x => (lab === "Bearish" ? !x.beat : x.beat);
+    const g = set.filter(x => x.lab === lab), o = set.filter(x => x.lab !== lab);
+    return {
+      n: g.length,
+      right: g.length ? g.filter(went).length / g.length : null,
+      others: o.length ? o.filter(went).length / o.length : null,
+    };
   };
+  const rate = lab => hitRate(calls, lab);
   const beatRate = calls.filter(x => x.beat).length / calls.length;
   const upRate = calls.filter(x => x.up).length / calls.length;
+  /* The same record split by the market state on the day each forecast was made. */
+  const byState = [0, 1].map(s => {
+    const g = calls.filter(x => res.state?.[x.t] === s);
+    if (g.length < 60) return { state: s, n: g.length, r2: null, bull: { n: 0, right: null }, bear: { n: 0, right: null } };
+    const sub = lab => hitRate(g, lab);
+    return {
+      state: s, n: g.length, share: g.length / calls.length, r2: r2(G, g.map(x => x.t)),
+      upRate: g.filter(x => x.up).length / g.length, beatRate: g.filter(x => x.beat).length / g.length,
+      bull: sub("Bullish"), bear: sub("Bearish"),
+    };
+  });
   const calib = [[0, 0.45], [0.45, 0.5], [0.5, 0.55], [0.55, 0.6], [0.6, 1.01]].map(([lo, hi]) => {
     const g = calls.filter(x => pUp[x.t] >= lo && pUp[x.t] < hi);
     return { lo, hi, n: g.length, up: g.length ? g.filter(x => x.up).length / g.length : null, mean: g.length ? mean(g.map(x => pUp[x.t])) : null };
@@ -213,7 +280,7 @@ export function evaluate(res, { band = 0.02, gamma = 3, ppy = 252, dates = null 
       return { id: p.id, label: p.label, src: p.src, n: ts.length, r2: ts.length > 60 ? r2(f[k], ts) : null };
     }),
     cwT, cwP: 1 - normCdf(cwT),
-    upRate, beatRate, bull: rate("Bullish"), bear: rate("Bearish"), neutralShare: rate("Neutral").n / calls.length,
+    upRate, beatRate, bull: rate("Bullish"), bear: rate("Bearish"), neutralShare: rate("Neutral").n / calls.length, byState,
     calib, cer: pm.cer, cerMean: pb.cer, cerGain: pm.cer - pb.cer, sharpe: pm.sharpe, sharpeMean: pb.sharpe,
     cumSse: { dates: dates ? idx.map(t => dates[t]) : null, values: cumSse, raw: cumSseRaw },
   };
@@ -234,15 +301,23 @@ export function readNow(res, ev, band) {
   })).filter(x => x.c != null);
   const dir = Math.sign(res.F[t] - M);
   const agree = contrib.reduce((a, x) => a + (Math.sign(res.f[res.preds.findIndex(q => q.id === x.id)][t] - M) === dir && dir !== 0 ? x.w : 0), 0);
+  const state = res.state?.[t] ?? null;
   let confidence = null, why = null;
   if (label !== "Neutral" && ev) {
-    const g = label === "Bullish" ? ev.bull : ev.bear;
-    const chance = label === "Bullish" ? ev.beatRate : 1 - ev.beatRate;
+    /* Judge the call on its record in today's market state when there is
+       enough of it (50+ calls of this kind), else on the whole record. */
+    const st = state != null ? ev.byState?.[state] : null;
+    const stG = st && (label === "Bullish" ? st.bull : st.bear);
+    const useState = stG && stG.n >= 50;
+    const g = useState ? stG : label === "Bullish" ? ev.bull : ev.bear;
+    const baseRate = useState ? st.beatRate : ev.beatRate;
+    /* Prefer the other-days rate; fall back to the overall base rate. */
+    const chance = g.others ?? (label === "Bullish" ? baseRate : 1 - baseRate);
     const edge = g.right == null ? null : g.right - chance;
     const strong = edge != null && edge >= 0.05 && g.n >= 100 && agree >= 0.7 && ev.cwP < 0.1 && lam >= 0.5;
     const fair = edge != null && edge >= 0.02 && g.n >= 50 && agree >= 0.5 && lam >= 0.2;
     confidence = strong ? "High" : fair ? "Medium" : "Low";
-    why = { right: g.right, n: g.n, chance };
+    why = { right: g.right, n: g.n, chance, inState: !!useState };
   }
-  return { label, p, base, tilt, F: G, M, lambda: lam, sigma: res.sigma[t], contrib, agree, confidence, why };
+  return { label, p, base, tilt, F: G, M, lambda: lam, sigma: res.sigma[t], contrib, agree, confidence, why, state };
 }

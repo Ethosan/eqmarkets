@@ -409,8 +409,9 @@ html.touring { overflow: hidden }
 }
 
 /* ---------- flows and premia ---------- */
-.cta-side { display: grid; gap: 14px }
-.cta-mkt { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px }
+.cta-side { display: grid; gap: 0 }
+.cta-mkt { padding: 10px 0 12px; border-top: 1px solid var(--border) }
+.cta-mkt:first-child { border-top: 0; padding-top: 0 }
 .cta-h { font-size: var(--fs-sm); color: var(--text-2) }
 .cta-h b { color: var(--text-1); font-weight: 600; margin-right: 4px }
 .cta-flips { list-style: none; margin-top: 6px; display: grid; gap: 3px }
@@ -421,14 +422,16 @@ html.touring { overflow: hidden }
 .cta-flow b { font-weight: 600 }
 .cta-flow .u { color: var(--up) }
 .cta-flow .d { color: var(--down) }
-.cal-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin-top: 4px }
-.cal-list li { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; border-left: 2px solid var(--border-2) }
-.cal-list li.u { border-left-color: var(--up) }
-.cal-list li.a { border-left-color: var(--amber) }
-.cal-k { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2) }
-.cal-v { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5 }
+/* Calendar: label column and text, separated by hairlines. Tone shows in the label. */
+.cal-list { list-style: none; margin-top: 2px }
+.cal-list li { display: grid; grid-template-columns: 168px 1fr; gap: 16px; padding: 9px 0; border-top: 1px solid var(--border) }
+.cal-list li:first-child { border-top: 0; padding-top: 2px }
+.cal-k { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2) }
+.cal-list li.u .cal-k { color: var(--up) }
+.cal-list li.a .cal-k { color: var(--amber) }
+.cal-v { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; max-width: 72ch }
 @media (max-width: 680px) {
-  .cal-list { grid-template-columns: 1fr }
+  .cal-list li { grid-template-columns: 1fr; gap: 2px }
 }
 
 /* ---------- market bias ---------- */
@@ -436,29 +439,37 @@ html.touring { overflow: hidden }
 .bias-inst button { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); background: none; border: 0; border-radius: 7px; padding: 4px 12px; min-height: 28px; cursor: pointer }
 .bias-inst button[aria-pressed="true"] { background: var(--surface-2); color: var(--text-1) }
 .bias-load { margin: 6px 0 }
-.bias-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px }
-.bias-col {
-  display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-  transition: border-color .15s;
+.bias-lede { font-size: 17px; line-height: 1.5; color: var(--text-2); max-width: 68ch; margin: 2px 0 16px }
+.bias-lede b { color: var(--text-1); font-weight: 600 }
+.bias-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm) }
+.bias-table th, .bias-table td { text-align: left; padding: 10px 12px 10px 0; border-top: 1px solid var(--border); vertical-align: top }
+.bias-table thead th { border-top: 0; padding-top: 0; font-size: var(--fs-xs); font-weight: 500; color: var(--text-3) }
+.bias-table tbody th { font-weight: 500; white-space: nowrap }
+.bias-table tbody th button {
+  font: inherit; color: var(--text-2); background: none; border: 0; padding: 2px 0; cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--border-2); text-underline-offset: 4px;
 }
-.bias-col:hover { border-color: var(--border-2) }
-.bias-col[aria-pressed="true"] { border-color: var(--text-3); background: var(--surface-2) }
-.bias-h { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3) }
-.bias-l { font-size: 24px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2 }
+.bias-table tbody th button:hover { color: var(--text-1) }
+.bias-table tr.on th button { color: var(--text-1); text-decoration-color: var(--accent) }
+.bias-l { font-weight: 600; font-size: var(--fs-md) }
 .bias-l.u { color: var(--up) }
 .bias-l.d { color: var(--down) }
 .bias-l.n { color: var(--text-2) }
-.bias-p { font-size: var(--fs-xs); color: var(--text-2); line-height: 1.5 }
-.bias-conf { align-self: flex-start; font-size: var(--fs-xs); font-weight: 600; border-radius: 6px; padding: 1px 7px; margin-top: 2px }
-.bias-conf.high { color: var(--up); background: var(--up-soft) }
-.bias-conf.medium { color: var(--amber); background: var(--accent-soft) }
-.bias-conf.low, .bias-conf.n { color: var(--text-3); background: var(--surface-2) }
-.bias-why { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.45 }
-.bias-drivers { margin-top: 4px }
-.bias-track { line-height: 1.6; margin-top: 12px }
-.bias-track b { color: var(--text-2); font-weight: 600 }
+.bias-sub { display: block; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.45; margin-top: 1px }
+.bias-c { font-weight: 600 }
+.bias-c.high { color: var(--up) }
+.bias-c.medium { color: var(--amber) }
+.bias-c.low { color: var(--text-2) }
+.bias-table .muted { color: var(--text-3) }
+.bias-grid { margin-top: 18px }
+.bias-record { display: grid; gap: 0 }
+.bias-record div { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border) }
+.bias-record div:first-child { border-top: 0; padding-top: 2px }
+.bias-record dt { font-size: var(--fs-xs); color: var(--text-3); padding-top: 1px }
+.bias-record dd { font-size: var(--fs-sm); color: var(--text-1) }
 @media (max-width: 680px) {
-  .bias-cols { grid-template-columns: 1fr; gap: 8px }
-  .bias-l { font-size: 21px }
+  .bias-lede { font-size: 16px }
+  .bias-table th, .bias-table td { padding-right: 8px }
+  .bias-table { font-size: var(--fs-xs) }
+  .bias-record div { grid-template-columns: 1fr; gap: 2px }
 }

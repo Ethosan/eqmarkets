@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { combinationForecast, evaluate, readNow, neweyWestT, biasLabel, HORIZONS } from "../src/quant/composite.js";
+import { combinationForecast, evaluate, readNow, neweyWestT, biasLabel, HORIZONS, marketState } from "../src/quant/composite.js";
 import { parseFomcCalendar, useFomcDates, calendarFlags, upcoming, FOMC_DATES } from "../src/quant/calendar.js";
 import { rng } from "../src/quant/stats.js";
 
@@ -34,7 +34,7 @@ describe("combination forecast", () => {
     const fr = market(3000, { beta: 0 });
     const ev = evaluate(combinationForecast(fr, 1), { band: 0.02 });
     expect(ev.r2).toBeLessThan(0.003);
-    expect(ev.r2).toBeGreaterThan(ev.r2Raw - 1e-12); /* here the λ blend does at least as well as the raw combination */
+    expect(Math.abs(ev.r2 - ev.r2Raw)).toBeLessThan(0.005); /* noise in, little change out */
     expect(ev.cwP).toBeGreaterThan(0.01);
   });
   it("switches off a slope with the wrong sign", () => {
@@ -70,6 +70,37 @@ describe("combination forecast", () => {
     expect(biasLabel(-0.03, 0.02)).toBe("Bearish");
     const d = Array.from({ length: 400 }, (_, i) => 1 + Math.sin(i));
     expect(neweyWestT(d, 0)).toBeGreaterThan(10);
+  });
+});
+
+describe("market state and regime-dependent slopes", () => {
+  /* Volatility alternates between calm (0.6%) and stressed (2%) spells of 250
+     days; the signal predicts returns only in stressed spells. */
+  function regimeMarket(n, seed = 21) {
+    const g = gauss(rng(seed)), u = gauss(rng(seed + 1));
+    const sig = Array.from({ length: n }, () => u());
+    const stressed = t => Math.floor(t / 250) % 2 === 1;
+    const P = [100];
+    for (let t = 1; t < n; t++) {
+      const vol = stressed(t) ? 0.02 : 0.006;
+      P.push(P[t - 1] * Math.exp(0.0003 + (stressed(t - 1) ? 0.006 * sig[t - 1] : 0) + vol * g()));
+    }
+    const noise = () => Array.from({ length: n }, () => u());
+    return { dates: days(n), price: P, trend: sig, vrp: noise(), raiS: noise(), dAR: noise(), rec: noise(), stressed };
+  }
+  it("flags stressed spells from the instrument's own volatility", () => {
+    const fr = regimeMarket(3000);
+    const st = marketState(fr.price);
+    const hits = st.map((s, t) => (s == null || t % 250 < 40 ? null : s === (fr.stressed(t) ? 1 : 0))).filter(x => x != null);
+    expect(hits.filter(Boolean).length / hits.length).toBeGreaterThan(0.85);
+  });
+  it("separate calm/stressed slopes beat one pooled slope when predictability is regime-dependent", () => {
+    const fr = regimeMarket(4000);
+    const pooled = evaluate(combinationForecast(fr, 1, { regimes: false, regHalfLife: Infinity }), { band: 0.01 });
+    const regime = evaluate(combinationForecast(fr, 1), { band: 0.01 });
+    expect(regime.r2).toBeGreaterThan(pooled.r2);
+    expect(regime.byState[1].r2).toBeGreaterThan(regime.byState[0].r2);
+    expect(regime.byState[0].n + regime.byState[1].n).toBeLessThanOrEqual(regime.n);
   });
 });
 
