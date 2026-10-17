@@ -7,6 +7,7 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
+- **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, and a walk-forward track record since 2000 (see *Market bias model* below).
 - **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
 - **Three models**, each computed in the browser from two years of daily history:
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
@@ -46,10 +47,11 @@ So Markets doesn't show single stocks, fundamentals, options chains, buy/hold ve
 | BOJ policy rate | boj.or.jp homepage | scraped | `/boj/*` proxy, manual fallback in `src/config.js` |
 | Yen speculative positioning | CFTC Legacy COT (Socrata `6dca-aqww`) | non-commercial net, 3 years | `/cftc/*` proxy |
 | Commodities | Yahoo Finance chart API | `HG=F SI=F NG=F ZC=F ZW=F ZS=F DBC DBA` | `/yf/*` proxy |
+| FOMC meeting dates | federalreserve.gov FOMC calendar page | scheduled statement days | `/fed/*` proxy, built-in fallback in `src/quant/calendar.js` |
 
 All of these are free and need no API key.
 
-None of these send CORS headers, so the browser can't call them directly. `netlify.toml` rewrites the four paths to the upstream hosts, which makes them same-origin. Outside Netlify the app falls back to public CORS proxies.
+None of these send CORS headers, so the browser can't call them directly. `netlify.toml` rewrites the five paths to the upstream hosts, which makes them same-origin. Outside Netlify the app falls back to public CORS proxies.
 
 ## Methodology
 
@@ -80,8 +82,24 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | Month-end gap | ES month-to-date % − 10Y Treasury month-to-date % (≈ −8.5 × Δyield) |
 | Turn of month | last NYSE trading day of the month and the first three of the next (holidays computed from the NYSE rules) |
 | Option expiry | third Friday, or the Thursday before when Friday is a holiday; quad witching in Mar/Jun/Sep/Dec |
+| FOMC dates | read from federalreserve.gov's calendar page at startup (cached a week) and merged over a built-in 2010–2027 list |
 
 All of this lives in `src/quant/` as pure functions, covered by `tests/quant.test.js` and `tests/flows.test.js`. The tests check them against closed-form cases: EWMA convergence to the true σ, eigenvalues of known matrices, an AR near 1 when one factor drives everything and near k/N for independent assets, the NY Fed probit formula, and bp units for rates.
+
+## Market bias model
+
+One read per horizon (next 1, 5 and 21 sessions) for ES and NQ, built so that nothing is fitted to the period it is judged on (`src/quant/composite.js`, tests in `tests/composite.test.js`):
+
+1. **One forecast per signal.** For each of trend followers, the variance risk premium, risk appetite, the absorption shift and the yield-curve recession odds (plus turn of month, FOMC and pre-holiday timing at the 1- and 5-day horizons), a univariate regression of the forward log return on the signal, estimated on an expanding window of observations whose outcome was known at the time. Goyal & Welch (2008) show big multivariate models fail out of sample; Rapach, Strauss & Zhou (2010) show simple ones combined hold up.
+2. **Sign restriction** (Campbell & Thompson 2008). Each signal may only push the way its research says; a wrong-signed slope is set to zero.
+3. **Combination** by discounted mean squared forecast error (Stock & Watson 2004), half-life one year; equal shares until a signal has a year of out-of-sample record.
+4. **Earned weight against the long-run average.** Final forecast = M + λ(F − M), with λ the forecast-encompassing weight (Harvey, Leybourne & Newbold 1998) from past out-of-sample errors only, clipped to [0, 1]. When the models stop helping, λ falls and the read goes back to "no tilt".
+5. **Label** from the tilt in the chance of a higher close versus the long-run base rate, with bands fixed in advance (1, 2, 3 points for day, week, month). **Confidence** needs past calls of that kind to have beaten chance (5 points for high, 2 for medium), most of the weight to agree, and Clark–West p below 0.10 for high.
+6. **Scored out of sample:** R² against the prevailing historical mean, Clark & West (2007) with Newey–West errors, hit rates, calibration, and the certainty-equivalent gain of a mean–variance investor (γ = 3).
+
+It runs in a Web Worker on full daily history from 2000 and is cached on the device for six hours. On that history (to Oct 2026) the final forecast's out-of-sample R² was +0.01% / +0.04% / +0.22% for ES (day / week / month; monthly Clark–West p 0.07) and +0.04% / +0.30% / +1.35% for NQ (weekly and monthly p ≤ 0.001), mostly from the trend signal. Over the last decade alone none of the signals beat the long-run average, which is why the read is usually "no tilt". The lab's *Market bias model* card shows the full scorecard, the Goyal–Welch cumulative error plot, weights over time and calibration.
+
+References for the bias model: Goyal & Welch (2008), *A Comprehensive Look at the Empirical Performance of Equity Premium Prediction*, RFS. Campbell & Thompson (2008), *Predicting Excess Stock Returns Out of Sample*, RFS. Rapach, Strauss & Zhou (2010), *Out-of-Sample Equity Premium Prediction: Combination Forecasts and Links to the Real Economy*, RFS. Stock & Watson (2004), *Combination Forecasts of Output Growth in a Seven-Country Data Set*, JoF. Harvey, Leybourne & Newbold (1998), *Tests for Forecast Encompassing*, JBES. Clark & West (2007), *Approximately Normal Tests for Equal Predictive Accuracy in Nested Models*, JoE. DeMiguel, Garlappi & Uppal (2009), *Optimal Versus Naive Diversification*, RFS.
 
 References for flows and premia: Moskowitz, Ooi & Pedersen (2012), *Time Series Momentum*, JFE. Hurst, Ooi & Pedersen (2017), *A Century of Evidence on Trend-Following Investing*, JPM. Bollerslev, Tauchen & Zhou (2009), *Expected Stock Returns and Variance Risk Premia*, RFS. Carr & Wu (2009), *Variance Risk Premiums*, RFS. Campbell, Pflueger & Viceira (2020), *Macroeconomic Drivers of Bond and Equity Risks*, JPE. Lakonishok & Smidt (1988), *Are Seasonal Anomalies Real?*, RFS. McConnell & Xu (2008), *Equity Returns at the Turn of the Month*, FAJ. Lucca & Moench (2015), *The Pre-FOMC Announcement Drift*, JF. Ariel (1990), *High Stock Returns before Holidays*, JF.
 
@@ -134,6 +152,7 @@ src/
   data/
     transport.js        proxy fallbacks and timeouts
     sources.js          Yahoo, FRED, BOJ and CFTC fetchers
+    fomc.js             FOMC dates from federalreserve.gov, cached a week
     snapshot.js         last good data saved on the device for instant and offline launch
   quant/
     stats.js            statistics: EWMA, robust z, percentiles, eigenvalues, alignment
@@ -143,9 +162,9 @@ src/
     flows.js            variance risk premium, stock–bond correlation, CTA trend positioning
     calendar.js         NYSE holidays, FOMC dates, turn of month, option expiry, event study
     backtest.js         backtest engine: simulate, metrics, vol target, rules, presets, bootstrap, deflated Sharpe
+    composite.js        market bias: walk-forward forecast combination and its out-of-sample scorecard
   lab/                  admin backtest lab (separate chunk)
     lab.js              controls, strategies, results, custom rule editor
-    data.js             long history and the point-in-time model frame
     plot.js             multi-series chart with shading and synced crosshairs
     insights.js         calendar event study and parameter-sweep heatmap
   ai/
@@ -154,11 +173,15 @@ src/
     derived.js          curve spreads, VIX term structure, carry-to-vol
     models.js           builds the models from fetched state
     facts.js            the numbers behind Today's read and the AI note
+    history.js          long history and the point-in-time model frame (lab and market bias)
+    bias.js             market-bias build, cache and worker hand-off
+    bias.worker.js      runs the market-bias build off the main thread
   ui/
     board.js            indicator cards
     detail.js           detail sheet (dialog)
     models-panel.js     models section rendering
     flows-panel.js      CTA positioning, variance premium, stock–bond correlation, calendar
+    bias-panel.js       market bias card
     read-panel.js       Today's read and the AI button
     regime-panel.js     regime map
     chrome.js           clocks, session chips, tabs, progress bar
