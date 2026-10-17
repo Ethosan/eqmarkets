@@ -1,5 +1,5 @@
-/* Growth × inflation regime card: a quadrant map with the last 3 months as a
-   trail, the regime label, and each input's contribution. */
+/* Growth × inflation regime card: a quadrant map with the past year of weekly
+   readings as a trail, the regime label, and each input's contribution. */
 import { QUADRANTS } from "../quant/regime.js";
 import { $ } from "./format.js";
 
@@ -37,19 +37,28 @@ function map(r) {
   svg += '<text x="' + (L + W) + '" y="' + (S - 3) + '" text-anchor="end" class="rq-title">Growth →</text>';
   svg += '<text x="' + L + '" y="' + (T - 8) + '" class="rq-title">↑ Inflation</text>';
 
+  /* A year of weekly readings: older segments and points fade, so the path
+     reads from faint (a year ago) to solid (last week). */
   const pts = r.trail;
-  if (pts.length > 1) {
-    svg += '<polyline class="rq-trail" points="' + pts.map(p => X(p.growth).toFixed(1) + "," + Y(p.inflation).toFixed(1)).join(" ") + '"/>';
+  const age = k => (0.12 + 0.68 * k / Math.max(1, pts.length - 1)).toFixed(2);
+  for (let k = 1; k < pts.length; k++) {
+    svg += '<line class="rq-trail" x1="' + X(pts[k - 1].growth).toFixed(1) + '" y1="' + Y(pts[k - 1].inflation).toFixed(1) +
+      '" x2="' + X(pts[k].growth).toFixed(1) + '" y2="' + Y(pts[k].inflation).toFixed(1) + '" stroke-opacity="' + age(k) + '"/>';
   }
   if (pts.length) {
     const p = pts[pts.length - 1];
     svg += '<line class="rq-trail now" x1="' + X(p.growth).toFixed(1) + '" y1="' + Y(p.inflation).toFixed(1) + '" x2="' + X(r.growth).toFixed(1) + '" y2="' + Y(r.inflation).toFixed(1) + '"/>';
   }
   pts.forEach((p, k) => {
-    const op = (0.2 + 0.6 * k / Math.max(1, pts.length - 1)).toFixed(2);
-    svg += '<circle cx="' + X(p.growth).toFixed(1) + '" cy="' + Y(p.inflation).toFixed(1) + '" r="3" class="rq-pt" opacity="' + op + '">' +
-      "<title>" + shortDate(p.date) + ": growth " + sgn(p.growth) + ", inflation " + sgn(p.inflation) + "</title></circle>";
+    svg += '<circle cx="' + X(p.growth).toFixed(1) + '" cy="' + Y(p.inflation).toFixed(1) + '" r="2.5" class="rq-pt" opacity="' + age(k) + '">' +
+      "<title>Week to " + shortDate(p.date) + ": growth " + sgn(p.growth) + ", inflation " + sgn(p.inflation) + "</title></circle>";
   });
+  if (pts.length > 1) {
+    /* Label where the trail starts; flip the label to the left near the right edge. */
+    const p = pts[0], x = X(p.growth), right = x > L + W - 45;
+    svg += '<text x="' + (x + (right ? -6 : 6)).toFixed(1) + '" y="' + (Y(p.inflation) + 3.5).toFixed(1) + '" text-anchor="' + (right ? "end" : "start") +
+      '" class="rq-start">' + MON[+p.date.slice(5, 7) - 1] + " ’" + p.date.slice(2, 4) + "</text>";
+  }
   svg += '<circle cx="' + X(r.growth).toFixed(1) + '" cy="' + Y(r.inflation).toFixed(1) + '" r="7" class="rq-now"><title>Now: growth ' +
     sgn(r.growth) + ", inflation " + sgn(r.inflation) + "</title></circle>";
   return svg + "</svg>";
@@ -86,7 +95,7 @@ export function renderRegime(r) {
   $("regSub").textContent = "Growth " + sgn(r.growth) + " · Inflation " + sgn(r.inflation) + " · " + since;
   $("regMap").innerHTML = map(r);
   $("regMap").setAttribute("aria-label", "Regime map: " + r.label + ", growth " + sgn(r.growth) + ", inflation " + sgn(r.inflation) +
-    ". The trail shows the last " + r.trail.length + " weekly readings.");
+    ". The trail shows " + r.trail.length + " weekly readings, from " + (r.trail[0] ? shortDate(r.trail[0].date) : "") + ".");
   $("regBlurb").textContent = QUADRANTS[r.quadrant].blurb;
   /* Say why the dot and the label can disagree: a change building, or a reading on the line. */
   let note = "";

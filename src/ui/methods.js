@@ -35,6 +35,7 @@ const METHODS = [
     ["Score", "Each input: average of its 3- and 6-month moves, each ÷ (volatility before the window × √length), capped at ±3. Equal weights; 2 of 3 inputs per axis needed."],
     ["Rules", "Read on each finished week (from Saturday, New York). Changes only after a new quadrant holds 3 finished weeks in a row. Within 0.15 of an axis counts as no change. The first regime also needs 3 steady weeks."],
     ["Dating", "A change is dated to the first week of the 3-week run."],
+    ["Map", "Trail: each finished week's reading for the past 52 weeks, fainter with age. Large dot: this week so far."],
   ]],
   ["arCard", [
     ["Data", "Daily returns of ES, NQ, Bitcoin, gold, crude, dollar, USD/JPY, HYG, VIX, and daily changes in the 10Y yield."],
