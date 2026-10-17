@@ -82,12 +82,16 @@ export async function withRollAdjust(series, indexSymbol, range = YAHOO_RANGE) {
   return idx ? rollAdjust(series, idx) : series;
 }
 
-/* FRED CSV (no API key). Missing observations are "." and are skipped. */
+/* FRED CSV (no API key). Missing observations are "." or empty and are
+   skipped. The header names the series; a CSV for any other series is
+   rejected, so the next transport is tried. */
 export async function fredSeries(id, days = FRED_DAYS) {
   const url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + id +
     "&cosd=" + isoDay(Date.now() - days * 864e5) + "&coed=" + isoDay(Date.now());
   return viaTransports(url, async r => {
-    const lines = (await r.text()).trim().split("\n").slice(1);
+    const rows = (await r.text()).trim().split("\n");
+    if (rows[0]?.split(",")[1]?.trim() !== id) return null;
+    const lines = rows.slice(1);
     const dates = [], values = [];
     for (const ln of lines) {
       const [date, v] = ln.split(",");

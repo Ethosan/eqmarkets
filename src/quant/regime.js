@@ -90,7 +90,7 @@ export function weekKey(d) {
    leaves the latest week open.
    Returns null until both axes have at least minPerAxis inputs. */
 export function regimeModel(inputs, calendar, {
-  horizons = [63, 126], minPerAxis = 2, confirm = 3, band = 0.15, trailWeeks = 52, stripWeeks = 52, today = null,
+  horizons = [63, 126], minPerAxis = 2, confirm = 3, band = 0.15, trailWeeks = 13, stripWeeks = 52, today = null,
 } = {}) {
   const paths = inputs.map(inp => ({ ...inp, paths: horizons.map(h => scaledMovePath(inp.series, inp.kind, obsFor(h, inp.ppy))) }));
   /* An input's score on a date: the mean of its horizons, only once all exist. */

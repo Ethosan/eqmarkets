@@ -1,4 +1,4 @@
-/* Growth × inflation regime card: a quadrant map with the past year of weekly
+/* Growth × inflation regime card: a quadrant map with the last 13 weekly
    readings as a trail, the regime label, and each input's contribution. */
 import { QUADRANTS } from "../quant/regime.js";
 import { $ } from "./format.js";
@@ -37,8 +37,8 @@ function map(r) {
   svg += '<text x="' + (L + W) + '" y="' + (S - 3) + '" text-anchor="end" class="rq-title">Growth →</text>';
   svg += '<text x="' + L + '" y="' + (T - 8) + '" class="rq-title">↑ Inflation</text>';
 
-  /* A year of weekly readings: older segments and points fade, so the path
-     reads from faint (a year ago) to solid (last week). */
+  /* Weekly readings: older segments and points fade, so the path reads from
+     faint (13 weeks ago) to solid (last week). */
   const pts = r.trail;
   const age = k => (0.12 + 0.68 * k / Math.max(1, pts.length - 1)).toFixed(2);
   for (let k = 1; k < pts.length; k++) {
@@ -91,7 +91,7 @@ export function renderRegime(r) {
   $("regLabel").textContent = r.label;
   const wk = n => n + (n === 1 ? " week" : " weeks");
   const since = r.provisional ? "provisional until three full weeks of readings"
-    : r.sinceStart ? "for all " + wk(r.weeksIn) + " of history here" : "since the week of " + shortDate(r.since) + " (" + wk(r.weeksIn) + ")";
+    : r.label + (r.sinceStart ? " for all " + wk(r.weeksIn) + " of history here" : " since the week of " + shortDate(r.since) + " (" + wk(r.weeksIn) + ")");
   $("regSub").textContent = "Growth " + sgn(r.growth) + " · Inflation " + sgn(r.inflation) + " · " + since;
   $("regMap").innerHTML = map(r);
   $("regMap").setAttribute("aria-label", "Regime map: " + r.label + ", growth " + sgn(r.growth) + ", inflation " + sgn(r.inflation) +
@@ -106,9 +106,11 @@ export function renderRegime(r) {
     const crossed = v => Math.abs(v) >= r.band;
     const clear = (Math.sign(r.growth) !== q.growth && crossed(r.growth)) || (Math.sign(r.inflation) !== q.inflation && crossed(r.inflation));
     const to = QUADRANTS[r.readingQuadrant].label;
+    /* Name the axis that crossed zero, so the label and the bars don't seem to disagree. */
+    const axis = Math.sign(r.growth) !== q.growth ? ["Growth", r.growth] : ["Inflation", r.inflation];
     note = clear
       ? "This week's reading so far points to " + to + ". It counts toward a switch once the week closes."
-      : "This week's reading sits on the line toward " + to + ", too close to count as a change.";
+      : axis[0] + " is " + sgn(axis[1]) + ", just across zero. Within ±" + r.band.toFixed(2) + " counts as no change, so the regime stays " + r.label + ".";
   }
   $("regPending").hidden = !note;
   $("regPending").textContent = note;
@@ -117,6 +119,9 @@ export function renderRegime(r) {
   $("regStrip").setAttribute("aria-label", "Regime each week for the past " + r.strip.length + " weeks");
   $("regStripCap").textContent = !r.strip.length ? "" : "Past " + wk(r.strip.length) + (r.strip.length ? " from " + shortDate(r.strip[0].week) : "") + ", read each Friday · " +
     (r.switchesYear === 0 ? "no changes" : r.switchesYear === 1 ? "changed once" : "changed " + r.switchesYear + " times") + " in the past year";
+  /* The axis score is the plain average of its bars. */
+  $("regGrowthCap").textContent = "Growth inputs · average " + sgn(r.growth);
+  $("regInflCap").textContent = "Inflation inputs · average " + sgn(r.inflation);
   $("regGrowth").innerHTML = bars(r.contributions.filter(c => c.axis === "growth"));
   $("regInfl").innerHTML = bars(r.contributions.filter(c => c.axis === "inflation"));
 }

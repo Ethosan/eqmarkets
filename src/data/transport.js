@@ -1,8 +1,18 @@
 /* Ordered ways of reaching the upstream data sources.
    0: same-origin Netlify proxy (see netlify.toml), the reliable path once deployed.
    1-3: public CORS proxies, a fallback for running the page somewhere else. */
+/* FRED CSVs go through /fredx/<id>/<start>/…: Netlify's edge cache keys on the
+   path, not the query string, so with every series on one path it served one
+   series' cached CSV for another whenever FRED returned an error. */
+const fredPath = u => {
+  const m = u.match(/^https:\/\/fred\.stlouisfed\.org\/graph\/fredgraph\.csv\?(.*)$/);
+  if (!m) return u;
+  const q = new URLSearchParams(m[1]);
+  return "/fredx/" + encodeURIComponent(q.get("id") || "_") + "/" + (q.get("cosd") || "_") + "/graph/fredgraph.csv?" + m[1];
+};
+
 const TRANSPORTS = [
-  u => u
+  u => fredPath(u)
     .replace("https://query1.finance.yahoo.com", "/yf")
     .replace("https://fred.stlouisfed.org", "/fred")
     .replace("https://www.boj.or.jp", "/boj")

@@ -17,6 +17,8 @@ const proxy = Object.fromEntries(Object.entries(UPSTREAM).map(([prefix, target])
   rewrite: path => path.slice(prefix.length),
   configure: p => p.on("proxyReq", req => req.removeHeader("sec-ch-ua")),
 }]));
+/* /fredx/<id>/<start>/<path>: the id and start only make the URL unique (see transport.js). */
+proxy["/fredx/"] = { ...proxy["/fred/"], rewrite: path => path.replace(/^\/fredx\/[^/]+\/[^/]+/, "") };
 
 export default defineConfig({
   server: { proxy },

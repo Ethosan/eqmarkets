@@ -72,7 +72,7 @@ const STEPS = [
       const r = LAST.regime;
       const held = r && !r.provisional && r.weeksIn ? ", for " + r.weeksIn + (r.weeksIn === 1 ? " week" : " weeks") : "";
       const now = r ? " Right now: <b>" + r.label + "</b>" + held + ". " + QUADRANTS[r.quadrant].blurb : "";
-      return "Is growth rising or falling, and is inflation? Four regimes, read each week from 3- and 6-month market moves, and changed only after a new one holds for three weeks. The trail shows the past year of weekly readings." + now;
+      return "Is growth rising or falling, and is inflation? Four regimes, read each week from 3- and 6-month market moves, and changed only after a new one holds for three weeks. The trail shows the last 13 weekly readings; the strip below shows the past year." + now;
     },
   },
   {

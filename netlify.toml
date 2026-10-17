@@ -13,6 +13,14 @@
   status = 200
   force = true
 
+# One path per FRED series and start date: the edge cache ignores query
+# strings, so a single /fred path let one series' cached CSV answer for another.
+[[redirects]]
+  from = "/fredx/:id/:start/*"
+  to = "https://fred.stlouisfed.org/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/fred/*"
   to = "https://fred.stlouisfed.org/:splat"

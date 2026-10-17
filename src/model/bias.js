@@ -7,7 +7,7 @@
 import { buildFrame, loadModelSeries, reframe } from "./history.js";
 import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
 
-const KEY = "eqm.bias.v6";
+const KEY = "eqm.bias.v7"; /* v7: rebuilt after the FRED cache mix-up */
 const TTL = 6 * 3600e3;
 export const BIAS_RANGE = "max";
 
