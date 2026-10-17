@@ -5,7 +5,7 @@
    label and sentence itself, so nothing a visitor types can reach the prompt. */
 import { ITEM_BY_ID, READ_IDS } from "../config.js";
 import { regimeLabel } from "../quant/models.js";
-import { QUADRANTS, confidenceOf, quadrantOf } from "../quant/regime.js";
+import { QUADRANTS, quadrantOf } from "../quant/regime.js";
 import { fmtBp, fmtSigma, readMarket } from "../quant/narrative.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -30,7 +30,11 @@ export function validateFacts(raw) {
     curve: { chg2s10: num(cv.chg2s10, -500, 500), chg2y: num(cv.chg2y, -500, 500), chg10y: num(cv.chg10y, -500, 500) },
     rai: num(rai.value, -3, 3) == null ? null : { value: num(rai.value, -3, 3), pct: num(rai.pct, 0, 1) },
     regime: num(rg.growth, -3, 3) == null || num(rg.inflation, -3, 3) == null ? null
-      : { growth: num(rg.growth, -3, 3), inflation: num(rg.inflation, -3, 3), since: date(rg.since) },
+      : {
+        growth: num(rg.growth, -3, 3), inflation: num(rg.inflation, -3, 3), since: date(rg.since),
+        /* Only one of the four fixed names gets through; anything else is dropped. */
+        quadrant: Object.hasOwn(QUADRANTS, rg.quadrant) ? rg.quadrant : null, weeks: num(rg.weeks, 0, 1000),
+      },
     ar: num(ar.latest, 0, 1) == null ? null : { latest: num(ar.latest, 0, 1), shift: num(ar.shift, -10, 10) },
     rec: num(rec.prob, 0, 1) == null ? null : { prob: num(rec.prob, 0, 1) },
   };
@@ -66,10 +70,12 @@ export function buildPrompt(facts) {
       (facts.rai.pct != null ? ", " + ordinal(Math.round(facts.rai.pct * 100)) + " percentile of the past year" : "") + ".");
   }
   if (facts.regime) {
-    const q = quadrantOf(facts.regime.growth, facts.regime.inflation);
-    lines.push("Growth × inflation regime from 3-month market moves: " + QUADRANTS[q].label + " (" +
-      confidenceOf(facts.regime.growth, facts.regime.inflation) + "), growth score " + facts.regime.growth.toFixed(2) +
-      ", inflation score " + facts.regime.inflation.toFixed(2) + (facts.regime.since ? ", since " + facts.regime.since : "") + ".");
+    /* The regime the card shows (weekly, confirmed after three weeks), not today's raw quadrant. */
+    const r = facts.regime;
+    const q = r.quadrant || quadrantOf(r.growth, r.inflation);
+    lines.push("Growth × inflation regime, read weekly from 3- and 6-month market moves and changed only after a new one holds three weeks: " +
+      QUADRANTS[q].label + (r.since ? ", since the week of " + r.since : "") + (r.weeks != null ? " (" + Math.round(r.weeks) + " weeks)" : "") +
+      ". This week's reading: growth score " + r.growth.toFixed(2) + ", inflation score " + r.inflation.toFixed(2) + ".");
   }
   if (facts.ar) lines.push("Absorption ratio (cross-asset coupling): " + Math.round(facts.ar.latest * 100) + "%" +
     (facts.ar.shift != null ? ", 15-day shift " + facts.ar.shift.toFixed(1) + "σ vs its past year" : "") + ".");

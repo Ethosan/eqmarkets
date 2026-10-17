@@ -41,6 +41,14 @@ describe("validateFacts", () => {
     expect(f.regime.since).toBeNull();
   });
 
+  it("names the regime the card shows, not today's raw quadrant", () => {
+    /* Raw reading is Goldilocks territory, but the confirmed regime is still Reflation. */
+    const f = validateFacts({ ...FACTS, regime: { growth: 0.8, inflation: -0.6, since: "2026-04-20", quadrant: "reflation", weeks: 26 } });
+    expect(buildPrompt(f).user).toMatch(/Reflation, since the week of 2026-04-20 \(26 weeks\)/);
+    const bad = validateFacts({ ...FACTS, regime: { growth: 0.8, inflation: -0.6, quadrant: "toString" } });
+    expect(bad.regime.quadrant).toBeNull();
+  });
+
   it("rejects payloads without enough data", () => {
     expect(() => validateFacts(null)).toThrow();
     expect(() => validateFacts([])).toThrow();
@@ -53,7 +61,7 @@ describe("buildPrompt", () => {
     const { system, user, key } = buildPrompt(validateFacts(FACTS));
     expect(system).toBe(SYSTEM_PROMPT);
     expect(user).toMatch(/Leaning risk-off\), 8th percentile/);
-    expect(user).toMatch(/Stagflation \(moderate\)/);
+    expect(user).toMatch(/Stagflation, since the week of 2026-10-02/);
     expect(user).toMatch(/S&P 500 Futures: −1\.1σ, −3\.2%/);
     expect(user).toMatch(/10-Year Breakeven Inflation: \+0\.8σ, \+14 bp/);
     expect(user).toMatch(/cost-push pattern/);

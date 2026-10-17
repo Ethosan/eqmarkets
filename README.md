@@ -6,7 +6,7 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
-- **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3-month market moves, with a 13-week trail, a confidence level and the date the regime began.
+- **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3- and 6-month market moves and read weekly. It changes only after a new quadrant holds for three weeks, shows when a change is building, and has a 13-week trail and a 52-week history strip.
 - **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, and a walk-forward track record since 2000 (see *Market bias model* below).
 - **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
 - **Three models**, each computed in the browser from two years of daily history:
@@ -70,9 +70,9 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | Recession probability | Φ(−0.5333 − 0.6330 · S̄), S̄ = 21-day mean of DGS10 − DGS3MO in pp |
 | Carry-to-vol | (EFFR − BOJ) / annualized EWMA vol of USD/JPY |
 | Vol-scaled move | Δₕ / (σ_EWMA at window start · √h): log change for prices, point change for rates; clipped ±3 |
-| Growth score | mean of 63-day vol-scaled moves in ES, copper/gold, −HY OAS (≥ 2 of 3), 5-session mean |
-| Inflation score | mean of 63-day vol-scaled moves in the 10Y breakeven, DBC, DBA (≥ 2 of 3), 5-session mean |
-| Regime | quadrant of (growth, inflation); confidence: clear if both \|score\| ≥ 0.5, tentative if either < 0.2 |
+| Growth score | mean of ES, copper/gold, −HY OAS (≥ 2 of 3), each the average of its 63- and 126-day vol-scaled moves |
+| Inflation score | mean of the 10Y breakeven, DBC, DBA (≥ 2 of 3), each the average of its 63- and 126-day vol-scaled moves |
+| Regime | read weekly (last close of each week); switches only after the new quadrant holds 3 completed weeks in a row, with a ±0.15 dead band around each axis; dated to the first week of the run |
 | Today's read | 16 rules on 21-day vol-scaled moves and VIX/MOVE level z-scores; strength = weakest condition; top 4 shown |
 | CTA position | mean over L ∈ {21, 63, 126, 252} of clip(zₗ / 2, ±1), zₗ = (xₜ − xₜ₋ₗ) / (σ_EWMA · √L), x = ln P (or −yield) |
 | CTA flip level | the close tomorrow at which zₗ changes sign: xₜ₋ₗ₊₁ |

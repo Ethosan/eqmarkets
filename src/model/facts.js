@@ -38,7 +38,10 @@ export function buildFacts({ rai, regime, ar, rec } = {}) {
     asOf,
     moves, levels, curve,
     rai: rai ? { value: r2(rai.smooth), pct: r2(rai.pct) } : null,
-    regime: regime ? { growth: r2(regime.growth), inflation: r2(regime.inflation), since: regime.since || null } : null,
+    regime: regime ? {
+      growth: r2(regime.growth), inflation: r2(regime.inflation), since: regime.since || null,
+      quadrant: regime.provisional ? null : regime.quadrant, weeks: regime.weeksIn,
+    } : null,
     ar: ar ? { latest: r2(ar.latest), shift: r2(ar.shift) } : null,
     rec: rec ? { prob: r2(rec.prob[rec.prob.length - 1]) } : null,
   };

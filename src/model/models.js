@@ -44,9 +44,11 @@ export function buildRegime() {
   const cal = calendar();
   if (!cal) return null;
   const inputs = REGIME_INPUTS
-    .map(i => ({ ...i, kind: ITEM_BY_ID[i.id].kind, ppy: ITEM_BY_ID[i.id].ppy || 252, series: hist(i.id, 130) }))
+    .map(i => ({ ...i, kind: ITEM_BY_ID[i.id].kind, ppy: ITEM_BY_ID[i.id].ppy || 252, series: hist(i.id, 200) }))
     .filter(i => i.series);
-  return regimeModel(inputs, cal);
+  /* Weeks count once they're over in New York, so a live Friday price can't decide one. */
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+  return regimeModel(inputs, cal, { today });
 }
 
 /* ------------------------------------------------------ flows and premia */

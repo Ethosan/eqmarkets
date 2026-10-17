@@ -140,11 +140,17 @@
         <div class="reg-map" id="regMap" role="img"></div>
         <div class="reg-side">
           <p class="reg-blurb" id="regBlurb"></p>
-          <p class="m-cap">Growth inputs · 3-month moves, vol-scaled</p>
+          <p class="reg-pending" id="regPending" hidden></p>
+          <p class="m-cap">Growth inputs · 3- and 6-month moves, vol-scaled</p>
           <ul class="cbars" id="regGrowth"></ul>
           <p class="m-cap">Inflation inputs</p>
           <ul class="cbars" id="regInfl"></ul>
         </div>
+      </div>
+      <div class="reg-history">
+        <p class="m-cap" id="regStripCap"></p>
+        <div class="reg-strip" id="regStrip" role="img"></div>
+        <p class="reg-legend" aria-hidden="true"><span><i class="goldilocks"></i>Goldilocks</span><span><i class="reflation"></i>Reflation</span><span><i class="stagflation"></i>Stagflation</span><span><i class="disinflation"></i>Slowdown</span></p>
       </div>
     </div>
     <div class="m-card" id="arCard">
@@ -215,7 +221,7 @@
     <h3>Recession probability</h3>
     <p>The New York Fed model (Estrella &amp; Mishkin 1996; Estrella &amp; Trubin 2006): P(recession in 12 months) = &Phi;(&alpha; + &beta;&middot;S), where S is the one-month average of the 10-year minus 3-month Treasury spread in percentage points, with the published coefficients &alpha; = −0.5333, &beta; = −0.6330. Both legs are FRED H.15 constant-maturity closes. The NY Fed uses monthly averages and the bond-equivalent 3-month yield, so values can differ from its published table by a point or two.</p>
     <h3>Macro regime</h3>
-    <p>Growth and inflation are each scored from market prices, in the four-quadrant framework of Bridgewater's All Weather work and Ilmanen, Maloney &amp; Ross (2014, <i>Journal of Portfolio Management</i>). Each input is a volatility-scaled 3-month change, z = &Delta;<sub>63</sub> / (&sigma;<sub>ex-ante</sub> &middot; &radic;63), following the time-series momentum convention of Moskowitz, Ooi &amp; Pedersen (2012): log change for prices, point change for rates, divided by the EWMA volatility known when the window opened, so a large move does not inflate its own denominator. On simulated random walks the scores are unbiased with unit variance (a test in the repo checks this over 2,000 independent paths). Growth averages ES, the copper/gold ratio and the inverted high-yield OAS; inflation averages the 10-year breakeven and the DBC and DBA commodity funds, which roll their futures and so avoid the roll gaps in continuous front-month prices (Erb &amp; Harvey 2006; Gorton &amp; Rouwenhorst 2006). Scores are clipped at &plusmn;3, averaged with equal weights, and smoothed over 5 sessions. The regime is the quadrant of the smoothed point; confidence is the distance from the nearer axis.</p>
+    <p>Growth and inflation are each scored from market prices, in the four-quadrant framework of Bridgewater's All Weather work and Ilmanen, Maloney &amp; Ross (2014, <i>Journal of Portfolio Management</i>). Each input is a volatility-scaled change, z = &Delta;<sub>h</sub> / (&sigma;<sub>ex-ante</sub> &middot; &radic;h) for h = 63 and 126 sessions, following the time-series momentum convention of Moskowitz, Ooi &amp; Pedersen (2012): log change for prices, point change for rates, divided by the EWMA volatility known when the window opened, so a large move does not inflate its own denominator. On simulated random walks the scores are unbiased with unit variance (a test in the repo checks this over 2,000 independent paths). Growth averages ES, the copper/gold ratio and the inverted high-yield OAS; inflation averages the 10-year breakeven and the DBC and DBA commodity funds, which roll their futures and so avoid the roll gaps in continuous front-month prices (Erb &amp; Harvey 2006; Gorton &amp; Rouwenhorst 2006). Each input averages its 3-month and 6-month scores; scores are clipped at &plusmn;3 and averaged with equal weights per axis. The regime is read weekly, on the last close of each week, with hysteresis: it changes only after the new quadrant holds for three consecutive completed weeks, readings within 0.15 of an axis count as no evidence to cross it, and the switch is dated to the first week of the run. On driftless random walks this cuts regime changes by well over three quarters compared with a daily quadrant (tested in the repo).</p>
     <h3>Today's read</h3>
     <p>Fixed rules over 1-month vol-scaled moves (same formula, 21 sessions; 30 for Bitcoin) and the level z-scores of VIX and MOVE. Each rule has explicit thresholds and a strength equal to its weakest condition, and the four strongest are shown. The optional AI note sends only these numbers to the site's own function, which validates them against a fixed schema and rebuilds the text itself before calling Mistral AI.</p>
     <h3>Flows and premia</h3>

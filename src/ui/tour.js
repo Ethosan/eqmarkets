@@ -70,8 +70,9 @@ const STEPS = [
     title: "Macro regime",
     body: () => {
       const r = LAST.regime;
-      const now = r ? " Right now: <b>" + r.label + "</b> (" + r.confidence + "). " + QUADRANTS[r.quadrant].blurb : "";
-      return "Is growth rising or falling, and is inflation? Four regimes, read from 3-month market moves. The trail shows the last 13 weeks." + now;
+      const held = r && !r.provisional && r.weeksIn ? ", for " + r.weeksIn + (r.weeksIn === 1 ? " week" : " weeks") : "";
+      const now = r ? " Right now: <b>" + r.label + "</b>" + held + ". " + QUADRANTS[r.quadrant].blurb : "";
+      return "Is growth rising or falling, and is inflation? Four regimes, read each week from 3- and 6-month market moves, and changed only after a new one holds for three weeks. The trail shows the last 13 weekly readings." + now;
     },
   },
   {

@@ -62,20 +62,48 @@ export function confidenceOf(g, i) {
   return m >= 0.5 ? "clear" : m >= 0.2 ? "moderate" : "tentative";
 }
 
-const smoothAt = (arr, j, k) => mean(arr.slice(Math.max(0, j - k + 1), j + 1));
+/* Monday of the trading week a date belongs to. A bar dated Sunday is the
+   evening open of the week ahead (CME Globex), so it belongs to that week. */
+export function weekKey(d) {
+  const t = new Date(d + "T00:00:00Z");
+  if (t.getUTCDay() === 0) t.setUTCDate(t.getUTCDate() + 1);
+  t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+  return t.toISOString().slice(0, 10);
+}
 
-/* inputs: [{ id, label, axis: "growth"|"inflation", sign, kind, ppy, series }]
+/* Weekly regime with hysteresis. A macro regime is a slow thing, so:
+   - each input is the average of its 3- and 6-month vol-scaled moves;
+   - the regime is read once a week, on each week's last close, and only from
+     weeks that are over: a week counts once `today` (New York date) is in a
+     later week, so a live Friday price can never lock in a change;
+   - it only changes after the new quadrant has held for `confirm` completed
+     weeks in a row, and a reading within `band` of an axis counts as no
+     evidence to cross it (a dead band, so scores hovering near zero can't
+     flip it back and forth). The switch is dated to the first week of that
+     run, and those weeks are shown in the new regime;
+   - the starting regime also needs `confirm` steady weeks, so where the
+     history window happens to begin matters as little as possible.
+
+   inputs: [{ id, label, axis: "growth"|"inflation", sign, kind, ppy, series }]
    calendar: master list of ISO dates (e.g. ES sessions).
+   today: ISO date in New York; defaults to the last calendar date, which
+   leaves the latest week open.
    Returns null until both axes have at least minPerAxis inputs. */
-export function regimeModel(inputs, calendar, { h = 63, minPerAxis = 2, days = 260, smooth = 5, trailWeeks = 13 } = {}) {
-  const paths = inputs.map(inp => ({ ...inp, path: scaledMovePath(inp.series, inp.kind, obsFor(h, inp.ppy)) }));
-  const cal = calendar.slice(-days);
+export function regimeModel(inputs, calendar, {
+  horizons = [63, 126], minPerAxis = 2, confirm = 3, band = 0.15, trailWeeks = 13, stripWeeks = 52, today = null,
+} = {}) {
+  const paths = inputs.map(inp => ({ ...inp, paths: horizons.map(h => scaledMovePath(inp.series, inp.kind, obsFor(h, inp.ppy))) }));
+  /* An input's score on a date: the mean of its horizons, only once all exist. */
+  const scoreAt = (p, d) => {
+    const vs = p.paths.map(path => (path.dates.length ? asOf(path, d, 7) : null));
+    return vs.every(v => v != null) ? p.sign * mean(vs) : null;
+  };
   const history = { dates: [], growth: [], inflation: [] };
-  for (const d of cal) {
+  for (const d of calendar) {
     const g = [], f = [];
     for (const p of paths) {
-      const v = p.path.dates.length ? asOf(p.path, d, 7) : null;
-      if (v != null) (p.axis === "growth" ? g : f).push(p.sign * v);
+      const v = scoreAt(p, d);
+      if (v != null) (p.axis === "growth" ? g : f).push(v);
     }
     if (g.length >= minPerAxis && f.length >= minPerAxis) {
       history.dates.push(d);
@@ -86,32 +114,70 @@ export function regimeModel(inputs, calendar, { h = 63, minPerAxis = 2, days = 2
   const n = history.dates.length;
   if (!n) return null;
 
-  /* A 5-session mean for the label and the trail, so one day can't flip the regime. */
-  const k = Math.min(smooth, n);
-  const growth = smoothAt(history.growth, n - 1, k);
-  const inflation = smoothAt(history.inflation, n - 1, k);
-  const quadrant = quadrantOf(growth, inflation);
+  /* Weekly readings: the last session of each week, finished weeks only. */
+  const weeks = [];
+  history.dates.forEach((d, i) => {
+    const k = weekKey(d);
+    const w = { week: k, date: d, growth: history.growth[i], inflation: history.inflation[i], regime: null };
+    if (weeks.length && weeks[weeks.length - 1].week === k) weeks[weeks.length - 1] = w; else weeks.push(w);
+  });
+  /* From Saturday on, the week just ended counts: treat Saturday like the Sunday after. */
+  const t = today || history.dates[n - 1];
+  const sat = new Date(t + "T00:00:00Z").getUTCDay() === 6;
+  const nowWeek = weekKey(sat ? new Date(Date.parse(t) + 864e5).toISOString().slice(0, 10) : t);
+  const complete = weeks.filter(w => w.week < nowWeek);
 
-  let j = n - 1;
-  while (j >= 0 && quadrantOf(smoothAt(history.growth, j, k), smoothAt(history.inflation, j, k)) === quadrant) j--;
-  const since = history.dates[j + 1];
-  const sinceStart = j < 0; /* the streak covers all the history we have */
+  /* Hysteresis over completed weeks. Before a regime is established, a
+     quadrant needs `confirm` steady weeks (no dead band) to become the first. */
+  let cur = null, since = null, cand = null, run = 0, runStart = -1;
+  const switches = [];
+  complete.forEach((w, i) => {
+    let q;
+    if (cur == null) q = quadrantOf(w.growth, w.inflation);
+    else {
+      const c = QUADRANTS[cur];
+      const gs = Math.abs(w.growth) < band ? c.growth : Math.sign(w.growth) || c.growth;
+      const fs = Math.abs(w.inflation) < band ? c.inflation : Math.sign(w.inflation) || c.inflation;
+      q = quadrantOf(gs, fs);
+    }
+    if (q === cur) { cand = null; run = 0; }
+    else if (q === cand) run++;
+    else { cand = q; run = 1; runStart = i; }
+    if (cand && run >= confirm) {
+      if (cur != null) switches.push({ week: complete[runStart].week, from: cur, to: cand });
+      cur = cand; since = complete[runStart].week;
+      for (let j = runStart; j < i; j++) complete[j].regime = cur; /* backdate the run */
+      cand = null; run = 0;
+    }
+    w.regime = cur;
+  });
 
-  const trail = [];
-  for (let t = n - 1; t >= 0 && trail.length < trailWeeks; t -= 5) {
-    trail.unshift({ date: history.dates[t], growth: smoothAt(history.growth, t, k), inflation: smoothAt(history.inflation, t, k) });
-  }
+  /* The latest reading (this week so far) for the dot, the bars and confidence. */
+  const growth = history.growth[n - 1], inflation = history.inflation[n - 1];
+  const readingQuadrant = quadrantOf(growth, inflation);
+  /* Fewer than `confirm` finished weeks: show the reading, marked provisional. */
+  const provisional = cur == null;
+  const quadrant = provisional ? readingQuadrant : cur;
+  const weeksIn = provisional ? 0 : complete.filter(w => w.week >= since).length;
+  const sinceStart = !provisional && !switches.length;
+  const yearAgo = complete.length > 52 ? complete[complete.length - 52].week : complete[0]?.week ?? nowWeek;
+  const switchesYear = switches.filter(s => s.week >= yearAgo).length;
 
-  const last = cal[cal.length - 1];
+  const last = history.dates[n - 1];
   const contributions = paths
     .map(p => {
-      const v = p.path.dates.length ? asOf(p.path, last, 7) : null;
-      return v == null ? null : { id: p.id, label: p.label, axis: p.axis, score: p.sign * v };
+      const v = scoreAt(p, last);
+      return v == null ? null : { id: p.id, label: p.label, axis: p.axis, score: v };
     })
     .filter(Boolean);
 
   return {
-    growth, inflation, quadrant, label: QUADRANTS[quadrant].label,
-    confidence: confidenceOf(growth, inflation), since, sinceStart, trail, history, contributions,
+    growth, inflation, quadrant, label: QUADRANTS[quadrant].label, provisional,
+    confidence: confidenceOf(growth, inflation), readingQuadrant,
+    since, sinceStart, weeksIn, switchesYear, switches, band,
+    pending: !provisional && cand ? { quadrant: cand, label: QUADRANTS[cand].label, weeks: run, needed: confirm } : null,
+    trail: complete.slice(-trailWeeks).map(w => ({ date: w.date, growth: w.growth, inflation: w.inflation })),
+    strip: complete.filter(w => w.regime).slice(-stripWeeks).map(w => ({ week: w.week, regime: w.regime })),
+    history, contributions,
   };
 }

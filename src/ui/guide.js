@@ -83,7 +83,8 @@ const BODY = () => `
     </tbody>
   </table>
   <p>Each axis is read from markets, which move before GDP and CPI are published. <b>Growth</b> averages the 3-month vol-scaled moves in ES, the copper/gold ratio and the high-yield credit spread (flipped, since wider spreads mean weaker growth). <b>Inflation</b> averages the 10-year breakeven, broad commodities (DBC) and agriculture (DBA). The commodity funds are used instead of front-month futures because continuous futures prices jump at every contract roll, which would show up as fake moves.</p>
-  <p>The dot is a 5-day average so one day can't flip the regime. The trail shows the last 13 weeks. "Clear" means both scores are at least 0.5 from zero, "tentative" means one is within 0.2, so the regime could flip easily. Averages of three inputs rarely go past ±2, which is why the map stops there.</p>
+  <p><b>Why it doesn't flip every few days.</b> A macro regime plays out over quarters, so each input averages its 3-month and 6-month moves, and the regime is read once a week, on Friday's close. It only changes after the new quadrant has held for three weeks in a row, and a reading within 0.15 of an axis doesn't count as crossing it. When a change is building, the card says so ("pointed to Reflation for 1 of the 3 weeks needed"), and the switch is dated to the week it started. The strip underneath shows the regime for each of the past 52 weeks.</p>
+  <p>The dot is this week's reading so far; the trail is the last 13 Friday readings. Averages of three inputs rarely go past ±2, which is why the map stops there.</p>
 </section>
 
 <section id="g-numbers" class="g-sec">

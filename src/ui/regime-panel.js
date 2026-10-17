@@ -41,8 +41,11 @@ function map(r) {
   if (pts.length > 1) {
     svg += '<polyline class="rq-trail" points="' + pts.map(p => X(p.growth).toFixed(1) + "," + Y(p.inflation).toFixed(1)).join(" ") + '"/>';
   }
+  if (pts.length) {
+    const p = pts[pts.length - 1];
+    svg += '<line class="rq-trail now" x1="' + X(p.growth).toFixed(1) + '" y1="' + Y(p.inflation).toFixed(1) + '" x2="' + X(r.growth).toFixed(1) + '" y2="' + Y(r.inflation).toFixed(1) + '"/>';
+  }
   pts.forEach((p, k) => {
-    if (k === pts.length - 1) return;
     const op = (0.2 + 0.6 * k / Math.max(1, pts.length - 1)).toFixed(2);
     svg += '<circle cx="' + X(p.growth).toFixed(1) + '" cy="' + Y(p.inflation).toFixed(1) + '" r="3" class="rq-pt" opacity="' + op + '">' +
       "<title>" + shortDate(p.date) + ": growth " + sgn(p.growth) + ", inflation " + sgn(p.inflation) + "</title></circle>";
@@ -66,20 +69,45 @@ export function renderRegime(r) {
   const card = $("regimeCard");
   if (!r) {
     $("regLabel").textContent = "Insufficient data";
-    $("regSub").textContent = "Needs 2 growth and 2 inflation inputs with 4 months of history";
+    $("regSub").textContent = "Needs 2 growth and 2 inflation inputs with about 8 months of history";
     $("regMap").innerHTML = "";
     $("regBlurb").textContent = "";
     $("regGrowth").innerHTML = $("regInfl").innerHTML = "";
+    $("regPending").hidden = true;
+    $("regStrip").innerHTML = "";
+    $("regStripCap").textContent = "";
     return;
   }
   card.dataset.q = r.quadrant;
   $("regLabel").textContent = r.label;
-  const since = r.sinceStart ? "for at least the last year" : "since " + shortDate(r.since);
-  $("regSub").textContent = "Growth " + sgn(r.growth) + " · Inflation " + sgn(r.inflation) + " · " + r.confidence + " · " + since;
+  const wk = n => n + (n === 1 ? " week" : " weeks");
+  const since = r.provisional ? "provisional until three full weeks of readings"
+    : r.sinceStart ? "for all " + wk(r.weeksIn) + " of history here" : "since the week of " + shortDate(r.since) + " (" + wk(r.weeksIn) + ")";
+  $("regSub").textContent = "Growth " + sgn(r.growth) + " · Inflation " + sgn(r.inflation) + " · " + since;
   $("regMap").innerHTML = map(r);
   $("regMap").setAttribute("aria-label", "Regime map: " + r.label + ", growth " + sgn(r.growth) + ", inflation " + sgn(r.inflation) +
-    ". The trail shows the last " + r.trail.length + " weeks.");
+    ". The trail shows the last " + r.trail.length + " weekly readings.");
   $("regBlurb").textContent = QUADRANTS[r.quadrant].blurb;
+  /* Say why the dot and the label can disagree: a change building, or a reading on the line. */
+  let note = "";
+  if (r.pending) {
+    note = "Readings have pointed to " + r.pending.label + " for " + r.pending.weeks + " of the " + r.pending.needed + " weeks needed to switch.";
+  } else if (!r.provisional && r.readingQuadrant !== r.quadrant) {
+    const q = QUADRANTS[r.quadrant];
+    const crossed = v => Math.abs(v) >= r.band;
+    const clear = (Math.sign(r.growth) !== q.growth && crossed(r.growth)) || (Math.sign(r.inflation) !== q.inflation && crossed(r.inflation));
+    const to = QUADRANTS[r.readingQuadrant].label;
+    note = clear
+      ? "This week's reading so far points to " + to + ". It counts toward a switch once the week closes."
+      : "This week's reading sits on the line toward " + to + ", too close to count as a change.";
+  }
+  $("regPending").hidden = !note;
+  $("regPending").textContent = note;
+  /* One cell per week for the past year, coloured by the regime that week. */
+  $("regStrip").innerHTML = r.strip.map(w => '<i class="' + w.regime + '" title="Week of ' + shortDate(w.week) + ": " + QUADRANTS[w.regime].label + '"></i>').join("");
+  $("regStrip").setAttribute("aria-label", "Regime each week for the past " + r.strip.length + " weeks");
+  $("regStripCap").textContent = !r.strip.length ? "" : "Past " + wk(r.strip.length) + (r.strip.length ? " from " + shortDate(r.strip[0].week) : "") + ", read each Friday · " +
+    (r.switchesYear === 0 ? "no changes" : r.switchesYear === 1 ? "changed once" : "changed " + r.switchesYear + " times") + " in the past year";
   $("regGrowth").innerHTML = bars(r.contributions.filter(c => c.axis === "growth"));
   $("regInfl").innerHTML = bars(r.contributions.filter(c => c.axis === "inflation"));
 }

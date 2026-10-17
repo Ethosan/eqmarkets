@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mean, std } from "../src/quant/stats.js";
-import { scaledMovePath, regimeModel, quadrantOf, confidenceOf, obsFor } from "../src/quant/regime.js";
+import { scaledMovePath, regimeModel, quadrantOf, confidenceOf, obsFor, weekKey } from "../src/quant/regime.js";
 import { readMarket, RULES, QUIET } from "../src/quant/narrative.js";
 
 function rng(seed) {
@@ -109,6 +109,86 @@ describe("growth × inflation regime", () => {
     expect(day).toBeGreaterThan(300);
     expect(day).toBeLessThan(300 + 63 + 10);
     expect(r.sinceStart).toBe(false);
+  });
+
+  it("barely moves on pure noise, where a daily quadrant flips constantly", () => {
+    const N2 = 1500, cal2 = dates(N2);
+    const noise = (axis, sign, kind, seed) => ({ id: axis + seed, axis, sign, kind,
+      series: kind === "price" ? price(N2, 0, 0.01, seed) : level(N2, 0, 0.03, seed) });
+    const inputs = [noise("growth", 1, "price", 41), noise("growth", 1, "price", 42), noise("growth", -1, "rate", 43),
+      noise("inflation", 1, "rate", 44), noise("inflation", 1, "price", 45), noise("inflation", 1, "price", 46)];
+    const r = regimeModel(inputs, cal2);
+    const h = r.history;
+    let dailyFlips = 0;
+    for (let i = 1; i < h.dates.length; i++) {
+      if (quadrantOf(h.growth[i], h.inflation[i]) !== quadrantOf(h.growth[i - 1], h.inflation[i - 1])) dailyFlips++;
+    }
+    const years = h.dates.length / 365;
+    expect(dailyFlips / years).toBeGreaterThan(12);
+    expect(r.switches.length / years).toBeLessThan(dailyFlips / years / 4);
+  });
+
+  it("waits three weeks before switching, and says it's leaning meanwhile", () => {
+    /* Reflation for 300 days, then a sharp turn to Goldilocks. */
+    const a = build(1, 1), b = build(1, -3);
+    const spliced = a.map((inp, k) => {
+      const tail = b[k].series.values.slice(300);
+      const base = inp.series.values[299], off = b[k].series.values[299];
+      const values = inp.series.values.slice(0, 300).concat(
+        tail.map(v => (inp.kind === "price" ? base * v / off : base + v - off)));
+      return { ...inp, series: { dates: cal, values } };
+    });
+    const full = regimeModel(spliced, cal);
+    expect(full.quadrant).toBe("goldilocks");
+    const sw = full.switches[full.switches.length - 1];
+    /* Cut the history one week after the run started: still Reflation, leaning Goldilocks. */
+    const cut = cal.indexOf(sw.week) + 8;
+    const early = regimeModel(spliced.map(i => ({ ...i, series: { dates: cal.slice(0, cut), values: i.series.values.slice(0, cut) } })), cal.slice(0, cut));
+    expect(early.quadrant).toBe("reflation");
+    expect(early.pending?.quadrant).toBe("goldilocks");
+    expect(early.pending.weeks).toBeLessThan(3);
+  });
+
+  it("only counts weeks that are over, and files a Sunday bar under the week ahead", () => {
+    expect(weekKey("2026-10-16")).toBe("2026-10-12"); /* Friday */
+    expect(weekKey("2026-10-18")).toBe("2026-10-19"); /* Sunday evening open */
+    const inputs = build(1, 1);
+    const fri = cal.findLast(d => new Date(d + "T00:00:00Z").getUTCDay() === 5);
+    const upTo = cal.slice(0, cal.indexOf(fri) + 1);
+    const cut = inputs.map(i => ({ ...i, series: { dates: upTo, values: i.series.values.slice(0, upTo.length) } }));
+    const liveFriday = regimeModel(cut, upTo, { today: fri });
+    const saturday = regimeModel(cut, upTo, { today: new Date(Date.parse(fri) + 864e5).toISOString().slice(0, 10) });
+    /* On Friday itself that week is still open; from Saturday it counts. */
+    expect(saturday.strip.length).toBe(liveFriday.strip.length + 1);
+    expect(saturday.strip.at(-1).week).toBe(weekKey(fri));
+  });
+
+  it("shows the weeks of a confirmed run in the new regime, matching 'since'", () => {
+    const a = build(1, 1), b = build(1, -3);
+    const spliced = a.map((inp, k) => {
+      const tail = b[k].series.values.slice(300);
+      const base = inp.series.values[299], off = b[k].series.values[299];
+      const values = inp.series.values.slice(0, 300).concat(
+        tail.map(v => (inp.kind === "price" ? base * v / off : base + v - off)));
+      return { ...inp, series: { dates: cal, values } };
+    });
+    const r = regimeModel(spliced, cal);
+    const first = r.strip.findIndex(w => w.week === r.since);
+    expect(first).toBeGreaterThan(0);
+    expect(r.strip[first].regime).toBe("goldilocks");
+    expect(r.strip[first - 1].regime).toBe("reflation");
+    expect(r.strip.slice(first).every(w => w.regime === "goldilocks")).toBe(true);
+    expect(r.weeksIn).toBe(r.strip.length - first);
+  });
+
+  it("is provisional until three full weeks of readings", () => {
+    const inputs = build(1, -1);
+    const firstDay = regimeModel(inputs, cal).history.dates[0];
+    const upTo = cal.slice(0, cal.indexOf(firstDay) + 10);
+    const r = regimeModel(inputs.map(i => ({ ...i, series: { dates: upTo, values: i.series.values.slice(0, upTo.length) } })), upTo);
+    expect(r.provisional).toBe(true);
+    expect(r.weeksIn).toBe(0);
+    expect(r.pending).toBeNull();
   });
 
   it("needs two inputs on each axis", () => {
