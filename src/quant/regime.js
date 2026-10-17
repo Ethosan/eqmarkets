@@ -37,19 +37,19 @@ export const obsFor = (tradingDays, ppy = 252) => Math.round(tradingDays * ppy /
 export const QUADRANTS = {
   goldilocks: {
     label: "Goldilocks", growth: 1, inflation: -1,
-    blurb: "Growth expectations up, inflation expectations down. Historically the best mix for stocks and credit.",
+    blurb: "Growth expectations up, inflation expectations down. Stocks and credit have usually done best.",
   },
   reflation: {
     label: "Reflation", growth: 1, inflation: 1,
-    blurb: "Growth and inflation expectations both rising. Commodities and cyclical stocks have tended to lead, bonds lag.",
+    blurb: "Growth and inflation expectations both rising. Commodities and cyclical stocks have usually led; bonds lagged.",
   },
   stagflation: {
     label: "Stagflation", growth: -1, inflation: 1,
-    blurb: "Growth falling while inflation rises. The hardest mix: stocks and bonds both struggle, commodities and cash have held up best.",
+    blurb: "Growth falling while inflation rises. Stocks and bonds have usually both struggled; commodities and cash held up best.",
   },
   disinflation: {
     label: "Disinflationary slowdown", growth: -1, inflation: -1,
-    blurb: "Growth and inflation both falling. High-quality government bonds have tended to do best.",
+    blurb: "Growth and inflation both falling. Government bonds have usually done best.",
   },
 };
 

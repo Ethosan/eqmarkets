@@ -3,15 +3,15 @@
    ever uses what was known on each date. Used by the backtest lab and by the
    market-bias card. */
 import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS } from "../config.js";
-import { fredSeries, yahooSeries } from "../data/sources.js";
+import { fredSeries, withRollAdjust, yahooSeries } from "../data/sources.js";
 import { absorptionSeries, absorptionShiftPath, recessionSeries, riskAppetite } from "../quant/models.js";
 import { alignSeries, asOf, mean } from "../quant/stats.js";
 import { calendarFlags } from "../quant/calendar.js";
 import { stockBondCorr, trendPath, vrpSeries } from "../quant/flows.js";
 
 export const INSTRUMENTS = [
-  { id: "nq", label: "NQ · Nasdaq 100 futures", symbol: "NQ=F" },
-  { id: "es", label: "ES · S&P 500 futures", symbol: "ES=F" },
+  { id: "nq", label: "NQ · Nasdaq 100 futures", symbol: "NQ=F", rollIndex: "^NDX" },
+  { id: "es", label: "ES · S&P 500 futures", symbol: "ES=F", rollIndex: "^GSPC" },
   { id: "ndx", label: "NDX · Nasdaq 100 index", symbol: "^NDX" },
   { id: "qqq", label: "QQQ · total return", symbol: "QQQ", adjusted: true },
   { id: "spy", label: "SPY · total return", symbol: "SPY", adjusted: true },
@@ -39,7 +39,10 @@ const publishLag = s => ({ ...s, dates: s.dates.map(nextWeekday) });
 
 async function loadItem(item, range) {
   const yahoo = async () => {
-    for (const sym of item.symbols || []) { const s = await yahooSeries(sym, { range }); if (s) return s; }
+    for (const sym of item.symbols || []) {
+      const s = await yahooSeries(sym, { range });
+      if (s) return item.rollIndex ? withRollAdjust(s, item.rollIndex, range) : s;
+    }
     return null;
   };
   const fred = async () => {
@@ -63,8 +66,9 @@ export async function loadModelSeries(range, onProgress) {
   return out;
 }
 
-export function loadInstrument(inst, range) {
-  return yahooSeries(inst.symbol, { range, adjusted: !!inst.adjusted });
+export async function loadInstrument(inst, range) {
+  const s = await yahooSeries(inst.symbol, { range, adjusted: !!inst.adjusted });
+  return inst.rollIndex ? withRollAdjust(s, inst.rollIndex, range) : s;
 }
 
 /* Model paths on the instrument's calendar. Each value is the as-of reading on

@@ -37,9 +37,14 @@ function renderTrend() {
   /* Detail for the two index futures most users trade. */
   side.innerHTML = t.filter(x => x.id === "es" || x.id === "nq").map(x => {
     const fmt = v => fmtNum(v, { dp: 0 });
+    /* Tomorrow each lookback compares against a new reference price. If that's
+       on the far side of today's price, the signal flips at an unchanged close. */
     const flips = x.legs.map(l => {
       const d = (l.flip / x.last - 1) * 100;
-      return "<li><span>" + ["1M", "3M", "6M", "12M"][x.legs.indexOf(l)] + (l.z >= 0 ? " long, flips below" : " short, flips above") +
+      const long = l.z >= 0, above = l.flip > x.last;
+      const what = long ? (above ? " long, turns short unless above" : " long, flips below")
+        : (above ? " short, flips above" : " short, turns long unless below");
+      return "<li><span>" + ["1M", "3M", "6M", "12M"][x.legs.indexOf(l)] + what +
         '</span><b class="num">' + fmt(l.flip) + ' <em>' + sgn(d, 1) + "%</em></b></li>";
     }).join("");
     const f = k => x.scenarios.find(s => s.k === k)?.flow;

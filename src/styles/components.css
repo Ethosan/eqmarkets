@@ -487,3 +487,22 @@ html.touring { overflow: hidden }
   .bias-table { font-size: var(--fs-xs) }
   .bias-record div { grid-template-columns: 1fr; gap: 2px }
 }
+
+/* ---------- method notes (hidden until opened) ---------- */
+.m-method { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px }
+.m-method summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+  font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); padding: 4px 0; min-height: 28px;
+}
+.m-method summary::-webkit-details-marker { display: none }
+.m-method summary::before { content: "+"; display: inline-block; width: 10px; font-weight: 600; color: var(--text-3) }
+.m-method[open] summary::before { content: "−" }
+.m-method summary:hover, .m-method[open] summary { color: var(--text-2) }
+.m-method dl { display: grid; gap: 0; margin-top: 6px; max-width: 90ch }
+.m-method dl div { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 6px 0; border-top: 1px solid var(--border) }
+.m-method dl div:first-child { border-top: 0 }
+.m-method dt { font-size: var(--fs-xs); color: var(--text-3); padding-top: 1px }
+.m-method dd { font-size: var(--fs-xs); line-height: 1.6; color: var(--text-2) }
+@media (max-width: 680px) {
+  .m-method dl div { grid-template-columns: 1fr; gap: 2px }
+}

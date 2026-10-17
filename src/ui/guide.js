@@ -37,7 +37,7 @@ const BODY = () => `
   <ol class="g-steps">
     <li><b>Today's read.</b> Start with the sentences at the top. Each one names the numbers behind it, so you can check it against the cards.</li>
     <li><b>Mood.</b> Read the Risk Appetite label, then glance at its history: is it drifting toward risk-off or recovering? The direction over the last week matters as much as the level.</li>
-    <li><b>Drivers.</b> Look at which bars are red. Stress in rates vol (MOVE) or credit (HY spread) that stocks haven't followed yet is a divergence. Those don't always resolve with stocks falling, but they're worth respecting.</li>
+    <li><b>Drivers.</b> Look at which bars are red. Stress in rates vol (MOVE) or credit (HY spread) that stocks haven't followed yet is a divergence. They don't always end with stocks falling.</li>
     <li><b>Fragility.</b> If the absorption ratio's ΔAR is above +1, markets are moving as one block and a selloff can spread fast. That's a reason to cut size, not a reason to short.</li>
     <li><b>Backdrop.</b> The macro regime and the recession odds move slowly. They tell you what kind of quarter or year it is, not what to do today.</li>
     <li><b>Your market.</b> Tap its card. Check where it sits in its 1-year range, and compare EWMA vol with 1-month vol: if EWMA is higher, volatility is picking up right now, so size down.</li>
@@ -78,7 +78,7 @@ const BODY = () => `
     <tbody>
       <tr><td>Goldilocks</td><td>↑ · ↓ Stocks and credit have done best</td></tr>
       <tr><td>Reflation</td><td>↑ · ↑ Commodities and cyclicals have led</td></tr>
-      <tr><td>Stagflation</td><td>↓ · ↑ The hardest mix; cash and commodities held up</td></tr>
+      <tr><td>Stagflation</td><td>↓ · ↑ Cash and commodities have held up</td></tr>
       <tr><td>Slowdown</td><td>↓ · ↓ Government bonds have done best</td></tr>
     </tbody>
   </table>

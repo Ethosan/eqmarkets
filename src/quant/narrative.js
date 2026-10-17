@@ -115,7 +115,7 @@ export const RULES = [
       if (!(ge(gc, 1.5) && ge(d.es, 0.5) && le(dxy, 0))) return null;
       return {
         strength: 0.8 * Math.min(gc, d.es), tone: "",
-        text: "Gold and stocks are rising together with a soft dollar: a liquidity-driven rally rather than fear.",
+        text: "Gold and stocks are rising together with a soft dollar, which usually means easy liquidity, not fear.",
         evidence: [ev("Gold", fmtSigma(gc)), ev("ES", fmtSigma(d.es)), ev("Dollar", fmtSigma(dxy))],
       };
     },
@@ -138,7 +138,7 @@ export const RULES = [
       if (!(ge(d.hy, 1) && d.es != null && d.es >= -0.25)) return null;
       return {
         strength: d.hy, tone: "d",
-        text: "Credit spreads are widening while stocks hold up. Credit often turns first, so this divergence is worth respecting.",
+        text: "Credit spreads are widening while stocks hold up. Credit has often turned before stocks.",
         evidence: [ev("HY spread", fmtSigma(d.hy) + " wider"), ev("ES", fmtSigma(d.es))],
       };
     },
@@ -160,7 +160,7 @@ export const RULES = [
       if (!(ge(d.es, 1.25) && le(d.hy, -0.5) && (d.vixZ == null || d.vixZ <= 0))) return null;
       return {
         strength: Math.min(d.es, -d.hy), tone: "u",
-        text: "Stocks are trending up with credit spreads tightening and volatility calm: a healthy risk-on tape.",
+        text: "Stocks are trending up, credit spreads are tightening and volatility is low.",
         evidence: [ev("ES", fmtSigma(d.es)), ev("HY spread", fmtSigma(-d.hy) + " tighter"), d.vixZ != null && ev("VIX", fmtZ(d.vixZ))],
       };
     },
@@ -171,7 +171,7 @@ export const RULES = [
       if (!ge(d.moveZ, 2)) return null;
       return {
         strength: d.moveZ - 1, tone: "d",
-        text: "Bond-market volatility is extreme. Rates feed into every asset, so expect bigger swings across the board.",
+        text: "Bond-market volatility is extreme. It usually spills into other markets.",
         evidence: [ev("MOVE", fmtZ(d.moveZ))],
       };
     },
@@ -237,7 +237,7 @@ export const RULES = [
       if (ng == null || Math.abs(ng) < 2) return null;
       return {
         strength: 0.6 * (Math.abs(ng) - 1), tone: "",
-        text: "Natural gas is having an outsized move. It's mostly weather and storage, and rarely a macro signal on its own.",
+        text: "Natural gas is having an outsized move, most likely from weather or storage.",
         evidence: [ev("Nat gas", fmtSigma(ng))],
       };
     },

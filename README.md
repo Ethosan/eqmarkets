@@ -7,6 +7,7 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3- and 6-month market moves and read weekly. It changes only after a new quadrant holds for three weeks, shows when a change is building, and has a 13-week trail and a 52-week history strip.
+- **Method notes:** every model card has a "How it's calculated" toggle listing its data, formula, weights and rules.
 - **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, and a walk-forward track record since 2000 (see *Market bias model* below).
 - **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
 - **Three models**, each computed in the browser from two years of daily history:
@@ -50,6 +51,10 @@ So Markets doesn't show single stocks, fundamentals, options chains, buy/hold ve
 | FOMC meeting dates | federalreserve.gov FOMC calendar page | scheduled statement days | `/fed/*` proxy, built-in fallback in `src/quant/calendar.js` |
 
 All of these are free and need no API key.
+
+**ES and NQ are roll-adjusted.** Yahoo's `ES=F` and `NQ=F` switch to the next contract at each quarterly expiry, and the next contract trades at a premium, so the raw series jumps 1–3% on the third Friday and the session after. Checked against the cash indices over five years, those days were the only large gaps (25 days over 0.4% for ES, 31 for NQ). Every calculation uses a back-adjusted series instead (`src/data/roll.js`): from 8 sessions before each quarterly expiry to 1 after (NYSE calendar, so it also covers the CME roll date), each day takes the cash index's return (`^GSPC`, `^NDX`) where the index has printed; every other day keeps the futures' own return, and the path is rebuilt back from today's price. Afterwards no daily gap to the index exceeds 0.4% and the typical one is 0.04%. Returns then roughly match what holding the futures earned: over five years 8.6% a year for ES instead of the raw series' 11.5% (the index did 11.3%; the difference is financing net of dividends). Using index returns on 10 sessions a quarter puts back a little carry on those days, so the adjusted series overstates futures returns by roughly 0.3–0.5% a year. GC and CL futures are not adjusted; the regime uses the rolled funds DBC and DBA instead.
+
+**Credit spreads start in October 2023.** FRED only serves the ICE BofA high-yield and investment-grade spreads for the last three years. The dashboard needs two, so it isn't affected. In the long-history market-bias model and the lab, the Risk Appetite Index also lacks Bitcoin before 2014 and VIX3M before 2007, so for much of 2000–2023 it runs on 5 to 7 of its 8 inputs (it needs at least 4).
 
 None of these send CORS headers, so the browser can't call them directly. `netlify.toml` rewrites the five paths to the upstream hosts, which makes them same-origin. Outside Netlify the app falls back to public CORS proxies.
 
@@ -166,6 +171,7 @@ src/
     transport.js        proxy fallbacks and timeouts
     sources.js          Yahoo, FRED, BOJ and CFTC fetchers
     fomc.js             FOMC dates from federalreserve.gov, cached a week
+    roll.js             quarterly roll adjustment for ES and NQ
     snapshot.js         last good data saved on the device for instant and offline launch
   quant/
     stats.js            statistics: EWMA, robust z, percentiles, eigenvalues, alignment
@@ -195,6 +201,7 @@ src/
     models-panel.js     models section rendering
     flows-panel.js      CTA positioning, variance premium, stock–bond correlation, calendar
     bias-panel.js       market bias card
+    methods.js          "How it's calculated" notes on each model card
     read-panel.js       Today's read and the AI button
     regime-panel.js     regime map
     chrome.js           clocks, session chips, tabs, progress bar

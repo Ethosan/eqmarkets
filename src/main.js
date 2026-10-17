@@ -11,6 +11,7 @@ import { buildBoard, updateCard } from "./ui/board.js";
 import { renderModels } from "./ui/models-panel.js";
 import { renderFlows } from "./ui/flows-panel.js";
 import { loadFomc } from "./data/fomc.js";
+import { initMethods } from "./ui/methods.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
 import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
@@ -97,6 +98,7 @@ buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 initTabs(openLab);
 initDetail();
 initGuide({ onReplayTour: startTour });
+initMethods();
 initRead();
 tickClocks();
 /* Paint the last session's data straight away (also the offline view), then refresh. */

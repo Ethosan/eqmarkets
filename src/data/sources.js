@@ -3,6 +3,7 @@
 import { BOJ_RATE } from "../config.js";
 import { STATE } from "../state.js";
 import { viaTransports } from "./transport.js";
+import { inRollWindow, rollAdjust, rollWindows } from "./roll.js";
 
 /* Two years of history so one-year rolling statistics have a full window. */
 const YAHOO_RANGE = "2y";
@@ -14,10 +15,13 @@ const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
    example, open at 00:00 London, which is 23:00 UTC the day before. Shifting by
    meta.gmtoffset gives each bar its exchange-local trading date, so series from
    different venues line up on the same calendar. */
-export async function yahooSeries(symbol, { range = YAHOO_RANGE, adjusted = false } = {}) {
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) +
-    /* range=max comes back as monthly bars; an explicit period keeps it daily. */
-    (range === "max" ? "?period1=0&period2=" + Math.floor(Date.now() / 1000) : "?range=" + range) +
+export async function yahooSeries(symbol, { range = YAHOO_RANGE, adjusted = false, from = null } = {}) {
+  /* range=max comes back as monthly bars; an explicit period keeps it daily.
+     `from` (ISO date) asks for history from that date only. */
+  const now = Math.floor(Date.now() / 1000);
+  const span = from ? "?period1=" + Math.floor(Date.parse(from + "T00:00:00Z") / 1000) + "&period2=" + now
+    : range === "max" ? "?period1=0&period2=" + now : "?range=" + range;
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + span +
     "&interval=1d&includePrePost=false&cb=" + Date.now();
   return viaTransports(url, async r => {
     const j = await r.json();
@@ -45,6 +49,37 @@ export async function yahooSeries(symbol, { range = YAHOO_RANGE, adjusted = fals
     const n = values.length;
     return { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] };
   });
+}
+
+/* Cash-index history for roll adjustment (see roll.js). The in-flight request
+   is shared, so concurrent callers fetch once. Kept 30 minutes, or 1 minute
+   inside a roll window, where today's cash return is used. A failed refetch
+   keeps the last good copy. Long ranges start from the futures' first date. */
+const indexCache = new Map();
+function indexHistory(symbol, range, from) {
+  const key = symbol + "|" + range;
+  const today = new Date().toISOString().slice(0, 10);
+  const y = +today.slice(0, 4);
+  const ttl = inRollWindow(today, rollWindows(y - 1, y + 1)) ? 60_000 : 30 * 60_000;
+  const c = indexCache.get(key);
+  if (c && (c.pending || Date.now() - c.ts < ttl)) return c.pending || Promise.resolve(c.s);
+  const pending = yahooSeries(symbol, range === "max" || range === "10y" || range === "5y" ? { range, from } : { range })
+    .then(s => {
+      const keep = s || c?.s || null;
+      indexCache.set(key, { ts: s ? Date.now() : c?.ts ?? 0, s: keep });
+      return keep;
+    });
+  indexCache.set(key, { ...(c || {}), pending });
+  return pending;
+}
+
+/* Start the index request early, then adjust once both are in. */
+export const prefetchIndex = (symbol, range = YAHOO_RANGE, from = null) => indexHistory(symbol, range, from);
+
+export async function withRollAdjust(series, indexSymbol, range = YAHOO_RANGE) {
+  if (!series || !indexSymbol) return series;
+  const idx = await indexHistory(indexSymbol, range, series.dates[0]);
+  return idx ? rollAdjust(series, idx) : series;
 }
 
 /* FRED CSV (no API key). Missing observations are "." and are skipped. */
@@ -128,7 +163,11 @@ export async function fetchItem(item) {
     return;
   }
   const yahoo = async () => {
-    for (const sym of item.symbols || []) { const s = await yahooSeries(sym); if (s) { put(s, "yahoo"); return true; } }
+    if (item.rollIndex) prefetchIndex(item.rollIndex).catch(() => {});
+    for (const sym of item.symbols || []) {
+      const s = await yahooSeries(sym);
+      if (s) { put(item.rollIndex ? await withRollAdjust(s, item.rollIndex) : s, "yahoo"); return true; }
+    }
     return false;
   };
   const fred = async () => {

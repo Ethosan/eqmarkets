@@ -6,7 +6,8 @@
 import { FETCHABLE } from "../config.js";
 import { STATE } from "../state.js";
 
-const KEY = "eqm.snapshot.v1";
+/* v2: ES and NQ histories are roll-adjusted; older snapshots hold raw ones. */
+const KEY = "eqm.snapshot.v2";
 const MAX_AGE = 14 * 864e5;
 const MIN_GAP = 10 * 60_000;
 
