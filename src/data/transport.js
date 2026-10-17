@@ -23,7 +23,12 @@ const TRANSPORTS = [
   u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
 ];
 
+/* The transport to try first: per upstream host once one has worked for it,
+   so a slow fallback that one source needs (FRED) doesn't become the first
+   choice for the others. */
 let preferred = 0;
+const preferredFor = new Map();
+const hostOf = u => { try { return new URL(u).host; } catch { return ""; } };
 
 async function fetchWithTimeout(url, ms = 9000) {
   const c = new AbortController();
@@ -41,15 +46,17 @@ async function fetchWithTimeout(url, ms = 9000) {
   }
 }
 
-/* Try each transport, starting with the last one that worked.
+/* Try each transport, starting with the last one that worked for this host.
    `parse` turns a Response into a value, or throws/returns null to try the next. */
 export async function viaTransports(url, parse, ms) {
+  const host = hostOf(url);
+  const start = preferredFor.get(host) ?? preferred;
   for (let k = 0; k < TRANSPORTS.length; k++) {
-    const i = (preferred + k) % TRANSPORTS.length;
+    const i = (start + k) % TRANSPORTS.length;
     try {
       const out = await parse(await fetchWithTimeout(TRANSPORTS[i](url), ms));
       if (out != null) {
-        preferred = i;
+        preferredFor.set(host, i);
         return out;
       }
     } catch {

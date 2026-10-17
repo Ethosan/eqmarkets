@@ -100,7 +100,7 @@ export async function fredSeries(id, days = FRED_DAYS) {
     }
     const n = values.length;
     return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
-  }, days > 1000 ? 25000 : undefined); /* long histories are slow to generate */
+  }, days > 1000 ? 30000 : 20000); /* FRED is slow, and slower still through a public proxy */
 }
 
 /* BOJ policy rate, scraped from the BOJ English homepage, cached 30 min. */
