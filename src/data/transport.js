@@ -17,7 +17,8 @@ const TRANSPORTS = [
     .replace("https://fred.stlouisfed.org", "/fred")
     .replace("https://www.boj.or.jp", "/boj")
     .replace("https://www.federalreserve.gov", "/fed")
-    .replace("https://publicreporting.cftc.gov", "/cftc"),
+    .replace("https://publicreporting.cftc.gov", "/cftc")
+    .replace("https://cdn-api.cboe.com", "/cboe"),
   u => "https://corsproxy.io/?url=" + encodeURIComponent(u),
   u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
   u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),

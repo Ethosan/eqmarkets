@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Equarian Markets</title>
-<meta name="description" content="Live macro dashboard: 36 indicators across rates, risk, carry, commodities and the tape, with Today's read and four quant models.">
+<meta name="description" content="Live macro dashboard: 39 indicators across rates, risk, carry, commodities and the tape, with Today's read, four quant models, a walk-forward market-bias forecast and SPX option flow.">
 <meta name="theme-color" content="#0A0B0F">
 <meta name="color-scheme" content="dark">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -180,6 +180,25 @@
         <div>
           <p class="m-cap">Where each signal flips, and the forced flow from a ±2σ week</p>
           <div class="cta-side" id="ctaSide"></div>
+        </div>
+      </div>
+    </div>
+    <div class="m-card m-wide" id="ofCard">
+      <div class="m-top">
+        <h3 class="m-kicker">SPX option flow <button type="button" class="m-help" data-guide="oflow" aria-label="How the option-flow panel works">?</button></h3>
+        <span class="m-value num" id="ofGex">—</span>
+        <span class="m-sub" id="ofTag">Loading the SPX option chain…</span>
+        <span class="m-sub num" id="ofAsOf"></span>
+      </div>
+      <div class="m-grid">
+        <div>
+          <p class="m-cap">Dealer gamma by index level · dollars of S&P hedging per 1% move · verticals: spot and the flip level</p>
+          <div class="m-chart" id="ofProfile"></div>
+        </div>
+        <div>
+          <p class="m-cap">Flow, walls and the vol curve · open interest from the previous session</p>
+          <ul class="cal-list" id="ofStats" aria-live="polite"></ul>
+          <ul class="cbars" id="ofCurve" aria-label="Vol-curve gauges"></ul>
         </div>
       </div>
     </div>

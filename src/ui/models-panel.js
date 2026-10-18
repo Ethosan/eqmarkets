@@ -10,6 +10,7 @@ import { percentileRank } from "../quant/stats.js";
 import { $, ordinal, stepDp } from "./format.js";
 import { chart } from "./chart.js";
 import { renderFlows } from "./flows-panel.js";
+import { renderOptionFlow } from "./optionflow-panel.js";
 
 const AMBER = "#D9A84E";
 
@@ -103,6 +104,7 @@ export function renderModels() {
   renderAbsorption();
   renderRecession();
   renderFlows();
+  renderOptionFlow();
   LAST.regime = buildRegime();
   renderRegime(LAST.regime);
   LAST.facts = buildFacts(LAST);

@@ -26,7 +26,8 @@ export function validateFacts(raw) {
   const facts = {
     asOf: date(raw.asOf),
     moves,
-    levels: { vix: num(lv.vix, -10, 10), move: num(lv.move, -10, 10) },
+    levels: { vix: num(lv.vix, -10, 10), move: num(lv.move, -10, 10), vxn: num(lv.vxn, -10, 10), v9d: num(lv.v9d, -10, 10) },
+    relative: { lead: num(obj(raw.relative).lead, -3, 3), ew: num(obj(raw.relative).ew, -3, 3) },
     curve: { chg2s10: num(cv.chg2s10, -500, 500), chg2y: num(cv.chg2y, -500, 500), chg10y: num(cv.chg10y, -500, 500) },
     rai: num(rai.value, -3, 3) == null ? null : { value: num(rai.value, -3, 3), pct: num(rai.pct, 0, 1) },
     regime: num(rg.growth, -3, 3) == null || num(rg.inflation, -3, 3) == null ? null
@@ -82,6 +83,10 @@ export function buildPrompt(facts) {
   if (facts.rec) lines.push("NY Fed yield-curve recession probability, 12 months: " + Math.round(facts.rec.prob * 100) + "%.");
   if (facts.levels.vix != null) lines.push("VIX level vs its past year: z " + facts.levels.vix.toFixed(1) + ".");
   if (facts.levels.move != null) lines.push("MOVE (bond volatility) level vs its past year: z " + facts.levels.move.toFixed(1) + ".");
+  if (facts.levels.vxn != null) lines.push("Nasdaq vol priced against S&P vol (VXN/VIX ratio) vs its past year: z " + facts.levels.vxn.toFixed(1) + (facts.levels.vxn >= 1 ? " (growth names' options bid hard)." : "."));
+  if (facts.levels.v9d != null) lines.push("Nine-day vs 30-day implied vol (VIX9D/VIX) vs its past year: z " + facts.levels.v9d.toFixed(1) + (facts.levels.v9d >= 1 ? " (front-of-curve stress)." : "."));
+  if (facts.relative.lead != null) lines.push("Growth leadership, Nasdaq 100 vs S&P 500 over the past month: " + facts.relative.lead.toFixed(1) + " sigma.");
+  if (facts.relative.ew != null) lines.push("Breadth, equal-weight S&P (RSP) vs cap-weight (SPY) over the past month: " + facts.relative.ew.toFixed(1) + " sigma.");
   if (facts.curve.chg2s10 != null) {
     lines.push("2s10s curve, 1-month change: " + fmtBp(facts.curve.chg2s10) +
       (facts.curve.chg2y != null && facts.curve.chg10y != null ? " (2Y " + fmtBp(facts.curve.chg2y) + ", 10Y " + fmtBp(facts.curve.chg10y) + ", H.15 closes)" : "") + ".");

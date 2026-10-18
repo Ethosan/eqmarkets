@@ -14,7 +14,8 @@ const METHODS = [
   ["biasCard", [
     ["Data", "Daily ES and NQ since 2000, roll-adjusted, plus every model's daily history rebuilt as it stood on each day."],
     ["Per signal", "Regression of the next 1, 5 or 21-day return on the signal, using only outcomes already known. Recent years count more (3-year half-life). Separate slopes for calm and stressed markets, pulled toward the overall slope by n ÷ (n + 504)."],
-    ["Signs", "Fixed by the research behind each signal. A slope with the wrong sign is set to zero."],
+    ["Signals", "Trend followers, variance risk premium, risk appetite, absorption shift, yield-curve recession odds, 12−1 month momentum, and a 5-day reversal at the day and week horizons (plus turn of month, FOMC drift and pre-holiday at those horizons)."],
+    ["Signs", "Fixed by the research behind each signal. A slope with the wrong sign is set to zero — and that signal then abstains for the day instead of voting with the historical mean, which would otherwise let a non-signal dilute the real ones."],
     ["Weights", "Inverse of each signal's recent forecast error (1-year half-life); equal until a signal has a year of record."],
     ["Final", "Long-run average + λ × (combined forecast − long-run average). λ is 0 to 1, from how much the models beat the average over the last ~3 years."],
     ["Label", "Chance of a higher close vs the usual chance: bullish or bearish at ±1 point (day), ±2 (week), ±3 (month)."],
@@ -46,6 +47,15 @@ const METHODS = [
     ["Formula", "P = Φ(−0.5333 − 0.6330 × S). S is the 21-day mean of the 10Y minus 3M Treasury yield, in percentage points (FRED H.15)."],
     ["Line", "30%."],
     ["Limits", "The NY Fed uses monthly averages and the bond-equivalent 3-month yield, so this can differ from its table by a point or two."],
+  ]],
+  ["ofCard", [
+    ["Data", "The full CBOE delayed-quotes SPX option board (about 1.7 MB), refreshed every 20 minutes. Prices delayed 15 minutes; open interest from the previous session."],
+    ["Net gamma", "Σ (call gamma × OI) − Σ (put gamma × OI), × 100 (contract multiplier) × index² × 1%: dollars of S&P hedging per 1% move. The usual naive positioning assumption: customers buy puts and sell covered calls, so dealers are long call gamma and short put gamma."],
+    ["Profile", "Each option's Black–Scholes gamma recomputed at a grid of index levels from −18% to +18%, holding its quoted IV fixed, dividend yield 1.25% and r the fed funds rate; options out to 126 days and within 30% of spot. Where the curve crosses zero is the flip level."],
+    ["Walls", "Strike with the largest call open interest, put open interest, and |gamma × OI| within 25% of spot."],
+    ["Flow", "Put/call ratios on today's SPX volume and open interest; the share of volume in same-day (0DTE) and same-week expiries."],
+    ["Vol curve", "VIX9D/VIX, VXN/VIX, VVIX and SKEW from CBOE indices via Yahoo, each with its 1-year percentile."],
+    ["Limits", "The dealer-positioning assumption is a simplification — real books mix customer flow both ways, and OI is one session stale. Context, not advice."],
   ]],
   ["ctaCard", [
     ["Signal", "For lookbacks of 21, 63, 126 and 252 days: z = move ÷ (EWMA volatility × √lookback), using log price (negative yield for the 10Y)."],

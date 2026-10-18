@@ -45,6 +45,13 @@
   status = 200
   force = true
 
+# CBOE delayed-quotes API: the SPX options chain behind the option-flow panel.
+[[redirects]]
+  from = "/cboe/*"
+  to = "https://cdn-api.cboe.com/:splat"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]

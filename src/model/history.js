@@ -5,7 +5,8 @@
 import { AR_UNIVERSE, ITEM_BY_ID, RAI_INPUTS } from "../config.js";
 import { fredSeries, withRollAdjust, yahooSeries } from "../data/sources.js";
 import { absorptionSeries, absorptionShiftPath, recessionSeries, riskAppetite } from "../quant/models.js";
-import { alignSeries, asOf, mean } from "../quant/stats.js";
+import { scaledMovePath } from "../quant/regime.js";
+import { alignSeries, asOf, clip, ewmaVolPath, logReturns, mean, robustZ } from "../quant/stats.js";
 import { calendarFlags } from "../quant/calendar.js";
 import { stockBondCorr, trendPath, vrpSeries } from "../quant/flows.js";
 
@@ -25,6 +26,8 @@ export const RANGES = { "2y": 800, "5y": 1900, "10y": 3700, max: 12000 };
 /* Every series the three models read. vixts is built from vix / vix3m. */
 const MODEL_IDS = [...new Set([
   ...RAI_INPUTS.map(i => i.id).filter(id => id !== "vixts"), "vix3m", ...AR_UNIVERSE, "dgs10", "us3m",
+  /* Momentum, leadership and options-vol inputs for the market-bias model. */
+  "vix9d", "vxn", "vvix", "ndx", "gspc", "rsp", "spy",
 ])];
 export const MODEL_COUNT = MODEL_IDS.length;
 
@@ -64,6 +67,60 @@ export async function loadModelSeries(range, onProgress) {
       .finally(() => onProgress?.(++done, MODEL_IDS.length))
   ));
   return out;
+}
+
+/* ------------------------------------------------- momentum and leadership */
+
+/* Momentum (12−1) and short-horizon reversal of the instrument itself, both
+   volatility-scaled like the regime inputs: the move over the window divided
+   by the EWMA vol known at the window's start. Clipped to ±3. */
+export function momentumPath(values, { look = 252, skip = 21 } = {}) {
+  const r = logReturns(values);
+  const vol = ewmaVolPath(r);
+  const out = new Array(values.length).fill(null);
+  for (let i = look + 1; i < values.length; i++) {
+    const s = vol[i - look - 1];
+    if (!(s > 0)) continue;
+    const z = (Math.log(values[i]) - Math.log(values[i - skip])) / (s * Math.sqrt(look - skip));
+    out[i] = clip(z, -3, 3);
+  }
+  return out;
+}
+
+/* The raw 5-day vol-scaled move (the reversal literature's predictor: its
+   slope is negative, enforced by the sign restriction in composite.js). */
+export function reversalPath(values, { h = 5 } = {}) {
+  const r = logReturns(values);
+  const vol = ewmaVolPath(r);
+  const out = new Array(values.length).fill(null);
+  for (let i = h + 1; i < values.length; i++) {
+    const s = vol[i - h - 1];
+    if (!(s > 0)) continue;
+    out[i] = clip(Math.log(values[i] / values[i - h]) / (s * Math.sqrt(h)), -3, 3);
+  }
+  return out;
+}
+
+/* Ratio of two aligned series (e.g. NDX/SPX), as a { dates, values } series. */
+export function ratioSeries(a, b) {
+  const { dates, columns: [x, y] } = alignSeries([a, b]);
+  return { dates, values: x.map((v, i) => v / y[i]) };
+}
+
+/* Robust z of a series' level against its trailing year, clipped to ±3
+   (the "level" transform of the Risk Appetite Index, on its own). */
+export function levelZPath({ dates, values }, window = 252) {
+  const out = { dates: [], values: [] };
+  for (let i = 60; i < dates.length; i++) {
+    const z = robustZ(values[i], values.slice(Math.max(0, i - window + 1), i + 1));
+    if (z != null) { out.dates.push(dates[i]); out.values.push(clip(z, -3, 3)); }
+  }
+  return out;
+}
+
+/* 63-day vol-scaled move of a ratio series (leadership and breadth). */
+export function ratioMove(a, b, h = 63) {
+  return scaledMovePath(ratioSeries(a, b), "price", h);
 }
 
 export async function loadInstrument(inst, range) {
@@ -129,8 +186,20 @@ export function buildFrame(S, inst, { ppy = 252 } = {}) {
     }
   }
 
+  /* Momentum, leadership and options-vol signals for the bias model. Momentum
+     and reversal are the instrument's own; the rest are as-of readings from
+     cross-market series, so they are the same for ES and NQ. */
+  const mom = momentumPath(inst.values);
+  const rev = reversalPath(inst.values);
+  const lead = S.ndx && S.gspc ? on(ratioMove(S.ndx, S.gspc)) : empty();
+  const ew = S.rsp && S.spy ? on(ratioMove(S.rsp, S.spy)) : empty();
+  const vxn = S.vxn && S.vix ? on(levelZPath(ratioSeries(S.vxn, S.vix))) : empty();
+  const v9d = S.vix9d && S.vix ? on(levelZPath(ratioSeries(S.vix9d, S.vix))) : empty();
+  const vvixz = S.vvix ? on(levelZPath(S.vvix)) : empty();
+
   return {
     dates: cal, price: inst.values, rai, raiS, ar, dAR, rec, vrp, sbCorr, trend, rebal,
+    mom, rev, lead, ew, vxn, v9d, vvixz,
     cal: calendarFlags(cal),
     vix: S.vix ? on(S.vix) : empty(),
     meta: {
@@ -146,8 +215,10 @@ export function reframe(base, inst, { ppy = 252 } = {}) {
   const at = new Map(base.dates.map((d, i) => [d, i]));
   const pick = arr => inst.dates.map(d => { const i = at.get(d); return i == null ? null : arr[i]; });
   const out = { dates: inst.dates, price: inst.values, meta: base.meta };
-  for (const k of ["rai", "raiS", "ar", "dAR", "rec", "vrp", "sbCorr", "vix", "rebal"]) out[k] = pick(base[k]);
+  for (const k of ["rai", "raiS", "ar", "dAR", "rec", "vrp", "sbCorr", "vix", "rebal", "lead", "ew", "vxn", "v9d", "vvixz"]) out[k] = pick(base[k]);
   out.trend = trendPath(inst, { ppy }).values;
+  out.mom = momentumPath(inst.values);
+  out.rev = reversalPath(inst.values);
   out.cal = calendarFlags(inst.dates);
   return out;
 }

@@ -45,6 +45,8 @@ export const PREDICTORS = [
   { id: "raiS", sign: 1, label: "Risk appetite", src: "Kumar & Persaud (2002)" },
   { id: "dAR", sign: -1, label: "Absorption shift", src: "Kritzman, Li, Page & Rigobon (2011)" },
   { id: "rec", sign: -1, label: "Yield-curve recession odds", src: "Estrella & Mishkin (1996)" },
+  { id: "mom", sign: 1, label: "Momentum (12−1M)", src: "Jegadeesh & Titman (1993)" },
+  { id: "rev", sign: -1, maxH: 5, label: "5-day reversal", src: "Jegadeesh (1990); Lehmann (1990)" },
   { id: "tom", cal: "tom", maxH: 5, sign: 1, label: "Turn of month", src: "McConnell & Xu (2008)" },
   { id: "fomc", cal: "fomc", maxH: 5, sign: 1, label: "FOMC drift", src: "Lucca & Moench (2015)" },
   { id: "preHoliday", cal: "preHoliday", maxH: 5, sign: 1, label: "Pre-holiday", src: "Ariel (1990)" },
@@ -101,10 +103,11 @@ function moments2(a) {
      is known to differ between good and bad times (Rapach, Strauss & Zhou 2010;
      Henkel, Martin & Nardari 2011). */
 export function combinationForecast(frame, h, {
+  predictors = PREDICTORS, dropZeroSlope = true,
   minObs = 504, holdout = 252, halfLife = 252, regHalfLife = 756, regimes = true, kappa = 504, lamHalfLife = 756,
 } = {}) {
   const P = frame.price, n = P.length;
-  const preds = PREDICTORS.filter(p => (p.cal ? h <= p.maxH && frame.cal?.[p.cal] : frame[p.id]));
+  const preds = predictors.filter(p => (p.maxH ? h <= p.maxH : true) && (p.minH ? h >= p.minH : true) && (p.cal ? h <= p.maxH && frame.cal?.[p.cal] : frame[p.id]));
   const X = preds.map(p => (p.cal ? calShare(frame.cal[p.cal], h) : frame[p.id]));
   const theta = 0.5 ** (1 / halfLife), thetaL = 0.5 ** (1 / lamHalfLife);
   const dReg = Number.isFinite(regHalfLife) ? 0.5 ** (1 / regHalfLife) : 1;
@@ -159,6 +162,12 @@ export function combinationForecast(frame, h, {
       }
       if (b * preds[k].sign < 0) b = 0;
       f[k][t] = yb + b * (x - xb);
+      /* A slope the sign restriction zeroed carries no information today; its
+         univariate forecast collapses to the historical mean, which the
+         error-weighted combination would reward with a large share (a mean
+         forecast is hard to beat on squared error). With dropZeroSlope such a
+         signal abstains for the day instead of diluting the others. */
+      if (b === 0 && dropZeroSlope) continue;
       avail.push(k);
     }
     if (avail.length < 2) continue;

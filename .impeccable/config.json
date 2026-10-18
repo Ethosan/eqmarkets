@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-17T03:31:22.611Z",
+        "reason": "Claude: static scan of index.html sees no CSS (styles load via Vite JS imports), so it reports every role at 16px; rendered page has h1 19px vs 14px body (1.36x) and 21-30px values"
+      }
+    ]
+  }
+}

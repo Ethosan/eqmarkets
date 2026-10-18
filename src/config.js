@@ -15,10 +15,17 @@ export const BOJ_RATE = { value: 1.0, asOf: "since 17 Jun 2026" };
 export const REFRESH_MS = 60_000;
 
 /* Series fetched for models only (not shown as cards). Spreads are built from
-   FRED H.15 closes so both legs share the same timestamp. */
+   FRED H.15 closes so both legs share the same timestamp. The option-flow
+   group (vix9d, vvix, skew, ndx, gspc, rsp, spy) feeds the option-flow panel
+   and the market-bias model's momentum, leadership and options signals. */
 export const HIDDEN = [
   { id: "dgs10", fredId: "DGS10", kind: "rate" },
   { id: "vix3m", symbols: ["^VIX3M"], kind: "level" },
+  { id: "vix9d", symbols: ["^VIX9D"], kind: "level" },
+  { id: "ndx", symbols: ["^NDX"], kind: "price" },
+  { id: "gspc", symbols: ["^GSPC"], kind: "price" },
+  { id: "rsp", symbols: ["RSP"], kind: "price" },
+  { id: "spy", symbols: ["SPY"], kind: "price" },
 ];
 
 export const GROUPS = [
@@ -47,6 +54,12 @@ export const GROUPS = [
       desc: "30-day implied vol of S&P 500 options.", fmt: { dp: 2 }, invert: true },
     { id: "vixts", computed: true, kind: "level", ticker: "VIX/VIX3M", name: "Vol Term Structure",
       desc: "Spot over 3-month VIX. Above 1 = backwardation, a stress signature.", fmt: { dp: 3 }, invert: true },
+    { id: "vxn", symbols: ["^VXN"], kind: "level", ticker: "VXN", name: "Nasdaq 100 Vol",
+      desc: "30-day implied vol of NDX options. VXN rising faster than VIX questions growth leadership under a calm surface.", fmt: { dp: 2 }, invert: true },
+    { id: "vvix", symbols: ["^VVIX"], kind: "level", ticker: "VVIX", name: "Vol of Vol",
+      desc: "Implied vol of VIX options: how uncertain the market is about volatility itself. High = dealers demand a premium for vol risk.", fmt: { dp: 1 }, invert: true },
+    { id: "skew", symbols: ["^SKEW"], kind: "level", ticker: "SKEW", name: "CBOE Skew",
+      desc: "Price of OTM crash puts vs ATM options in SPX (100 = ATM baseline). High = tail insurance in demand.", fmt: { dp: 0 }, invert: true },
     { id: "move", symbols: ["^MOVE"], kind: "level", ticker: "MOVE", name: "MOVE Index",
       desc: "ICE BofA implied Treasury volatility: the bond market's VIX.", fmt: { dp: 1 }, invert: true },
     { id: "hyoas", fredId: "BAMLH0A0HYM2", kind: "rate", ticker: "HY OAS", name: "High Yield OAS",

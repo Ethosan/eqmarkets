@@ -24,9 +24,12 @@ describe("combination forecast", () => {
     const ev = evaluate(res, { band: 0.02, dates: fr.dates });
     expect(ev.r2).toBeGreaterThan(0.005);
     expect(ev.cwP).toBeLessThan(0.01);
-    const t = fr.price.length - 1;
+    /* A signal whose slope the sign restriction zeroes abstains for the day
+       (weight null), so compare average weights over the tail instead. */
     const wt = res.preds.findIndex(p => p.id === "trend"), wn = res.preds.findIndex(p => p.id === "vrp");
-    expect(res.w[wt][t]).toBeGreaterThan(res.w[wn][t]);
+    const t = fr.price.length - 1;
+    const avg = k => { const v = res.w[k].slice(-500).filter(x => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
+    expect(avg(wt)).toBeGreaterThan(avg(wn));
     expect(ev.cerGain).toBeGreaterThan(0);
     expect(res.lambda[t]).toBeGreaterThan(0.5); /* the models earn their weight */
   });

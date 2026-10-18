@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "Equarian Markets",
+  "short_name": "Equarian",
+  "description": "Macro dashboard for futures traders: rates, credit, vol and carry, read through a risk appetite index, the absorption ratio and the NY Fed recession model.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0A0B0F",
+  "theme_color": "#0A0B0F",
+  "categories": ["finance", "business"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Models", "short_name": "Models", "description": "Risk appetite, absorption ratio, recession odds", "url": "/?tab=models&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Rates and curve", "short_name": "Rates", "url": "/?tab=rates&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Risk and conditions", "short_name": "Risk", "url": "/?tab=risk&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "The tape", "short_name": "Tape", "url": "/?tab=tape&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/narrow.webp", "sizes": "780x1688", "type": "image/webp", "form_factor": "narrow", "label": "Risk Appetite Index with the inputs driving it" },
+    { "src": "/screenshots/wide.webp", "sizes": "1280x800", "type": "image/webp", "form_factor": "wide", "label": "Risk appetite, absorption ratio and recession odds" }
+  ]
+}

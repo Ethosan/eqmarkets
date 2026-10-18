@@ -14,6 +14,7 @@ const SECTIONS = [
   { id: "ar", label: "Absorption" },
   { id: "rec", label: "Recession" },
   { id: "flows", label: "Flows" },
+  { id: "oflow", label: "Option flow" },
   { id: "glossary", label: "Indicators" },
   { id: "timing", label: "Data timing" },
 ];
@@ -135,6 +136,13 @@ const BODY = () => `
   <p><b>Calendar.</b> Dates that reliably bring flows to index futures. The <i>turn of the month</i> (the last trading day and the first three) has historically carried a large share of equity returns, as salaries, pension contributions and fund inflows arrive (Lakonishok &amp; Smidt 1988; McConnell &amp; Xu 2008). <i>FOMC</i> days bring rate-decision volatility, and stocks have tended to drift up into the announcement (Lucca &amp; Moench 2015). <i>Option expiry</i>, especially quarterly quad witching, brings large hedging flows. <i>Month-end rebalancing</i>: funds that hold a fixed mix of stocks and bonds sell whichever did better that month, so a big lead for stocks can mean selling pressure in the last few sessions.</p>
 </section>
 
+<section id="g-oflow" class="g-sec">
+  <h3>SPX option flow</h3>
+  <p><b>Net dealer gamma.</b> Options dealers hedge every contract they sell. Their hedging flow can dampen moves or amplify them: when dealers are long gamma they sell rallies and buy dips, and when they are short gamma they have to chase the move. The card estimates that net gamma from the live SPX option board — dollars of S&P hedging per 1% move — under the standard assumption that customers buy puts and sell covered calls. Positive numbers lean calm; negative numbers lean violent.</p>
+  <p><b>Flip level.</b> The index level where the estimate crosses zero. Above it hedging leans against the move; below it, with the move. A market trading just above its flip is closer to the unstable zone than the headline gamma suggests.</p>
+  <p><b>Walls and 0DTE.</b> The strikes with the biggest call open interest, put open interest and gamma are levels hedging flow gravitates to near expiry. The share of the day's SPX volume trading in same-day expiries (0DTE) says how much of the flow is fast money recycling gamma intraday.</p>
+  <p><b>The vol curve.</b> VIX9D/VIX above 1 means the front of the implied-vol curve is in backwardation — near-term fear above the 30-day price, a classic stress signature. VXN/VIX rising means Nasdaq vol is being bid harder than S&P vol: growth leadership being questioned under a calm surface. A high VVIX or SKEW means dealers are charging more for volatility risk and for crash insurance.</p>
+</section>
 <section id="g-glossary" class="g-sec">
   <h3>Every indicator</h3>
   ${glossary()}
