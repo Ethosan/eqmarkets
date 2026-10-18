@@ -18,6 +18,8 @@ const SHORT = { d: "day", w: "week", m: "month" };
 
 /* "ES leans bullish over the next week and month." */
 function lede(name, horizons) {
+  const withReads = horizons.filter(x => x.now);
+  const dead = withReads.length && withReads.every(x => x.now.noSignal);
   const leaning = horizons.filter(x => x.now && x.now.label !== "Neutral");
   if (!leaning.length) return "No clear lean on " + name + " right now.";
   const groups = ["Bullish", "Bearish"].map(lab => leaning.filter(x => x.now.label === lab).map(x => SHORT[x.key])).filter(g => g.length);
@@ -28,8 +30,9 @@ function lede(name, horizons) {
   const order = ["Low", "Medium", "High"];
   const weakest = leaning.map(x => x.now.confidence).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
   const noEdge = leaning.some(x => x.now.why?.right != null && x.now.why.right < x.now.why.chance + 0.01);
+  const deadLine = dead ? " None of its signals has a usable relationship with recent data right now, so these reads are just the long-run average." : "";
   return name + " leans " + parts.join(", and ") + ", with " + weakest.toLowerCase() + " confidence." +
-    (noEdge ? " Past calls like this did no better than other days." : "");
+    (noEdge ? " Past calls like this did no better than other days." : "") + deadLine;
 }
 
 function stateLine(state) {
@@ -39,7 +42,7 @@ function stateLine(state) {
 }
 
 /* Plain-language verdict on out-of-sample R² against the long-run average. */
-const vs = r2 => (r2 == null ? "not enough history" : r2 > 0.001 ? "better than a plain average" : r2 < -0.001 ? "worse than a plain average" : "about the same as a plain average");
+const vs = r2 => (r2 == null ? "not enough history" : r2 > 0.001 ? "beats the long-run average" : r2 < -0.001 ? "worse than the long-run average" : "about the same as the long-run average");
 
 function render() {
   document.querySelectorAll("#biasInst button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.inst === inst)));
@@ -55,7 +58,10 @@ function render() {
     const sel = x.key === hz;
     if (!n) return `<tr><th scope="row">Next ${SHORT[x.key]}</th><td colspan="3" class="muted">Not enough history</td></tr>`;
     let conf = '<span class="muted">No lean</span>';
-    if (n.label !== "Neutral") {
+    if (n.noSignal) {
+      conf = '<span class="muted">No working signal</span>' +
+        '<span class="bias-sub">recent moves contradict every signal’s usual direction, so this is the long-run-average read</span>';
+    } else if (n.label !== "Neutral") {
       const w = n.why;
       conf = `<span class="bias-c ${n.confidence.toLowerCase()}">${n.confidence}</span>` +
         (w?.right != null ? `<span class="bias-sub">right ${pc(w.right)} of ${w.n.toLocaleString("en-US")} past calls${w.inState ? " in " + (state ? "stressed" : "calm") + " markets" : ""}, vs ${pc(w.chance)} on other days</span>` : "");
@@ -76,8 +82,10 @@ function render() {
         `<span class="cb-bar"><i class="${c.c >= 0 ? "u" : "d"}" style="${c.c >= 0 ? "left" : "right"}:50%;width:${w.toFixed(1)}%"></i></span>` +
         `<span class="cb-v num">${bp(c.c)}</span></li>`;
     }).join("");
-    $("biasDrvCap").textContent = "What's pushing the next-" + SHORT[cur.key] + " read, in basis points versus a normal " + SHORT[cur.key] +
-      (n.lambda < 0.2 ? ". The models get little say right now because their recent record is weak." : ".");
+    $("biasDrvCap").textContent = n.noSignal
+      ? "Nothing is pushing the next-" + SHORT[cur.key] + " read: recent moves contradict every signal's usual direction, so it's the long-run average."
+      : "What's pushing the next-" + SHORT[cur.key] + " read, in basis points versus a normal " + SHORT[cur.key] +
+        (n.lambda < 0.2 ? ". The models get little say right now because their recent record is weak." : ".");
   } else bars.innerHTML = "";
 
   const condRow = () => {

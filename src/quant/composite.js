@@ -119,6 +119,10 @@ export function combinationForecast(frame, h, {
   const w = preds.map(() => new Array(n).fill(null));
   const F = new Array(n).fill(null), G = new Array(n).fill(null), EQ = new Array(n).fill(null), M = new Array(n).fill(null);
   const lambda = new Array(n).fill(null);
+  /* true on days when every informative signal abstained and the combination
+     fell back to the abstaining signals' mean forecasts (so the read is the
+     long-run average, and the card can say so). */
+  const abstain = new Array(n).fill(false);
   let ySum = 0, yN = 0, encA = 0, encB = 0, encN = 0;
 
   for (let t = 0; t < n; t++) {
@@ -170,6 +174,19 @@ export function combinationForecast(frame, h, {
       if (b === 0 && dropZeroSlope) continue;
       avail.push(k);
     }
+    /* Fallback: every signal abstained — the recent window contradicts the
+       research direction for all of them at once. Rather than no forecast,
+       let the abstaining signals vote with their historical means; the
+       combination lands on the long-run average, which IS the honest read,
+       and the day is flagged so the card can say it has no working signal. */
+    if (avail.length < 2 && dropZeroSlope) {
+      avail.length = 0;
+      abstain[t] = true;
+      for (let k = 0; k < preds.length; k++) {
+        const a = sums[k], x = X[k][t];
+        if (a.n >= minObs && x != null && isFinite(x)) avail.push(k);
+      }
+    }
     if (avail.length < 2) continue;
     /* Seasoned signals share their slots by inverse discounted error; the rest
        get an equal share each. */
@@ -181,8 +198,12 @@ export function combinationForecast(frame, h, {
       w[k][t] = wk;
       c += wk * f[k][t];
     }
+    /* On an all-abstain day the combination is the benchmark itself: the
+       signals' own window means differ slightly from it, and a tilt built
+       from window-construction noise is not a read. */
+    if (abstain[t]) { c = M[t]; }
     F[t] = c;
-    EQ[t] = mean(avail.map(k => f[k][t]));
+    EQ[t] = abstain[t] ? M[t] : mean(avail.map(k => f[k][t]));
     const lam = encN >= holdout && encB > 0 ? Math.max(0, Math.min(1, encA / encB)) : 0;
     lambda[t] = lam;
     G[t] = M[t] + lam * (c - M[t]);
@@ -194,7 +215,7 @@ export function combinationForecast(frame, h, {
   const sigma = P.map((_, t) => (t > 0 && vol[t - 1] > 0 ? vol[t - 1] * Math.sqrt(h) : null));
   const prob = A => A.map((x, t) => (x == null || sigma[t] == null ? null : normCdf(x / sigma[t])));
   const pUp = prob(G), pBase = prob(M);
-  return { h, P, preds, X, f, w, F, G, EQ, M, lambda, sigma, pUp, pBase, state: R };
+  return { h, P, preds, X, f, w, F, G, EQ, M, lambda, sigma, pUp, pBase, state: R, abstain };
 }
 
 /* Newey–West t-statistic of a mean, Bartlett kernel with `lag` lags. */
@@ -304,7 +325,7 @@ export function readNow(res, ev, band) {
   if (p == null || base == null || G == null) return null;
   const tilt = p - base;
   const label = biasLabel(tilt, band);
-  const contrib = res.preds.map((pr, k) => ({
+  const contrib = res.abstain?.[t] ? [] : res.preds.map((pr, k) => ({
     id: pr.id, label: pr.label, src: pr.src, w: res.w[k][t],
     c: res.w[k][t] != null && res.f[k][t] != null ? lam * res.w[k][t] * (res.f[k][t] - M) : null,
   })).filter(x => x.c != null);
@@ -328,5 +349,6 @@ export function readNow(res, ev, band) {
     confidence = strong ? "High" : fair ? "Medium" : "Low";
     why = { right: g.right, n: g.n, chance, inState: !!useState };
   }
-  return { label, p, base, tilt, F: G, M, lambda: lam, sigma: res.sigma[t], contrib, agree, confidence, why, state };
+  return { label, p, base, tilt, F: G, M, lambda: lam, sigma: res.sigma[t], contrib, agree, confidence, why, state,
+    noSignal: !!res.abstain?.[t] };
 }

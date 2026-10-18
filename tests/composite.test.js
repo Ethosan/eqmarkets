@@ -57,6 +57,19 @@ describe("combination forecast", () => {
       for (let t = 0; t < 1200 - h; t++) { expect(rb.F[t]).toBe(ra.F[t]); expect(rb.G[t]).toBe(ra.G[t]); }
     }
   });
+  it("falls back to the long-run average when every signal abstains, and says so", () => {
+    const fr = market(3000);
+    /* Every predictor points the way the research says it shouldn't. */
+    for (const id of ["vrp", "raiS", "rec"]) fr[id] = fr.trend.map(x => -x);
+    fr.trend = fr.trend.map(x => -x);
+    fr.dAR = fr.dAR.map(x => -x);
+    const res = combinationForecast(fr, 21);
+    const t = fr.price.length - 1;
+    expect(res.abstain[t]).toBe(true); /* flagged: no informative signal today */
+    expect(res.G[t]).not.toBeNull(); /* a forecast exists anyway */
+    expect(res.M[t]).not.toBeNull();
+    expect(res.G[t]).toBe(res.M[t]); /* exactly the long-run-average read */
+  });
   it("reads today with a label, contributions and agreement", () => {
     const fr = market(2500);
     const res = combinationForecast(fr, 5);

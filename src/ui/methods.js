@@ -15,7 +15,7 @@ const METHODS = [
     ["Data", "Daily ES and NQ since 2000, roll-adjusted, plus every model's daily history rebuilt as it stood on each day."],
     ["Per signal", "Regression of the next 1, 5 or 21-day return on the signal, using only outcomes already known. Recent years count more (3-year half-life). Separate slopes for calm and stressed markets, pulled toward the overall slope by n ÷ (n + 504)."],
     ["Signals", "Trend followers, variance risk premium, risk appetite, absorption shift, yield-curve recession odds, 12−1 month momentum, and a 5-day reversal at the day and week horizons (plus turn of month, FOMC drift and pre-holiday at those horizons)."],
-    ["Signs", "Fixed by the research behind each signal. A slope with the wrong sign is set to zero — and that signal then abstains for the day instead of voting with the historical mean, which would otherwise let a non-signal dilute the real ones."],
+    ["Signs", "Fixed by the research behind each signal. A slope with the wrong sign is set to zero — and that signal then abstains for the day instead of voting with the historical mean, which would otherwise let a non-signal dilute the real ones. When every signal abstains at once, the read is the long-run average exactly, shown as \"no working signal\": recent data contradicts every signal's usual direction."],
     ["Weights", "Inverse of each signal's recent forecast error (1-year half-life); equal until a signal has a year of record."],
     ["Final", "Long-run average + λ × (combined forecast − long-run average). λ is 0 to 1, from how much the models beat the average over the last ~3 years."],
     ["Label", "Chance of a higher close vs the usual chance: bullish or bearish at ±1 point (day), ±2 (week), ±3 (month)."],
