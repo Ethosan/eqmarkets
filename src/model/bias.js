@@ -8,14 +8,14 @@ import { buildFrame, loadModelSeries, reframe } from "./history.js";
 import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
 import { conditionalToday } from "../quant/conditional.js";
 
-const KEY = "eqm.bias.v9"; /* v9: conditional history ("after a week like this") added to the payload */
+const KEY = "eqm.bias.v10"; /* v10: all-abstain fallback - recompute so cached forecasts match the live model */
 const TTL = 6 * 3600e3;
 export const BIAS_RANGE = "max";
 
 export function cachedBias() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY) || "null");
-    return c && c.v === 9 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
+    return c && c.v === 10 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
   } catch {
     return null;
   }
@@ -49,7 +49,7 @@ export async function computeBiasData(range, onProgress) {
   const es = buildFrame(S, S.es);
   const nq = reframe(es, S.nq);
   return {
-    v: 9, ts: Date.now(), range, missing: es.meta.missing,
+    v: 10, ts: Date.now(), range, missing: es.meta.missing,
     es: { asOf: es.dates[es.dates.length - 1], horizons: biasFromFrame(es), cond: condOf(es) },
     nq: { asOf: nq.dates[nq.dates.length - 1], horizons: biasFromFrame(nq), cond: condOf(nq) },
   };
