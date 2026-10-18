@@ -251,7 +251,7 @@ npm run dev          # http://localhost:5173
 2. Netlify reads `netlify.toml`: build command `npm run build`, publish directory `dist`. Nothing to fill in.
 3. Every push to `main` deploys. Merge requests get deploy previews.
 
-`.github/workflows/ci.yml` (lint, test, build) is left over from GitHub and does not run on GitLab.
+`.gitlab-ci.yml` runs lint, tests and the build on every merge request and every push to `main`.
 
 After a BOJ rate decision, if the live scrape ever fails, update `BOJ_RATE` in `src/config.js`.
 

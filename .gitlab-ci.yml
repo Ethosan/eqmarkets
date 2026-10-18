@@ -1,0 +1,22 @@
+# Lint, test and build on every merge request and every push to main.
+# Same steps as the old GitHub Actions workflow.
+image: node:22
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+build:
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+    - npm test
+    - npm run build
