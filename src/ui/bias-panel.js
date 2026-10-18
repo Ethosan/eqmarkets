@@ -80,6 +80,21 @@ function render() {
       (n.lambda < 0.2 ? ". The models get little say right now because their recent record is weak." : ".");
   } else bars.innerHTML = "";
 
+  const condRow = () => {
+    const c = d.cond;
+    if (!c) return "";
+    if (!c.match || !c.h[1]) return `<div><dt>After a week like this</dt><dd>Too few comparable weeks (${esc(c.label)}) to count a record</dd></div>`;
+    const sgnS = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
+    const sgnBp = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(0) + "bp";
+    const matched = c.match === "regime+momentum" ? " · matched to this week's volatility regime and momentum direction"
+      : c.match === "regime" ? " · matched to this week's volatility regime"
+      : c.match === "momentum" ? " · matched to this week's momentum direction" : "";
+    const d1 = c.h[1], w1 = c.h[5];
+    return `<div><dt>After a week like this</dt><dd>` +
+      `A 5-day move ${esc(c.label)} — this week ${sgnS(c.rev)}σ — has been followed by a higher next day ${pc(d1.up)} of the time (${d1.n.toLocaleString("en-US")} weeks since 2000, avg ${sgnBp(d1.meanBp)})` +
+      (w1 ? `, and a higher next week ${pc(w1.up)} (avg ${sgnBp(w1.meanBp)})` : "") +
+      `<span class="bias-sub">${matched}. Short-term reversal, not momentum: the continuation edge, when there is one, lives at the monthly scale.</span></dd></div>`;
+  };
   if (ev) {
     const calm = ev.byState?.[0], str = ev.byState?.[1];
     /* A call shows skill if it goes its way more often than on the days it isn't made. */
@@ -88,8 +103,8 @@ function render() {
       `<div><dt>Beats a plain average?</dt><dd>${ev.r2 > 0.001 && ev.cwP < 0.1 ? "Yes" : ev.r2 > 0 ? "Slightly, not reliably" : "No"} <span class="bias-sub">${year(ev.from)}–${year(ev.to)}, p ${ev.cwP < 0.001 ? "<0.001" : ev.cwP.toFixed(2)}</span></dd></div>` +
       `<div><dt>Calm markets</dt><dd>${esc(vs(calm?.r2))}</dd></div>` +
       `<div><dt>Stressed markets</dt><dd>${esc(vs(str?.r2))}</dd></div>` +
-      row("Bullish calls", ev.bull, "beat") + row("Bearish calls", ev.bear, "fell short of");
-  } else $("biasRecord").innerHTML = "";
+      row("Bullish calls", ev.bull, "beat") + row("Bearish calls", ev.bear, "fell short of") + condRow();
+  } else $("biasRecord").innerHTML = condRow();
 }
 
 async function refresh(force) {

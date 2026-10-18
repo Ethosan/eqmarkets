@@ -6,15 +6,16 @@
    visits are instant and the download happens at most a few times a day. */
 import { buildFrame, loadModelSeries, reframe } from "./history.js";
 import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
+import { conditionalToday } from "../quant/conditional.js";
 
-const KEY = "eqm.bias.v8"; /* v8: momentum, leadership and options-vol signals added */
+const KEY = "eqm.bias.v9"; /* v9: conditional history ("after a week like this") added to the payload */
 const TTL = 6 * 3600e3;
 export const BIAS_RANGE = "max";
 
 export function cachedBias() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY) || "null");
-    return c && c.v === 8 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
+    return c && c.v === 9 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
   } catch {
     return null;
   }
@@ -24,6 +25,13 @@ export function cachedBias() {
 const slim = ev => ev && {
   n: ev.n, from: ev.from, to: ev.to, r2: ev.r2, r2Raw: ev.r2Raw, r2Equal: ev.r2Equal, cwP: ev.cwP, upRate: ev.upRate, beatRate: ev.beatRate,
   bull: ev.bull, bear: ev.bear, neutralShare: ev.neutralShare, cerGain: ev.cerGain, single: ev.single, byState: ev.byState,
+};
+
+/* "After a week like this": today's 5-day-move bucket, with the next-day
+   and next-week record of comparable weeks (src/quant/conditional.js). */
+const condOf = fr => {
+  const c = conditionalToday(fr);
+  return c ? { rev: c.rev, bucketId: c.bucketId, label: c.label, match: c.match, h: c.h } : null;
 };
 
 export function biasFromFrame(fr) {
@@ -41,9 +49,9 @@ export async function computeBiasData(range, onProgress) {
   const es = buildFrame(S, S.es);
   const nq = reframe(es, S.nq);
   return {
-    v: 8, ts: Date.now(), range, missing: es.meta.missing,
-    es: { asOf: es.dates[es.dates.length - 1], horizons: biasFromFrame(es) },
-    nq: { asOf: nq.dates[nq.dates.length - 1], horizons: biasFromFrame(nq) },
+    v: 9, ts: Date.now(), range, missing: es.meta.missing,
+    es: { asOf: es.dates[es.dates.length - 1], horizons: biasFromFrame(es), cond: condOf(es) },
+    nq: { asOf: nq.dates[nq.dates.length - 1], horizons: biasFromFrame(nq), cond: condOf(nq) },
   };
 }
 

@@ -21,6 +21,7 @@ const METHODS = [
     ["Label", "Chance of a higher close vs the usual chance: bullish or bearish at ±1 point (day), ±2 (week), ±3 (month)."],
     ["Confidence", "High: past calls of this kind beat other days by 5+ points (in today's market state if 50+ calls), 70% of the weight agrees, λ ≥ 0.5 and Clark–West p < 0.10. Medium: 2+ points, 50% agreement and λ ≥ 0.2. Otherwise low."],
     ["Stressed", "Index volatility (EWMA) above its median of the past year."],
+    ["Weeks like this", "Today's 5-day move in σ, bucketed at ±1σ and ±2σ. The record column shows that bucket's next-day and next-week up-rate and average return since 2000, matched to today's calm/stressed regime and 12−1 momentum sign when that leaves 30+ cases, relaxed otherwise (10+ at the plain bucket, or no claim). A base rate, not a forecast."],
     ["Limits", "Some inputs start late: the high-yield spread on FRED only from Oct 2023, Bitcoin from 2014, VIX3M from 2007. Before then risk appetite runs on fewer of its 8 inputs (at least 4). A backtest on one market's history."],
   ]],
   ["raiCard", [

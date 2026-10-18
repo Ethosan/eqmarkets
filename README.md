@@ -15,7 +15,7 @@ A live macro dashboard for futures traders. Rates, credit, carry, the options ma
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens; NDX lagging SPX by more than a month's normal move while the S&P holds reads as leadership damage). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3- and 6-month market moves and read weekly. It changes only after a new quadrant holds for three weeks, shows when a change is building, and has a 13-week trail and a 52-week history strip.
 - **Method notes:** every model card has a "How it's calculated" toggle listing its data, formula, weights and rules.
-- **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, and a walk-forward track record since 2000 (see *Market bias model* below).
+- **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, a walk-forward track record since 2000, and an **"after a week like this"** line: what actually followed comparable weeks (the current 5-day move's σ-bucket, matched to the volatility regime and momentum direction), so a bullish read after a washout shows its evidence (see *Market bias model* below).
 - **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
 - **SPX option flow:** dealer gamma exposure estimated from the live CBOE option board — net gamma in dollars per 1% move, the **gamma flip level**, the gamma profile across index levels, call/put/gamma walls, 0DTE volume share and put/call ratios — plus the vol curve (VIX9D/VIX, VXN/VIX, VVIX, SKEW) with 1-year percentiles. Index-level options positioning, not single names.
 - **Three models**, each computed in the browser from two years of daily history:
@@ -91,6 +91,7 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | Today's read | 19 rules on 21-day vol-scaled moves, VIX/MOVE level z-scores, VXN/VIX and VIX9D/VIX ratio z-scores and NDX/SPX, RSP/SPY relative moves; strength = weakest condition; top 4 shown |
 | Momentum (12−1M) | ln(Pₜ/Pₜ₋₂₁) − ln(Pₜ₋₂₅₂/Pₜ₋₂₅₂)'s window form: (ln Pₜ − ln Pₜ₋₂₁) ÷ (σ_EWMA at the window start × √231), clipped ±3 |
 | 5-day reversal | (ln Pₜ − ln Pₜ₋₅) ÷ (σ_EWMA at the window start × √5), clipped ±3; its regression slope is restricted to be negative (Jegadeesh 1990) |
+| Weeks like this | Today's 5-day move bucketed at ±1σ and ±2σ; the bucket's next-day and next-week up-rate and mean return since 2000, matched on calm/stressed regime and 12−1 momentum sign when ≥ 30 cases, relaxed to the plain bucket at ≥ 10, else no claim |
 | Net dealer gamma | Σ (Γ_call × OI) − Σ (Γ_put × OI), × 100 × S² × 1%: dollars of S&P hedging per 1% index move, $bn. Naive positioning assumption: dealers long call gamma, short put gamma |
 | Gamma profile | Black–Scholes Γ(S, K, T, σ_quoted, r = EFFR, q = 1.25%) recomputed on an index grid from −18% to +18%, options ≤ 126 days and within 30% of spot; flip = nearest zero crossing |
 | Walls | Largest call OI, put OI and |Γ × OI| by strike, within 25% of spot |
@@ -203,6 +204,7 @@ src/
     narrative.js        rules behind Today's read
     flows.js            variance risk premium, stock–bond correlation, CTA trend positioning
     optionflow.js       SPX option board: dealer gamma, profile, flip level, walls, put/call, 0DTE
+    conditional.js      "after a week like this": bucketed conditional forward-return history
     calendar.js         NYSE holidays, FOMC dates, turn of month, option expiry, event study
     backtest.js         backtest engine: simulate, metrics, vol target, rules, presets, bootstrap, deflated Sharpe
     composite.js        market bias: walk-forward forecast combination and its out-of-sample scorecard
