@@ -1,6 +1,6 @@
 # Equarian Markets
 
-A live macro dashboard for futures traders. Rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
+A live macro dashboard for futures traders. Rates, credit, carry, the options market and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability** — plus a walk-forward **market-bias forecast** scored out of sample since 2000 and an **SPX option-flow** panel built from the live option board.
 
 > **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended.
 
@@ -11,17 +11,18 @@ A live macro dashboard for futures traders. Rates, credit, carry and the tape on
 | **Run locally** | `npm install && npm run dev` (see *Develop*) |
 | **Settings** | `MISTRAL_API_KEY` (optional, enables AI explanations), `EXPLAIN_MODEL` (optional). Set in Netlify environment variables, scope Functions. |
 
-- **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
-- **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
+- **39 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, VXN (Nasdaq vol), VVIX (vol of vol), CBOE SKEW, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
+- **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens; NDX lagging SPX by more than a month's normal move while the S&P holds reads as leadership damage). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
 - **Macro regime:** a growth × inflation map (Goldilocks, Reflation, Stagflation, Slowdown) scored from 3- and 6-month market moves and read weekly. It changes only after a new quadrant holds for three weeks, shows when a change is building, and has a 13-week trail and a 52-week history strip.
 - **Method notes:** every model card has a "How it's calculated" toggle listing its data, formula, weights and rules.
 - **Market bias:** a bullish / neutral / bearish tilt for ES and NQ over the next day, week and month, with a confidence grade, each signal's pull, and a walk-forward track record since 2000 (see *Market bias model* below).
 - **Flows and premia:** an estimate of trend-follower (CTA) positioning in 8 markets, with the price levels where each signal flips and the forced flow from a ±2σ week; the variance risk premium (VIX minus ES realized vol); the stock–bond correlation; and a calendar of turn-of-month, FOMC, option expiry, holidays and month-end rebalancing pressure.
+- **SPX option flow:** dealer gamma exposure estimated from the live CBOE option board — net gamma in dollars per 1% move, the **gamma flip level**, the gamma profile across index levels, call/put/gamma walls, 0DTE volume share and put/call ratios — plus the vol curve (VIX9D/VIX, VXN/VIX, VVIX, SKEW) with 1-year percentiles. Index-level options positioning, not single names.
 - **Three models**, each computed in the browser from two years of daily history:
   - **Risk Appetite Index v2:** equal-weighted, clipped scores. Trending assets enter as volatility-scaled momentum and stress gauges as robust z-scores. It shows a per-input contribution chart and a point-in-time 1Y history.
   - **Absorption ratio** (Kritzman et al. 2011): the variance share of the top fifth of eigenvectors across a 10-asset return panel, plus the standardized ΔAR shift.
   - **NY Fed yield-curve recession probability:** a probit on the 1-month average 3m10y spread, with a 2Y history.
-- **Tour and guide:** a first-visit spotlight tour walks through each panel using that day's live numbers. The **Guide** button (and a **?** on each model) opens a reference covering a 30-second pre-trade routine, what z-scores, percentiles, bp and vol mean, each model's thresholds and caveats, a glossary of all 36 indicators, and how fresh each feed is. Add `?notour` to the URL to skip the tour.
+- **Tour and guide:** a first-visit spotlight tour walks through each panel using that day's live numbers. The **Guide** button (and a **?** on each model) opens a reference covering a 30-second pre-trade routine, what z-scores, percentiles, bp and vol mean, each model's thresholds and caveats, a glossary of all 39 indicators, and how fresh each feed is. Add `?notour` to the URL to skip the tour.
 - **Interactive charts:** hover or tap for a crosshair readout (date and value in the series' units; the arrow keys work too), with a value axis on round-number ticks and a date axis. Used on the detail sheet and all three model charts.
 - **Unit-aware statistics:** each series has a `kind`. Prices use % changes and log-return vol; rates and spreads use bp changes and normal (bp) vol; indices use points. Cards show the 1M change and EWMA vol. The detail sheet adds 1W/1M/3M/YTD/1Y changes, 21-day and EWMA (λ = 0.94) vol, 1Y percentile, robust z, high/low and max drawdown.
 - **Correct alignment:** Yahoo bars are dated in exchange-local time via `gmtoffset`, so FX and futures share a calendar. Curve spreads use H.15 closes on both legs. Models use as-of joins with a 7-day staleness cap.
@@ -36,11 +37,11 @@ Markets and [Oracular](https://oracular.ethantam.dev) are separate tools, and ne
 |---|---|
 | Top-down and cross-asset: rates, credit, vol, FX, commodities, index futures | Bottom-up: one company or ticker at a time |
 | Live market data | Synthetic, deterministic data |
-| Regimes, flows, premia and positioning (RAI, absorption, recession odds, CTA, VRP, stock–bond) | Investment memo, verdict badge and seven-factor scorecard |
+| Regimes, flows, premia and positioning (RAI, absorption, recession odds, CTA, VRP, stock–bond, SPX dealer gamma) | Investment memo, verdict badge and seven-factor scorecard |
 | Calendar *events* that move index futures (turn of month, FOMC, expiry, rebalancing), tested as event studies | Per-ticker seasonality tables with t-statistics, lifecycle phase map |
 | Testing whether a signal works (backtest lab, overfitting guards) | Options and derivatives analytics, alternative signals, research chat |
 
-So Markets doesn't show single stocks, fundamentals, options chains, buy/hold verdicts or month-of-year seasonality tables, and Oracular doesn't do macro regimes or cross-asset flows.
+So Markets doesn't show single stocks, fundamentals, single-name option chains, buy/hold verdicts or month-of-year seasonality tables — index-level option positioning (dealer gamma, index put/call flow, the vol curve) is macro and lives here — and Oracular doesn't do macro regimes or cross-asset flows.
 
 ## Data sources
 
@@ -56,6 +57,8 @@ So Markets doesn't show single stocks, fundamentals, options chains, buy/hold ve
 | Yen speculative positioning | CFTC Legacy COT (Socrata `6dca-aqww`) | non-commercial net, 3 years | `/cftc/*` proxy |
 | Commodities | Yahoo Finance chart API | `HG=F SI=F NG=F ZC=F ZW=F ZS=F DBC DBA` | `/yf/*` proxy |
 | FOMC meeting dates | federalreserve.gov FOMC calendar page | scheduled statement days | `/fed/*` proxy, built-in fallback in `src/quant/calendar.js` |
+| SPX option board | CBOE delayed-quotes API | full chain: strike, expiry, IV, gamma, open interest, volume | `/cboe/*` proxy, cached 20 min (`src/data/sources.js`) |
+| Vol indices, index ratios | Yahoo Finance chart API | `^VIX9D ^VXN ^VVIX ^SKEW ^NDX ^GSPC RSP SPY` | `/yf/*` proxy |
 
 All of these are free and need no API key.
 
@@ -85,7 +88,14 @@ None of these send CORS headers, so the browser can't call them directly. `netli
 | Growth score | mean of ES, copper/gold, −HY OAS (≥ 2 of 3), each the average of its 63- and 126-day vol-scaled moves |
 | Inflation score | mean of the 10Y breakeven, DBC, DBA (≥ 2 of 3), each the average of its 63- and 126-day vol-scaled moves |
 | Regime | read weekly (last close of each week); switches only after the new quadrant holds 3 completed weeks in a row, with a ±0.15 dead band around each axis; dated to the first week of the run |
-| Today's read | 16 rules on 21-day vol-scaled moves and VIX/MOVE level z-scores; strength = weakest condition; top 4 shown |
+| Today's read | 19 rules on 21-day vol-scaled moves, VIX/MOVE level z-scores, VXN/VIX and VIX9D/VIX ratio z-scores and NDX/SPX, RSP/SPY relative moves; strength = weakest condition; top 4 shown |
+| Momentum (12−1M) | ln(Pₜ/Pₜ₋₂₁) − ln(Pₜ₋₂₅₂/Pₜ₋₂₅₂)'s window form: (ln Pₜ − ln Pₜ₋₂₁) ÷ (σ_EWMA at the window start × √231), clipped ±3 |
+| 5-day reversal | (ln Pₜ − ln Pₜ₋₅) ÷ (σ_EWMA at the window start × √5), clipped ±3; its regression slope is restricted to be negative (Jegadeesh 1990) |
+| Net dealer gamma | Σ (Γ_call × OI) − Σ (Γ_put × OI), × 100 × S² × 1%: dollars of S&P hedging per 1% index move, $bn. Naive positioning assumption: dealers long call gamma, short put gamma |
+| Gamma profile | Black–Scholes Γ(S, K, T, σ_quoted, r = EFFR, q = 1.25%) recomputed on an index grid from −18% to +18%, options ≤ 126 days and within 30% of spot; flip = nearest zero crossing |
+| Walls | Largest call OI, put OI and |Γ × OI| by strike, within 25% of spot |
+| 0DTE share | Volume of options expiring within 1 day ÷ total SPX volume; same-week share adds 2–7 days |
+| Vol-curve gauges | VIX9D/VIX, VXN/VIX, VVIX, SKEW: level, 1-year mid-rank percentile |
 | CTA position | mean over L ∈ {21, 63, 126, 252} of clip(zₗ / 2, ±1), zₗ = (xₜ − xₜ₋ₗ) / (σ_EWMA · √L), x = ln P (or −yield) |
 | CTA flip level | the close tomorrow at which zₗ changes sign: xₜ₋ₗ₊₁ |
 | CTA ±kσ week | position after xₜ + kσ√5 with every lookback rolled forward 5 days, minus today's |
@@ -102,10 +112,10 @@ All of this lives in `src/quant/` as pure functions, covered by `tests/quant.tes
 
 One read per horizon (next 1, 5 and 21 sessions) for ES and NQ, built so that nothing is fitted to the period it is judged on (`src/quant/composite.js`, tests in `tests/composite.test.js`):
 
-1. **One forecast per signal.** For each of trend followers, the variance risk premium, risk appetite, the absorption shift and the yield-curve recession odds (plus turn of month, FOMC and pre-holiday timing at the 1- and 5-day horizons), a univariate regression of the forward log return on the signal, estimated on an expanding window of observations whose outcome was known at the time. Goyal & Welch (2008) show big multivariate models fail out of sample; Rapach, Strauss & Zhou (2010) show simple ones combined hold up.
+1. **One forecast per signal.** For each of trend followers, the variance risk premium, risk appetite, the absorption shift, the yield-curve recession odds, 12−1-month momentum (Jegadeesh & Titman 1993), and — at the 1- and 5-day horizons only — a 5-day reversal (Jegadeesh 1990; Lehmann 1990) plus turn of month, FOMC and pre-holiday timing, a univariate regression of the forward log return on the signal, estimated on an expanding window of observations whose outcome was known at the time. Goyal & Welch (2008) show big multivariate models fail out of sample; Rapach, Strauss & Zhou (2010) show simple ones combined hold up.
    Each regression weights recent years more (half-life three years), so relationships can drift (time-varying coefficients, Dangl & Halling 2012).
 2. **Calm and stressed markets.** The market counts as stressed when the index's own EWMA volatility is above its median of the previous year. Each signal gets a slope for each state, shrunk toward its pooled slope by n / (n + 504) effective observations, so a state with little history stays close to the pooled estimate. Predictability is known to be concentrated in bad times (Rapach, Strauss & Zhou 2010; Henkel, Martin & Nardari 2011).
-3. **Sign restriction** (Campbell & Thompson 2008). Each signal may only push the way its research says; a wrong-signed slope is set to zero.
+3. **Sign restriction** (Campbell & Thompson 2008). Each signal may only push the way its research says; a wrong-signed slope is set to zero — and that signal then abstains for the day instead of voting with the historical mean. Without the abstention a zeroed signal still looked "accurate" to the error-weighted combination (a mean forecast is hard to beat on squared error) and diluted the real ones; adding it moved ES's monthly R² from −0.34% to +1.06% on its own.
 4. **Combination** by discounted mean squared forecast error (Stock & Watson 2004), half-life one year; equal shares until a signal has a year of out-of-sample record.
 5. **Earned weight against the long-run average.** Final forecast = M + λ(F − M), with λ the forecast-encompassing weight (Harvey, Leybourne & Newbold 1998) from past out-of-sample errors only (half-life three years, matching the regressions), clipped to [0, 1]. When the models stop helping, λ falls and the read goes back to "no tilt".
 6. **Label** from the tilt in the chance of a higher close versus the long-run base rate, with bands fixed in advance (1, 2, 3 points for day, week, month). **Confidence** needs past calls of that kind, in the same market state as today when there are 50 or more, to have gone their way more often than on the days the call wasn't made (5 points for high, 2 for medium), most of the weight to agree, and Clark–West p below 0.10 for high.
@@ -113,16 +123,22 @@ One read per horizon (next 1, 5 and 21 sessions) for ES and NQ, built so that no
 
 It runs in a Web Worker on full daily history from 2000 and is cached on the device for six hours. The scorecard is also split by market state, and the card says in plain words whether the model beats a plain average overall, in calm markets and in stressed ones.
 
-**Results and variants tried** (out-of-sample R² for day / week / month, full history to Oct 2026). Four specifications were run, all disclosed here:
+**Results and variants tried** (out-of-sample R² for day / week / month, full history, re-run 19 Oct 2026 with `node scripts/bias-research.mjs`; earlier runs differ slightly because the data window moved). Every variant run this round is disclosed:
 
 | Variant | ES | NQ |
 |---|---|---|
-| Expanding pooled slopes, λ half-life 1y (first version) | +0.01 / +0.04 / +0.22% | +0.04 / +0.30 / +1.35% |
-| Adaptive calm/stressed slopes, λ half-life 1y | −0.01 / −0.08 / −0.47% | +0.14 / +0.69 / +1.93% |
-| **Adaptive calm/stressed slopes, λ half-life 3y (live)** | +0.03 / 0.00 / −0.40% | +0.18 / +0.91 / +2.56% |
-| Adaptive calm/stressed slopes, no λ (raw combination) | +0.06 / +0.27 / +0.56% | +0.30 / +1.54 / +5.28% |
+| v7 as shipped (5 signals, no abstention) | +0.06 / +0.07 / −0.34% | +0.22 / +1.06 / +3.23% |
+| v7 + abstention on zeroed slopes | +0.10 / −0.05 / +1.06% | +0.29 / +1.09 / +2.01% |
+| **v8 live: v7 + abstention + 12−1 momentum + 5-day reversal (day/week only)** | **+0.10 / +0.09 / +0.99%** | **+0.21 / +0.91 / +3.64%** |
+| v8 with all 12 candidate signals (see below) | +0.04 / −0.17 / −0.75% | +0.19 / +1.00 / +3.07% |
 
-NQ is significant at every horizon (Clark–West p ≤ 0.006); ES at none. The raw combination scores best over the full history but falls apart when the model has less history to learn from (−3.8% monthly when trained only from 2016), which the λ blend turns into roughly zero; that protection against changing conditions is why λ stays. Scored on 2019–2026 only, nothing is significant for ES or NQ. Directionally, the skill sits in bearish calls: on full history the index fell short of its average after 62% of NQ bearish calls versus 33% of other days, while bullish calls did no better than other days. The lab's *Market bias model* card shows the full scorecard, the Goyal–Welch cumulative error plot, weights over time and calibration.
+The live v8 picks: ES monthly −0.34% → +0.99% (Clark–West p 0.05), the first time the ES model has been anything but noise; NQ monthly +3.23% → +3.64% with the certainty-equivalent gain up from +1.84% to +4.63% a year; daily NQ bearish calls right 58% of the time versus 44% on other days (v7: 48%). The one honest cost: NQ weekly R² slips from +1.06% to +0.91% over the full history, though its 2019–2026 cut is unchanged and its bearish-call quality is better.
+
+**Candidate signals tried and rejected** (all estimated on the same walk-forward, all reproducible in the harness): NDX/SPX relative strength ("growth leadership"), RSP/SPY equal-weight breadth, VXN/VIX, VIX9D/VIX and VVIX level z-scores. NDX/SPX is a *relative* signal — it predicts Nasdaq outperforming the S&P, not the S&P itself, which is exactly what the ES numbers showed (monthly R² +0.99% → +0.14% when gated in). The vol-ratio signals helped NQ's 2019–2026 monthly cut (+1.83% versus +0.93%) but wrecked ES weekly bearish calls (22% right versus 41% on other days), so none shipped inside the model; VXN, VVIX and SKEW are still on the board as indicators and in the option-flow panel, and the divergence rules in *Today's read* quote them directly.
+
+NQ stays significant at every horizon (Clark–West p ≤ 0.009); ES at none, though monthly now clears p 0.05. Scored on 2019–2026 only, nothing is significant for ES or NQ. Directionally, the skill sits in bearish calls: on full history the index fell short of its average after 44–58% of bearish calls versus 30–44% of other days, while bullish calls did no better than other days. The lab's *Market bias model* card shows the full scorecard, the Goyal–Welch cumulative error plot, weights over time and calibration.
+
+References for the bias model's new signals: Jegadeesh & Titman (1993), *Returns to Buying Winners and Selling Losers*, JF. Jegadeesh (1990), *Evidence of Predictable Behavior of Security Returns*, JF. Lehmann (1990), *Fads, Martingales, and Market Efficiency*, QJE. Ang, Hodrick, Xing & Zhang (2006), *The Cross-Section of Volatility and Expected Returns*, JF. Baltussen, van Bekkum & van der Grient (2018), *Unknown Unknowns: Uncertainty About Uncertainty and Equity Returns*, JFQA (all rejected for the live model; see the results table).
 
 References for the bias model: Dangl & Halling (2012), *Predictive Regressions with Time-Varying Coefficients*, JFE. Henkel, Martin & Nardari (2011), *Time-Varying Short-Horizon Predictability*, JFE. Goyal & Welch (2008), *A Comprehensive Look at the Empirical Performance of Equity Premium Prediction*, RFS. Campbell & Thompson (2008), *Predicting Excess Stock Returns Out of Sample*, RFS. Rapach, Strauss & Zhou (2010), *Out-of-Sample Equity Premium Prediction: Combination Forecasts and Links to the Real Economy*, RFS. Stock & Watson (2004), *Combination Forecasts of Output Growth in a Seven-Country Data Set*, JoF. Harvey, Leybourne & Newbold (1998), *Tests for Forecast Encompassing*, JBES. Clark & West (2007), *Approximately Normal Tests for Equal Predictive Accuracy in Nested Models*, JoE. DeMiguel, Garlappi & Uppal (2009), *Optimal Versus Naive Diversification*, RFS.
 
@@ -186,6 +202,7 @@ src/
     regime.js           vol-scaled moves, growth × inflation regime
     narrative.js        rules behind Today's read
     flows.js            variance risk premium, stock–bond correlation, CTA trend positioning
+    optionflow.js       SPX option board: dealer gamma, profile, flip level, walls, put/call, 0DTE
     calendar.js         NYSE holidays, FOMC dates, turn of month, option expiry, event study
     backtest.js         backtest engine: simulate, metrics, vol target, rules, presets, bootstrap, deflated Sharpe
     composite.js        market bias: walk-forward forecast combination and its out-of-sample scorecard
@@ -199,7 +216,8 @@ src/
     derived.js          curve spreads, VIX term structure, carry-to-vol
     models.js           builds the models from fetched state
     facts.js            the numbers behind Today's read and the AI note
-    history.js          long history and the point-in-time model frame (lab and market bias)
+    history.js          long history, the point-in-time model frame and the momentum, reversal,
+                       leadership and options-vol signal paths (lab and market bias)
     bias.js             market-bias build, cache and worker hand-off
     bias.worker.js      runs the market-bias build off the main thread
   ui/
@@ -208,6 +226,7 @@ src/
     models-panel.js     models section rendering
     flows-panel.js      CTA positioning, variance premium, stock–bond correlation, calendar
     bias-panel.js       market bias card
+    optionflow-panel.js SPX option-flow card (chain load, gamma profile chart, vol-curve gauges)
     methods.js          "How it's calculated" notes on each model card
     read-panel.js       Today's read and the AI button
     regime-panel.js     regime map
@@ -222,6 +241,8 @@ src/
 public/                 manifest, icons, service worker (copied as-is)
 netlify/functions/
   explain.mjs           POST /api/explain (Mistral)
+scripts/
+  bias-research.mjs     research harness: downloads history, runs the walk-forward offline, prints and saves the results table in the README
 netlify.toml            build settings, data proxies, headers
 ```
 
@@ -241,6 +262,7 @@ npm run dev          # http://localhost:5173
 | `npm run dev` | Vite dev server with hot reload |
 | `npm run build` | Production build into `dist/` |
 | `npm run preview` | Serve the production build |
+| `node scripts/bias-research.mjs` | Re-run the walk-forward research offline (fetches full history, caches in `scripts/cache/`) |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest unit tests for the quant library and backtest engine |
 | `npm run audit:design` | [impeccable](https://www.npmjs.com/package/impeccable) design anti-pattern scan (`npx impeccable` if not installed) |

@@ -3,3 +3,10 @@ dist/
 .netlify/
 .DS_Store
 *.log
+scripts/cache/
+/assets/
+/icons/
+/screenshots/
+/sw.js
+/manifest.webmanifest
+/.impeccable/

@@ -4,6 +4,7 @@ import { BOJ_RATE } from "../config.js";
 import { STATE } from "../state.js";
 import { viaTransports } from "./transport.js";
 import { inRollWindow, rollAdjust, rollWindows } from "./roll.js";
+import { parseChain } from "../quant/optionflow.js";
 
 /* Two years of history so one-year rolling statistics have a full window. */
 const YAHOO_RANGE = "2y";
@@ -122,6 +123,24 @@ async function bojRate() {
     ? { ...live, live: true, ts: Date.now() }
     : { value: BOJ_RATE.value, asOf: BOJ_RATE.asOf, live: false, ts: Date.now() };
   return bojCache;
+}
+
+/* CBOE delayed-quotes SPX chain (the whole option board, ~1.7 MB gzipped):
+   the raw material for the option-flow panel. Delayed 15 minutes; open interest
+   is from the previous session. Cached 20 minutes in memory; a failed refetch
+   keeps the last good chain, marked stale. */
+const CHAIN_URL = "https://cdn-api.cboe.com/api/global/delayed_quotes/options/_SPX.json";
+let chainCache = null;
+
+export async function spxChain() {
+  if (chainCache && Date.now() - chainCache.ts < 20 * 60_000) return chainCache.s;
+  const s = await viaTransports(CHAIN_URL, async r => {
+    const j = await r.json();
+    return parseChain(j);
+  }, 45_000);
+  const out = s ? { ...s, stale: false } : chainCache ? { ...chainCache.s, stale: true } : null;
+  if (s) chainCache = { ts: Date.now(), s };
+  return out;
 }
 
 /* CFTC Legacy Futures-Only COT: non-commercial net yen futures (thousands),

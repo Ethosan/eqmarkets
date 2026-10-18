@@ -38,6 +38,10 @@ function derive(f) {
     hy: sc(f, "hyoas"), /* positive = spreads widening */
     vixZ: f.levels?.vix ?? null,
     moveZ: f.levels?.move ?? null,
+    vxnZ: f.levels?.vxn ?? null,
+    v9dZ: f.levels?.v9d ?? null,
+    lead: f.relative?.lead ?? null,
+    ew: f.relative?.ew ?? null,
   };
 }
 
@@ -227,6 +231,41 @@ export const RULES = [
         strength: 0.8 * d.energy, tone: "d",
         text: "Oil is up sharply but stocks haven't reacted yet.",
         evidence: [ev(d.energyLabel, fmtSigma(d.energy)), ev("ES", fmtSigma(d.es))],
+      };
+    },
+  },
+  {
+    id: "leadership_damage",
+    test(f, d) {
+      if (!(le(d.lead, -1) && d.es != null && d.es >= -0.5)) return null;
+      const breadth = d.ew != null && d.ew <= -0.75 ? " and equal-weight breadth is lagging too" : "";
+      return {
+        strength: Math.min(-d.lead, d.es >= 0 ? 1.2 : 1), tone: "d",
+        text: "Growth stocks have lagged the broad market by more than a month's normal move while the S&P holds up" + breadth + ": leadership damage under a calm surface, the kind of divergence that has often come before a broader turn.",
+        evidence: [ev("NDX vs SPX", fmtSigma(d.lead)), ev("ES", fmtSigma(d.es)), d.ew != null && ev("RSP vs SPY", fmtSigma(d.ew))],
+      };
+    },
+  },
+  {
+    id: "growth_fear",
+    excludes: ["leadership_damage"],
+    test(f, d) {
+      if (!(ge(d.vxnZ, 1.5) && d.es != null && d.es >= -1)) return null;
+      return {
+        strength: d.vxnZ - 0.5, tone: "d",
+        text: "Nasdaq implied volatility is elevated against S&P volatility while stocks hold: options markets are pricing more turbulence in growth names than the index shows yet.",
+        evidence: [ev("VXN/VIX", fmtZ(d.vxnZ)), ev("ES", fmtSigma(d.es))],
+      };
+    },
+  },
+  {
+    id: "vol_backwardation",
+    test(f, d) {
+      if (!(ge(d.v9dZ, 1.5) && ge(d.vixZ, 0))) return null;
+      return {
+        strength: d.v9dZ - 0.5, tone: "d",
+        text: "Nine-day implied volatility has jumped above the 30-day price (front-of-curve backwardation): the market is paying up for protection over the next few sessions.",
+        evidence: [ev("VIX9D/VIX", fmtZ(d.v9dZ)), ev("VIX", fmtZ(d.vixZ))],
       };
     },
   },
