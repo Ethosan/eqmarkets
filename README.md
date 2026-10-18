@@ -2,7 +2,14 @@
 
 A live macro dashboard for futures traders. Rates, credit, carry and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability**.
 
-> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there.
+> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended.
+
+| | |
+|---|---|
+| **Live** | https://markets.ethantam.dev |
+| **Hosting** | Netlify site `eqmarkets` (static Vite build plus the Netlify Function `/api/explain`) |
+| **Run locally** | `npm install && npm run dev` (see *Develop*) |
+| **Settings** | `MISTRAL_API_KEY` (optional, enables AI explanations), `EXPLAIN_MODEL` (optional). Set in Netlify environment variables, scope Functions. |
 
 - **36 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, MOVE, HY and IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
@@ -240,9 +247,11 @@ npm run dev          # http://localhost:5173
 
 ## Deploy on Netlify
 
-1. In Netlify: **Add new site → Import an existing project → GitHub →** `Ethosan/eqmarkets`. (For the existing site: **Site configuration → Build & deploy → Link repository**.)
+1. In Netlify: **Add new site → Import an existing project → GitLab →** `eatentam/eqmarkets`. (For the existing site: **Site configuration → Build & deploy → Link repository**.)
 2. Netlify reads `netlify.toml`: build command `npm run build`, publish directory `dist`. Nothing to fill in.
-3. Every push to `main` deploys. Pull requests get deploy previews.
+3. Every push to `main` deploys. Merge requests get deploy previews.
+
+`.github/workflows/ci.yml` (lint, test, build) is left over from GitHub and does not run on GitLab.
 
 After a BOJ rate decision, if the live scrape ever fails, update `BOJ_RATE` in `src/config.js`.
 
