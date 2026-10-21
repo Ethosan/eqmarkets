@@ -8,6 +8,7 @@ import { optionFlow } from "../quant/optionflow.js";
 import { percentileRank, robustZ } from "../quant/stats.js";
 import { ok, hist } from "../state.js";
 import { $, ordinal } from "./format.js";
+import { niceTicks } from "./chart.js";
 
 const AMBER = "var(--series)";
 const NS = "http://www.w3.org/2000/svg";
@@ -15,14 +16,22 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const fmt0 = x => Math.round(x).toLocaleString("en-US");
 
-/* The gamma profile as its own small SVG: index level on x, net dealer gamma
-   per 1% on y, zero line, today's spot and the flip level marked. */
+/* The gamma profile as its own SVG: index level on x, net dealer gamma per 1%
+   on y, zero line, today's spot and the flip level marked. Drawn at the
+   container's pixel width and redrawn when that changes, so text never scales. */
+const profiles = new WeakMap();
 function drawProfile(el, p, flip) {
+  if (!profiles.has(el)) new ResizeObserver(() => { const a = profiles.get(el); if (a && el.isConnected) render(el, ...a); }).observe(el);
+  profiles.set(el, [p, flip]);
+  render(el, p, flip);
+}
+function render(el, p, flip) {
   el.innerHTML = "";
-  const W = Math.max(120, el.clientWidth), H = 150, P = { t: 8, r: 46, b: 16, l: 4 };
+  if (!p || !el.clientWidth) return;
+  const W = el.clientWidth, H = W < 480 ? 190 : 230, P = { t: 22, r: 52, b: 22, l: 4 };
   const { spots, values } = p;
   let mn = Math.min(0, ...values), mx = Math.max(0, ...values);
-  const padY = (mx - mn || 1) * 0.05;
+  const padY = (mx - mn || 1) * 0.06;
   mn -= padY; mx += padY;
   const X = s => P.l + (s - spots[0]) / (spots[spots.length - 1] - spots[0]) * (W - P.r - P.l);
   const Y = v => H - P.b - (v - mn) / (mx - mn) * (H - P.t - P.b);
@@ -36,39 +45,50 @@ function drawProfile(el, p, flip) {
     l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
     l.setAttribute("class", cls); svg.appendChild(l);
   };
-  line(P.l, Y(0), W - P.r, Y(0), "ch-ref");
-  if (flip != null) line(X(flip), P.t, X(flip), H - P.b, "ch-axis");
+  const text = (x, y, cls, anchor, t) => {
+    const lab = document.createElementNS(NS, "text");
+    lab.setAttribute("x", x); lab.setAttribute("y", y);
+    lab.setAttribute("class", cls); lab.setAttribute("text-anchor", anchor);
+    lab.textContent = t; svg.appendChild(lab);
+  };
+  /* Value axis: round gridlines on the right, as on every other chart. */
+  const { ticks } = niceTicks(mn, mx, H < 200 ? 3 : 4);
+  for (const t of ticks) {
+    if (t < mn || t > mx) continue;
+    line(P.l, Y(t), W - P.r, Y(t), t === 0 ? "ch-ref" : "ch-grid");
+    text(W - P.r + 8, Y(t) + 3.5, "ch-ylab", "start", t === 0 ? "0" : sgn(t, Math.abs(t) < 10 ? 1 : 0));
+  }
+  /* Index-level axis along the bottom, about one label per 110px. */
+  line(P.l, H - P.b, W - P.r, H - P.b, "ch-axis");
+  const xt = niceTicks(spots[0], spots[spots.length - 1], Math.max(3, Math.floor((W - P.r) / 110))).ticks;
+  for (const t of xt) {
+    if (t < spots[0] || t > spots[spots.length - 1]) continue;
+    line(X(t), H - P.b, X(t), H - P.b + 3, "ch-axis");
+    text(Math.max(P.l + 16, Math.min(W - P.r - 16, X(t))), H - 5, "ch-xlab", "middle", fmt0(t));
+  }
   const d = values.map((v, i) => `${i ? "L" : "M"}${X(spots[i]).toFixed(1)},${Y(v).toFixed(1)}`).join("");
   const path = document.createElementNS(NS, "path");
   path.setAttribute("d", d);
   path.setAttribute("fill", "none");
   path.style.stroke = AMBER;
-  path.setAttribute("stroke-width", "1.6");
+  path.setAttribute("stroke-width", "1.8");
   svg.appendChild(path);
+  /* Spot and flip as verticals, labelled along the top. The two usually sit a
+     few points apart, so each label hangs off the outer side of its own line
+     and the pair can never print over each other. */
   const spot = spots[Math.round((spots.length - 1) / 2)];
-  line(X(spot), P.t, X(spot), H - P.b, "ch-grid");
-  for (const [v, cls, anchor, text] of [
-    [flip, "ch-xlab", "middle", flip == null ? "" : "flip " + fmt0(flip)],
-    [spot, "ch-xlab", "middle", "spot " + fmt0(spot)],
-  ]) {
-    if (v == null || !text) continue;
-    const lab = document.createElementNS(NS, "text");
-    lab.setAttribute("x", Math.max(14, Math.min(W - P.r - 4, X(v))));
-    lab.setAttribute("y", H - 4);
-    lab.setAttribute("class", cls);
-    lab.setAttribute("text-anchor", anchor);
-    lab.textContent = text;
-    svg.appendChild(lab);
-  }
-  /* Two round y labels: the extremes of the scale. */
-  for (const v of [mx - padY, mn + padY]) {
-    const lab = document.createElementNS(NS, "text");
-    lab.setAttribute("x", W - P.r + 6);
-    lab.setAttribute("y", Y(v) + 3.5);
-    lab.setAttribute("class", "ch-ylab");
-    lab.textContent = sgn(v, 1);
-    svg.appendChild(lab);
-  }
+  const marks = [{ v: spot, t: "spot " + fmt0(spot), cls: "ch-mark" }];
+  if (flip != null) marks.push({ v: flip, t: "flip " + fmt0(flip), cls: "ch-mark ch-flip" });
+  marks.sort((a, b) => a.v - b.v);
+  marks.forEach((m, i) => {
+    const x = X(m.v);
+    line(x, P.t - 4, x, H - P.b, m.cls);
+    let right = marks.length === 1 ? x < (W - P.r) / 2 : i === 1;
+    if (!right && x < 72) right = true;
+    if (right && x > W - P.r - 72) right = false;
+    const tx = right ? x + 5 : x - 5;
+    text(tx, P.t - 8, "ch-xlab ch-marklab", right ? "start" : "end", m.t);
+  });
   el.appendChild(svg);
 }
 

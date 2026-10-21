@@ -70,7 +70,7 @@ function render() {
     const year = s.values.slice(-(item.ppy || (item.weekly ? 52 : 252)) - 1).slice().sort((a, b) => a - b);
     const q = p => year[Math.round((year.length - 1) * p)];
     chart($("dChart"), {
-      dates: win.dates, values: vals, good, color: "var(--g-" + item.group.tab + ")", ref: st.med1y, band: year.length >= 40 ? [q(0.1), q(0.9)] : null, height: 200, label: item.name,
+      dates: win.dates, values: vals, good, color: "var(--g-" + item.group.tab + ")", ref: st.med1y, band: year.length >= 40 ? [q(0.1), q(0.9)] : null, fit: true, height: 220, label: item.name,
       format: v => fmtNum(v, item.fmt), tick: tickFmt(item.fmt),
     });
     const move = fmtChange(item, last, first);
@@ -92,7 +92,7 @@ function render() {
     ];
     if (st.mdd1y != null) rows.push(["1Y max drawdown", "−" + Math.abs(st.mdd1y).toFixed(1) + "%"]);
     $("dStats").innerHTML = rows.map(([k, v]) => "<div><dt>" + k + '</dt><dd class="num">' + v + "</dd></div>").join("");
-    $("dStatsNote").textContent = "Dashed line: 1Y median; shaded: the middle 80% of the past year. " + (matchMedia("(hover: none)").matches ? "Touch and drag the chart to read values." : "Hover or use arrow keys to read values.") + " Vol is annualized" +
+    $("dStatsNote").textContent = "Dashed line: 1Y median; shaded: the middle 80% of the past year (each shown where it falls inside the chart). " + (matchMedia("(hover: none)").matches ? "Touch and drag the chart to read values." : "Hover or use arrow keys to read values.") + " Vol is annualized" +
       (item.kind === "price" ? " (% of log returns)" : item.kind === "rate" ? " (bp of daily changes)" : " (points)") + ".";
     document.querySelectorAll("#dRanges button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.range === range)));
   } else {

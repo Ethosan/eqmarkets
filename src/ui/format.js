@@ -111,13 +111,17 @@ function quantile(sorted, q) {
    of `year` (the past year, which `recent` is part of). The outer tenth of the
    year's range on each side is shaded amber, the outer 2.5% red, the median is
    a dotted rule, and the latest point takes the colour of the zone it sits in.
+   The scale runs from the 2.5% to the 97.5% mark (widened for anything recent
+   beyond them) plus a margin for the red tails, so a single spike months ago
+   can't flatten the last three months into a line.
    Returns { svg, zone } where zone is "", "a" or "r". */
-export function bandTrack(recent, year, { w = 300, h = 34, pad = 4 } = {}) {
+export function bandTrack(recent, year, { w = 300, h = 40, pad = 4 } = {}) {
   if (!recent || recent.length < 2 || !year || year.length < 40) return { svg: "", zone: "" };
   const s = year.slice().sort((a, b) => a - b);
   const q = [0.025, 0.1, 0.5, 0.9, 0.975].map(p => quantile(s, p));
-  let mn = Math.min(s[0], ...recent), mx = Math.max(s[s.length - 1], ...recent);
-  if (mx === mn) mx = mn + 1e-9;
+  const lo = Math.min(q[0], ...recent), hi = Math.max(q[4], ...recent);
+  const margin = (hi - lo || Math.abs(hi) || 1) * 0.1;
+  const mn = lo - margin, mx = hi + margin;
   const Y = v => h - pad - (v - mn) * (h - 2 * pad) / (mx - mn);
   const n = recent.length;
   const X = i => i * w / (n - 1);

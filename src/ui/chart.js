@@ -42,8 +42,12 @@ function draw(root, o) {
   const n = values.length;
   let mn = Math.min(...values), mx = Math.max(...values);
   if (o.zero) { mn = Math.min(mn, 0); mx = Math.max(mx, 0); }
-  if (o.ref != null) { mn = Math.min(mn, o.ref); mx = Math.max(mx, o.ref); }
-  if (o.band) { mn = Math.min(mn, o.band[0]); mx = Math.max(mx, o.band[1]); }
+  /* With `fit`, the scale follows the line alone and the band and reference
+     are clipped to it; otherwise they widen the scale to stay in view. */
+  if (!o.fit) {
+    if (o.ref != null) { mn = Math.min(mn, o.ref); mx = Math.max(mx, o.ref); }
+    if (o.band) { mn = Math.min(mn, o.band[0]); mx = Math.max(mx, o.band[1]); }
+  }
   if (o.domain) [mn, mx] = o.domain;
   const padY = (mx - mn || Math.abs(mx) || 1) * 0.06;
   if (!o.domain) { mn -= padY; mx += padY; }
@@ -52,7 +56,7 @@ function draw(root, o) {
   const Y = v => y1 - (Math.max(mn, Math.min(mx, v)) - mn) * (y1 - y0) / (mx - mn);
 
   const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true", class: "ch-svg" });
-  const tickCount = H < 90 ? 2 : 4;
+  const tickCount = H < 90 ? 2 : H >= 180 ? 5 : 4;
   const { ticks, step } = niceTicks(mn, mx, tickCount);
   for (const t of ticks) {
     if (t < mn || t > mx) continue;
@@ -60,9 +64,9 @@ function draw(root, o) {
     const lab = el("text", { x: x1 + 8, y: Y(t) + 3.5, class: "ch-ylab" }, svg);
     lab.textContent = o.tick(t, step);
   }
-  if (o.band) el("rect", { x: x0, width: x1 - x0, y: Y(o.band[1]), height: Y(o.band[0]) - Y(o.band[1]), class: "ch-band" }, svg);
+  if (o.band && o.band[1] > mn && o.band[0] < mx) el("rect", { x: x0, width: x1 - x0, y: Y(o.band[1]), height: Y(o.band[0]) - Y(o.band[1]), class: "ch-band" }, svg);
   if (o.zero && mn < 0 && mx > 0) el("line", { x1: x0, x2: x1, y1: Y(0), y2: Y(0), class: "ch-ref" }, svg);
-  if (o.ref != null) el("line", { x1: x0, x2: x1, y1: Y(o.ref), y2: Y(o.ref), class: "ch-ref" }, svg);
+  if (o.ref != null && o.ref > mn && o.ref < mx) el("line", { x1: x0, x2: x1, y1: Y(o.ref), y2: Y(o.ref), class: "ch-ref" }, svg);
 
   /* Date axis: ~one label per 110px, evenly spaced, ticks on the baseline. */
   const span = (parse(dates[n - 1]) - parse(dates[0])) / 864e5;
@@ -117,7 +121,7 @@ function draw(root, o) {
 
 /* Mount or update a chart in `root`.
    opts: dates, values, format(v) for the readout, tick(v, step) for axis labels,
-   height, color | good, zero, ref, band [lo, hi], domain [min, max], label. */
+   height, color | good, zero, ref, band [lo, hi], fit, domain [min, max], label. */
 export function chart(root, opts) {
   let st = charts.get(root);
   if (!opts.dates || opts.values.length < 2) {
