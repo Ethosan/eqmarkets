@@ -1,58 +1,161 @@
+/* Observation-chart world. Light is chart paper; dark is the same chart on a
+   night ward. Every colour has a job: ink for reading, teal for selection and
+   focus, amber and red only where a reading sits outside its normal band, and
+   one hue per indicator group. The theme follows the system unless the user
+   picks one (html[data-theme]); the admin lab always renders dark. */
 :root {
-  --bg: #0A0B0F;
-  --surface: #101218;
-  --surface-2: #14171F;
-  --border: #1D212B;
-  --border-2: #2A2F3C;
-  --text-1: #F2F3F5;
-  --text-2: #A3A9B4;
-  /* Muted text, raised from #5E6572 to clear WCAG AA (4.5:1) on every surface. */
-  --text-3: #878E9B;
-  --accent: #D9A84E;
-  --accent-soft: rgba(217, 168, 78, .14);
-  --up: #3DD68C;
-  --up-soft: rgba(61, 214, 140, .12);
-  --down: #F2555A;
-  --down-soft: rgba(242, 85, 90, .12);
-  --amber: #E2B75B;
-  --dot-rates: #6E8BD9;
-  --dot-risk: #E56E76;
-  --dot-tape: #D9A84E;
-  --dot-carry: #9C8FE0;
-  --dot-cmdty: #7FB574;
-  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --radius: 14px;
-  /* Type ramp. Nothing functional goes below 12px. */
+  --paper: #F4F5F1;
+  --sheet: #FFFFFF;
+  --sheet-2: #EEF1EC;
+  --rule: #DCE1DA;
+  --rule-2: #C3CBC2;
+  --ink: #13212B;
+  --ink-2: #3F4D57;
+  --ink-3: #5B6771;
+  --teal: #0B6E72;
+  --teal-soft: rgba(11, 110, 114, .1);
+  --up: #18704A;
+  --up-soft: #E2F0E7;
+  --down: #B3322F;
+  --down-soft: #F7E2DF;
+  --amber-ink: #85570A;
+  --band-a: #F6E5B0;
+  --band-r: #F0C6C0;
+  --zone-a: #C98A12;
+  --zone-r: #C23A33;
+  --series: var(--ink-2);
+  --g-rates: #2D68A8;
+  --g-risk: #7E4AA3;
+  --g-carry: #24805F;
+  --g-cmdty: #A2651A;
+  --g-tape: #4A6378;
+  --shadow: 0 1px 2px rgba(19, 33, 43, .05), 0 6px 18px -8px rgba(19, 33, 43, .12);
+  --scrim: rgba(19, 33, 43, .42);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"], .lab {
+  --paper: #0E1316;
+  --sheet: #151C20;
+  --sheet-2: #1C252A;
+  --rule: #263137;
+  --rule-2: #36434B;
+  --ink: #E7ECEA;
+  --ink-2: #B4BFBE;
+  --ink-3: #8F9C9C;
+  --teal: #4CBDB5;
+  --teal-soft: rgba(76, 189, 181, .14);
+  --up: #52C68F;
+  --up-soft: rgba(82, 198, 143, .14);
+  --down: #F2766F;
+  --down-soft: rgba(242, 118, 111, .14);
+  --amber-ink: #E8BD5A;
+  --band-a: rgba(232, 182, 72, .2);
+  --band-r: rgba(236, 96, 86, .28);
+  --zone-a: #E8B648;
+  --zone-r: #F2766F;
+  --series: var(--ink-2);
+  --g-rates: #74A0E2;
+  --g-risk: #B58BD8;
+  --g-carry: #5EC198;
+  --g-cmdty: #D9A355;
+  --g-tape: #96ABBE;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 24px -10px rgba(0, 0, 0, .5);
+  --scrim: rgba(4, 7, 9, .66);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1316;
+    --sheet: #151C20;
+    --sheet-2: #1C252A;
+    --rule: #263137;
+    --rule-2: #36434B;
+    --ink: #E7ECEA;
+    --ink-2: #B4BFBE;
+    --ink-3: #8F9C9C;
+    --teal: #4CBDB5;
+    --teal-soft: rgba(76, 189, 181, .14);
+    --up: #52C68F;
+    --up-soft: rgba(82, 198, 143, .14);
+    --down: #F2766F;
+    --down-soft: rgba(242, 118, 111, .14);
+    --amber-ink: #E8BD5A;
+    --band-a: rgba(232, 182, 72, .2);
+    --band-r: rgba(236, 96, 86, .28);
+    --zone-a: #E8B648;
+    --zone-r: #F2766F;
+    --series: var(--ink-2);
+    --g-rates: #74A0E2;
+    --g-risk: #B58BD8;
+    --g-carry: #5EC198;
+    --g-cmdty: #D9A355;
+    --g-tape: #96ABBE;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 24px -10px rgba(0, 0, 0, .5);
+    --scrim: rgba(4, 7, 9, .66);
+    color-scheme: dark;
+  }
+}
+
+:root, .lab {
+  /* Names the rest of the code (lab, tour, guide) was written against. */
+  --bg: var(--paper);
+  --surface: var(--sheet);
+  --surface-2: var(--sheet-2);
+  --border: var(--rule);
+  --border-2: var(--rule-2);
+  --text-1: var(--ink);
+  --text-2: var(--ink-2);
+  --text-3: var(--ink-3);
+  --accent: var(--teal);
+  --accent-soft: var(--teal-soft);
+  --amber: var(--amber-ink);
+  --dot-rates: var(--g-rates);
+  --dot-risk: var(--g-risk);
+  --dot-carry: var(--g-carry);
+  --dot-cmdty: var(--g-cmdty);
+  --dot-tape: var(--g-tape);
+
+  --sans: "Public Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --radius: 12px;
+  /* Type scale on a 4px rhythm. Nothing functional goes below 12px. */
   --fs-xs: 12px;
   --fs-sm: 13px;
-  --fs-md: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-val: 22px;
+  --fs-big: 30px;
+  --rail-w: 232px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0 }
-html { -webkit-text-size-adjust: 100% }
+html { -webkit-text-size-adjust: 100%; background: var(--paper); scrollbar-color: var(--rule-2) transparent }
 body {
-  background: var(--bg);
-  color: var(--text-1);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--sans);
   font-size: var(--fs-md);
   line-height: 1.5;
   min-height: 100vh;
-  padding-bottom: env(safe-area-inset-bottom);
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }
 button { font: inherit; color: inherit }
+a { color: var(--teal); text-underline-offset: 3px }
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" }
+::selection { background: var(--teal); color: var(--sheet) }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px }
 
 .skip {
-  position: absolute; left: 12px; top: -40px; z-index: 50;
-  background: var(--accent); color: #000; font-weight: 600;
-  padding: 8px 12px; border-radius: 8px; text-decoration: none;
+  position: absolute; left: 12px; top: -48px; z-index: 50;
+  background: var(--ink); color: var(--sheet); font-weight: 600;
+  padding: 10px 14px; border-radius: 8px; text-decoration: none;
 }
 .skip:focus { top: 12px }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important }
   .card { opacity: 1; transform: none }
 }

@@ -9,7 +9,7 @@ import { percentileRank, robustZ } from "../quant/stats.js";
 import { ok, hist } from "../state.js";
 import { $, ordinal } from "./format.js";
 
-const AMBER = "#D9A84E";
+const AMBER = "var(--series)";
 const NS = "http://www.w3.org/2000/svg";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
@@ -42,7 +42,7 @@ function drawProfile(el, p, flip) {
   const path = document.createElementNS(NS, "path");
   path.setAttribute("d", d);
   path.setAttribute("fill", "none");
-  path.setAttribute("stroke", AMBER);
+  path.style.stroke = AMBER;
   path.setAttribute("stroke-width", "1.6");
   svg.appendChild(path);
   const spot = spots[Math.round((spots.length - 1) / 2)];

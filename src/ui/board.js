@@ -1,21 +1,34 @@
 import { GROUPS } from "../config.js";
 import { STATE } from "../state.js";
 import { seriesStats } from "../quant/models.js";
-import { $, clockIn, fmtNum, fmtChange, fmtDelta, fmtVol, lineChart } from "./format.js";
+import { $, bandTrack, clockIn, fmtNum, fmtChange, fmtDelta, fmtVol } from "./format.js";
+import { ewmaVolPath, logReturns } from "../quant/stats.js";
+
+/* Today's move in units of a normal day (EWMA vol known before today). */
+function daySigma(item, values) {
+  if (!values || values.length < 40) return null;
+  const steps = item.kind === "price" ? logReturns(values) : values.slice(1).map((x, i) => x - values[i]);
+  const vol = ewmaVolPath(steps)[steps.length - 2];
+  return vol > 0 ? steps[steps.length - 1] / vol : null;
+}
+const sameName = it => it.name.toLowerCase().includes(it.ticker.toLowerCase());
 import { noteFor } from "./notes.js";
 
-/* Build the empty card grid once; updateCard fills it as data arrives. */
+/* Build the empty vitals table once; updateCard fills each row as data arrives.
+   One row per indicator: name, value, today's change, the last three months
+   inside the bands of its own past year, and its one-line reading. */
+const COLS = '<div class="vit-cols" aria-hidden="true"><span>Indicator</span><span>Value</span><span>Today</span><span>3 months, in its 1-year bands</span><span>Reading</span></div>';
+
 export function buildBoard(onOpen) {
   const board = $("board");
-  let stagger = 0;
   for (const g of GROUPS) {
     const sec = document.createElement("section");
-    sec.className = "group";
+    sec.className = "group " + g.cls;
     sec.dataset.tab = g.tab;
     sec.setAttribute("aria-labelledby", "grp-" + g.tab);
     sec.innerHTML =
       '<div class="group-head"><h2 class="group-title" id="grp-' + g.tab + '">' + g.label + "</h2>" +
-      '<span class="group-sub">3M history</span></div>';
+      '<span class="group-sub">' + g.items.length + " indicators</span></div>" + COLS;
     const grid = document.createElement("div");
     grid.className = "grid";
     for (const it of g.items) {
@@ -23,20 +36,18 @@ export function buildBoard(onOpen) {
       card.type = "button";
       card.className = "card " + g.cls;
       card.id = "card-" + it.id;
+      card.title = it.desc;
       card.setAttribute("aria-label", it.name + ": loading");
       card.innerHTML =
-        '<span class="card-top"><span class="gdot" aria-hidden="true"></span><span class="tk">' + it.ticker + "</span>" +
-        '<span class="pill flat skel" data-el="pill">.....</span></span>' +
+        '<span class="v-id"><span class="v-name"><span class="gdot" aria-hidden="true"></span>' +
+        (sameName(it) ? "" : '<span class="tk">' + it.ticker + "</span>") + '<span class="nm' + (sameName(it) ? " solo" : "") + '">' + it.name + "</span></span>" +
+        '<span class="cstats num" data-el="stats" hidden></span></span>' +
         '<span class="val num skel" data-el="val">00000</span>' +
-        '<span class="nm">' + it.name + "</span>" +
-        '<span class="ds">' + it.desc + "</span>" +
-        '<span class="note" data-el="note" hidden></span>' +
-        '<span class="cstats num" data-el="stats" hidden></span>' +
-        '<span class="spark" data-el="spark"></span>';
+        '<span class="pill flat skel" data-el="pill">.....</span>' +
+        '<span class="spark" data-el="spark"></span>' +
+        '<span class="note" data-el="note" hidden></span>';
       card.addEventListener("click", () => onOpen(it));
       grid.appendChild(card);
-      setTimeout(() => card.classList.add("in"), stagger);
-      stagger += 30;
     }
     sec.appendChild(grid);
     board.appendChild(sec);
@@ -53,12 +64,12 @@ export function updateCard(item) {
 
   if (!s || s.error || s.price == null) {
     card.classList.add("err");
-    val.textContent = "----";
-    pill.textContent = "n/a";
-    pill.className = "pill flat";
+    val.textContent = "—";
+    pill.textContent = "";
+    pill.className = "pill";
     note.hidden = false;
-    note.textContent = s?.reason || "Feed unreachable · retrying next cycle";
-    note.className = "note d";
+    note.textContent = s?.reason || "No data · retrying";
+    note.className = "note";
     stats.hidden = true;
     card.setAttribute("aria-label", item.name + ": unavailable");
     return;
@@ -71,19 +82,23 @@ export function updateCard(item) {
   const valueText = fmtNum(s.price, item.fmt);
   val.textContent = valueText;
 
+  /* Plain signed figures; colour only when the day's move is rare for this market
+     (amber beyond 2σ of a normal day, red beyond 3σ). */
   const ch = fmtChange(item, s.price, s.prev);
   if (!ch) {
-    pill.textContent = item.pillOverride || "--";
-    pill.className = "pill flat";
+    pill.textContent = item.pillOverride || "—";
+    pill.className = "pill";
   } else {
-    pill.textContent = (ch.up ? "▲ " : "▼ ") + ch.text;
-    pill.className = "pill num " + ch.tone;
+    const z = item.weekly ? null : daySigma(item, s.values);
+    pill.textContent = ch.text;
+    pill.className = "pill num" + (z != null && Math.abs(z) >= 3 ? " r" : z != null && Math.abs(z) >= 2 ? " a" : "");
+    pill.title = z == null ? "" : (z >= 0 ? "+" : "−") + Math.abs(z).toFixed(1) + "× a normal day's move";
   }
 
   const hasHist = s.values && s.values.length > 1;
   const st = hasHist ? seriesStats({ dates: s.dates, values: s.values }, item.kind, item.ppy || (item.weekly ? 52 : 252)) : null;
   const nt = noteFor(item, s, st);
-  const stale = s.cached ? "Saved copy from " + clockIn("Asia/Singapore", { at: s.savedAt }) + " SGT" : s.stale ? "Last good value · feed retrying" : null;
+  const stale = s.cached ? "Saved copy from " + clockIn("Asia/Singapore", { at: s.savedAt }) + " SGT" : s.stale ? "Last good value · source retrying" : null;
   if (stale || nt) {
     note.hidden = false;
     note.textContent = stale || nt.t;
@@ -100,11 +115,12 @@ export function updateCard(item) {
     stats.hidden = true;
   }
 
-  if (hasHist) {
+  /* Three months inside the bands of the past year (13 weeks / 52 for weekly series). */
+  const ppy = item.ppy || (item.weekly ? 52 : 252);
+  const track = hasHist ? bandTrack(s.values.slice(item.weekly ? -13 : -Math.round(63 * ppy / 252)), s.values.slice(-ppy - 1)) : null;
+  if (track && track.svg) {
     card.classList.remove("no-spark");
-    const recent = s.values.slice(item.weekly ? -52 : -63);
-    const trendUp = recent[recent.length - 1] >= recent[0];
-    spark.innerHTML = lineChart(recent, { good: item.invert ? !trendUp : trendUp, id: item.id, zero: item.id === "spread" || item.id === "spread3m" || item.id === "nfci" || item.id === "stlfsi" });
+    spark.innerHTML = track.svg;
   } else {
     card.classList.add("no-spark");
     spark.innerHTML = "";

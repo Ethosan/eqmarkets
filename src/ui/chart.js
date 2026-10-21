@@ -79,15 +79,15 @@ function draw(root, o) {
   const gid = "chg" + o.id;
   const defs = el("defs", {}, svg);
   const g = el("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-  el("stop", { offset: 0, "stop-color": col, "stop-opacity": 0.18 }, g);
-  el("stop", { offset: 1, "stop-color": col, "stop-opacity": 0 }, g);
+  el("stop", { offset: 0, style: `stop-color:${col};stop-opacity:.16` }, g);
+  el("stop", { offset: 1, style: `stop-color:${col};stop-opacity:0` }, g);
   let d = "";
   for (let i = 0; i < n; i++) d += (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(values[i]).toFixed(1);
   el("path", { d: d + `L${X(n - 1).toFixed(1)},${y1}L${X(0).toFixed(1)},${y1}Z`, fill: `url(#${gid})` }, svg);
-  el("path", { d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  el("path", { d, fill: "none", style: `stroke:${col}`, "stroke-width": 1.8, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
 
   const cross = el("line", { y1: y0, y2: y1, class: "ch-cross", visibility: "hidden" }, svg);
-  const dot = el("circle", { r: 3.5, fill: col, class: "ch-dot", visibility: "hidden" }, svg);
+  const dot = el("circle", { r: 4, style: `fill:${col}`, class: "ch-dot", visibility: "hidden" }, svg);
   root.prepend(svg);
 
   const tip = root.querySelector(".ch-tip");

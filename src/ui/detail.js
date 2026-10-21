@@ -34,8 +34,9 @@ function rangeValues(s) {
 function render() {
   const item = current;
   const s = STATE[item.id];
-  $("dTicker").textContent = item.ticker;
-  $("dName").textContent = item.name;
+  /* Ticker and name on one line, once when the name already says it. */
+  const tkHtml = item.name.toLowerCase().includes(item.ticker.toLowerCase()) ? "" : '<span class="d-tk">' + item.ticker + "</span> ";
+  $("dName").innerHTML = tkHtml + item.name;
   $("dDesc").textContent = item.desc;
 
   if (!s || s.error || s.price == null) {
@@ -52,8 +53,8 @@ function render() {
 
   $("dValue").textContent = fmtNum(s.price, item.fmt);
   const ch = fmtChange(item, s.price, s.prev);
-  $("dChange").textContent = ch ? (ch.up ? "▲ " : "▼ ") + ch.text + " today" : "";
-  $("dChange").className = "d-change num " + (ch ? ch.tone : "flat");
+  $("dChange").textContent = ch ? ch.text + " today" : "";
+  $("dChange").className = "d-change num";
   const hasHist = s.values && s.values.length > 1;
   const st = hasHist ? seriesStats({ dates: s.dates, values: s.values }, item.kind, item.ppy || (item.weekly ? 52 : 252)) : null;
   const nt = noteFor(item, s, st);
@@ -65,8 +66,11 @@ function render() {
     const vals = win.values;
     const first = vals[0], last = vals[vals.length - 1];
     const good = item.invert ? last < first : last >= first;
+    /* The middle 80% of the past year, the same normal band the vitals rows use. */
+    const year = s.values.slice(-(item.ppy || (item.weekly ? 52 : 252)) - 1).slice().sort((a, b) => a - b);
+    const q = p => year[Math.round((year.length - 1) * p)];
     chart($("dChart"), {
-      dates: win.dates, values: vals, good, ref: st.med1y, height: 180, label: item.name,
+      dates: win.dates, values: vals, good, color: "var(--g-" + item.group.tab + ")", ref: st.med1y, band: year.length >= 40 ? [q(0.1), q(0.9)] : null, height: 200, label: item.name,
       format: v => fmtNum(v, item.fmt), tick: tickFmt(item.fmt),
     });
     const move = fmtChange(item, last, first);
@@ -88,7 +92,7 @@ function render() {
     ];
     if (st.mdd1y != null) rows.push(["1Y max drawdown", "−" + Math.abs(st.mdd1y).toFixed(1) + "%"]);
     $("dStats").innerHTML = rows.map(([k, v]) => "<div><dt>" + k + '</dt><dd class="num">' + v + "</dd></div>").join("");
-    $("dStatsNote").textContent = "Dashed line: 1Y median. " + (matchMedia("(hover: none)").matches ? "Touch and drag the chart to read values." : "Hover or use arrow keys to read values.") + " Vol is annualized" +
+    $("dStatsNote").textContent = "Dashed line: 1Y median; shaded: the middle 80% of the past year. " + (matchMedia("(hover: none)").matches ? "Touch and drag the chart to read values." : "Hover or use arrow keys to read values.") + " Vol is annualized" +
       (item.kind === "price" ? " (% of log returns)" : item.kind === "rate" ? " (bp of daily changes)" : " (points)") + ".";
     document.querySelectorAll("#dRanges button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.range === range)));
   } else {

@@ -5,8 +5,10 @@
      level  changes in points, vol = annualized points (indices like VIX, NFCI)
    ppy = observations per year for annualizing (252 trading days, 365 for crypto). */
 
-export const UP = "#3DD68C";
-export const DOWN = "#F2555A";
+/* Theme colours as CSS variables, so charts follow the light or dark theme. */
+export const UP = "var(--up)";
+export const DOWN = "var(--down)";
+export const SERIES = "var(--series)";
 
 /* BOJ policy rate fallback. The app scrapes boj.or.jp first; this value is only
    used when that fails. Update after each BOJ move (8 meetings a year). */

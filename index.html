@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Equarian Markets</title>
 <meta name="description" content="Live macro dashboard: 45 indicators across rates, risk, carry, commodities and the tape, with Today's read, four quant models, a walk-forward market-bias forecast and SPX option flow.">
-<meta name="theme-color" content="#0A0B0F">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#F4F5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1316" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>try{var t=localStorage.getItem("eqm.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -18,24 +20,53 @@
 <meta property="og:image" content="/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <a class="skip" href="#board">Skip to indicators</a>
 
+<div class="shell">
+
+<nav class="rail" aria-label="Sections">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 15.5 8 11l4 4 8-8.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="6.5" r="2.4" fill="currentColor"/></svg>
+    </span>
+    <span class="brand-name">EQ Markets</span>
+  </div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Sections" aria-orientation="vertical">
+    <button class="tab" role="tab" aria-selected="true" data-filter="all">Overview</button>
+    <button class="tab" role="tab" aria-selected="false" data-filter="models">Models &amp; flows</button>
+    <button class="tab grp" role="tab" aria-selected="false" data-filter="rates"><i class="hue g-rates" aria-hidden="true"></i>Rates</button>
+    <button class="tab grp" role="tab" aria-selected="false" data-filter="risk"><i class="hue g-risk" aria-hidden="true"></i>Risk &amp; credit</button>
+    <button class="tab grp" role="tab" aria-selected="false" data-filter="carry"><i class="hue g-carry" aria-hidden="true"></i>Carry</button>
+    <button class="tab grp" role="tab" aria-selected="false" data-filter="cmdty"><i class="hue g-cmdty" aria-hidden="true"></i>Commodities</button>
+    <button class="tab grp" role="tab" aria-selected="false" data-filter="tape"><i class="hue g-tape" aria-hidden="true"></i>The tape</button>
+    <button class="tab" role="tab" aria-selected="false" data-filter="lab" id="tabLab">Lab</button>
+  </div>
+  <p class="rail-note">Live macro for index futures. Context, not advice.</p>
+</nav>
+
+<div class="main-col">
 <header class="appbar">
   <div class="appbar-in">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 15.5 8 11l4 4 8-8.5" stroke="#D9A84E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="6.5" r="2.4" fill="#D9A84E"/></svg>
-      </span>
-      <span class="brand-name">Equarian<span class="brand-sub"> Markets</span></span>
+    <div class="brand brand-m" aria-hidden="true">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M3 15.5 8 11l4 4 8-8.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="6.5" r="2.4" fill="currentColor"/></svg></span>
+      <span class="brand-name">EQ Markets</span>
+    </div>
+    <div class="fresh">
+      <span class="live-dot" id="liveDot" aria-hidden="true"></span>
+      <button type="button" id="stamp" class="stamp num" title="Refresh now">Warming up</button>
+      <span class="feeds num" id="feedHealth" aria-live="polite"></span>
     </div>
     <div class="appbar-meta">
       <span class="clocks num">SGT <b id="clkSg">--:--:--</b> · NY <b id="clkNy">--:--:--</b></span>
       <span class="status" id="chipEq"><i aria-hidden="true"></i>Cash</span>
       <span class="status" id="chipFut"><i aria-hidden="true"></i>Globex</span>
+      <button type="button" class="icon-btn" id="themeBtn" aria-label="Switch to dark theme" title="Theme">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
       <button type="button" class="guide-btn" id="guideBtn" aria-label="Guide: how to read this dashboard">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></svg>
         <span class="guide-lab">Guide</span>
@@ -50,32 +81,43 @@
 
 <main class="wrap">
 
-  <div class="pagehead">
-    <h1>Markets overview <span class="live-dot" id="liveDot" title="Feeds live"></span></h1>
-    <button type="button" id="stamp" class="stamp num" title="Refresh now">Warming up</button>
-  </div>
+  <h1 class="sr-only">EQ Markets: live macro dashboard</h1>
 
-  <div class="tabs" id="tabs" role="tablist" aria-label="Filter groups">
-    <button class="tab" role="tab" aria-selected="true" data-filter="all">All</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="models">Models</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="rates">Rates</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="risk">Risk</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="carry">Carry</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="cmdty">Cmdty</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="tape">Tape</button>
-    <button class="tab" role="tab" aria-selected="false" data-filter="lab" id="tabLab">Lab</button>
-  </div>
-
-  <section class="models" id="models" aria-labelledby="modelsKicker">
-    <h2 class="sr-only" id="modelsKicker">Models</h2>
-    <div class="m-card m-wide" id="readCard">
+  <section class="models overview" id="overview" aria-labelledby="overviewHead">
+    <h2 class="sr-only" id="overviewHead">Overview</h2>
+    <div class="m-card m-rai" id="raiCard">
+      <div id="raiHead">
+      <div class="m-top">
+        <h3 class="m-kicker">Risk Appetite Index <button type="button" class="m-help" data-guide="rai" aria-label="How to read the Risk Appetite Index">?</button></h3>
+        <span class="regime-label" id="raiLabel" aria-live="polite">Reading the tape...</span>
+        <span class="m-sub num" id="raiValue"></span>
+      </div>
+      <div class="track" id="raiTrack" role="meter" aria-label="Risk appetite, risk-off to risk-on, in sigma" aria-valuemin="-2" aria-valuemax="2" aria-valuenow="0">
+        <div class="needle" id="needle"></div>
+      </div>
+      <div class="track-legend" aria-hidden="true"><span>Risk-off −2</span><span>0</span><span>+2 Risk-on</span></div>
+      </div>
+      <details class="more" id="raiMore" open>
+      <summary>Drivers and 1-year history</summary>
+      <div class="m-grid">
+        <div>
+          <p class="m-cap">1Y history · shaded band ±0.75 (between the risk-on and risk-off lines)</p>
+          <div class="m-chart rai-chart" id="raiChart"></div>
+        </div>
+        <div>
+          <p class="m-cap">What's driving it · each input's z-score, capped at ±3</p>
+          <ul class="cbars" id="raiBars" aria-label="Input contributions"></ul>
+        </div>
+      </div>
+      </details>
+    </div>
+    <div class="m-card m-read" id="readCard">
       <div class="m-top">
         <h3 class="m-kicker">Today's read <button type="button" class="m-help" data-guide="read" aria-label="How Today's read works">?</button></h3>
         <span class="m-sub num" id="readAsOf"></span>
       </div>
       <ul class="read-list" id="readList" aria-live="polite"><li class="read-item n"><p>Reading the tape…</p></li></ul>
       <div class="read-foot">
-        <p class="m-cap">Fixed rules on the numbers on this page. σ is a move measured in that market's own typical move over the same span (a day for items tagged Today, a month otherwise): 1σ is unusual, 2σ rare. Tags say how long a pattern has held.</p>
         <button type="button" class="t-btn ghost" id="aiBtn">Explain in plain English</button>
       </div>
       <div class="ai-out" id="aiOut" hidden aria-live="polite"></div>
@@ -95,6 +137,8 @@
           <thead><tr><th scope="col">Horizon</th><th scope="col">Lean</th><th scope="col">Chance higher</th><th scope="col">Confidence</th></tr></thead>
           <tbody id="biasRows"></tbody>
         </table>
+        <details class="more" id="biasMore">
+        <summary>Signals and track record</summary>
         <div class="m-grid bias-grid">
           <div>
             <p class="m-cap" id="biasDrvCap"></p>
@@ -105,32 +149,16 @@
             <dl class="bias-record" id="biasRecord"></dl>
           </div>
         </div>
+        </details>
       </div>
     </div>
-    <div class="m-card m-rai m-wide" id="raiCard">
-      <div id="raiHead">
-      <div class="m-top">
-        <h3 class="m-kicker">Risk Appetite Index <button type="button" class="m-help" data-guide="rai" aria-label="How to read the Risk Appetite Index">?</button></h3>
-        <span class="regime-label" id="raiLabel" aria-live="polite">Reading the tape...</span>
-        <span class="m-sub num" id="raiValue"></span>
-      </div>
-      <div class="track" id="raiTrack" role="meter" aria-label="Risk appetite, risk-off to risk-on, in sigma" aria-valuemin="-2" aria-valuemax="2" aria-valuenow="0">
-        <div class="needle" id="needle"></div>
-      </div>
-      <div class="track-legend" aria-hidden="true"><span>Risk-off −2</span><span>0</span><span>+2 Risk-on</span></div>
-      </div>
-      <div class="m-grid">
-        <div>
-          <p class="m-cap">1Y history · shaded band ±0.75 (between the risk-on and risk-off lines)</p>
-          <div class="m-chart rai-chart" id="raiChart"></div>
-        </div>
-        <div>
-          <p class="m-cap">What's driving it · each input's z-score, capped at ±3</p>
-          <ul class="cbars" id="raiBars" aria-label="Input contributions"></ul>
-        </div>
-      </div>
-    </div>
-    <div class="m-card m-wide" id="regimeCard">
+  </section>
+
+  <div id="board" tabindex="-1"></div>
+
+  <section class="models" id="models" aria-labelledby="modelsKicker">
+    <h2 class="sr-only" id="modelsKicker">Models and flows</h2>
+    <div class="m-card m-regime" id="regimeCard">
       <div class="m-top">
         <h3 class="m-kicker">Macro regime <button type="button" class="m-help" data-guide="regime" aria-label="How the macro regime works">?</button></h3>
         <span class="regime-label" id="regLabel">Reading the tape...</span>
@@ -227,7 +255,6 @@
 
   <section class="lab hidden" id="lab" aria-label="Backtest lab"></section>
 
-  <div id="board" tabindex="-1"></div>
 
   <details class="method" id="method">
     <summary>Data and units</summary>
@@ -242,17 +269,18 @@
 </main>
 
 <footer>
-  Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Netlify proxy. Tap any card for its full history. Sparklines show three months of history; rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span>
+  Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Netlify proxy. Tap any row for its full history. Each trace shows three months inside the bands of its own past year: amber is the outer tenth, red the outer 2.5%. Rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span>
 </footer>
+</div>
+</div>
 
 <dialog id="detail" class="detail" aria-labelledby="dName">
   <div class="d-in">
     <div class="d-grab" id="dGrab" aria-hidden="true"></div>
     <div class="d-head">
-      <span class="tk" id="dTicker"></span>
-      <button type="button" class="d-close" id="dClose" aria-label="Close">×</button>
+      <h2 class="d-name" id="dName"></h2>
+      <button type="button" class="d-close" id="dClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
-    <h2 class="d-name" id="dName"></h2>
     <p class="d-desc" id="dDesc"></p>
     <div class="d-price">
       <span class="d-value num" id="dValue"></span>
@@ -263,7 +291,7 @@
     <div class="d-chart" id="dChart"></div>
     <dl class="d-stats" id="dStats"></dl>
     <p class="d-statsnote" id="dStatsNote"></p>
-    <a class="d-source" id="dSource" target="_blank" rel="noopener">View source data ↗</a>
+    <a class="d-source" id="dSource" target="_blank" rel="noopener">View source data <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6h9v9M18 6 7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
   </div>
 </dialog>
 
@@ -271,10 +299,9 @@
   <div class="d-in">
     <div class="d-grab" id="gGrab" aria-hidden="true"></div>
     <div class="d-head">
-      <span class="tk">Guide</span>
-      <button type="button" class="d-close" id="gClose" aria-label="Close">×</button>
+      <h2 class="d-name" id="gTitle">How to read this dashboard</h2>
+      <button type="button" class="d-close" id="gClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
-    <h2 class="d-name" id="gTitle">How to read this dashboard</h2>
     <p class="d-desc">What each number means and how to use it before a trade.</p>
     <nav class="g-nav" id="gNav" aria-label="Guide sections"></nav>
     <div id="gBody"></div>

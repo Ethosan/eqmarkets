@@ -7,7 +7,7 @@ import { percentileRank } from "../quant/stats.js";
 import { $, fmtNum, ordinal, stepDp } from "./format.js";
 import { chart } from "./chart.js";
 
-const AMBER = "#D9A84E";
+const AMBER = "var(--series)";
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const sessions = (n, tradingToday) => (n === 0 ? (tradingToday ? "today" : "next session") : n === 1 ? "in 1 session" : "in " + n + " sessions");

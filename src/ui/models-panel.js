@@ -12,7 +12,7 @@ import { chart } from "./chart.js";
 import { renderFlows } from "./flows-panel.js";
 import { renderOptionFlow } from "./optionflow-panel.js";
 
-const AMBER = "#D9A84E";
+const AMBER = "var(--series)";
 
 /* Latest model outputs, read by the tour and guide to quote live values. */
 export const LAST = { rai: null, ar: null, rec: null, regime: null, facts: null };
@@ -32,12 +32,14 @@ function renderRai() {
   }
   const x = r.smooth;
   label.textContent = regimeLabel(x);
+  /* The label wears the zone it sits in on the score's band. */
+  label.className = "regime-label" + (x <= -1.5 ? " r" : x <= -0.75 ? " a" : x >= 0.75 ? " u" : "");
   /* The index is an average of z-scores, so its own spread is narrower than 1.
      The percentile against its own past year says how unusual today is. */
   const pct = r.history.values.length > 60 ? percentileRank(x, r.history.values.slice(0, -1)) : null;
   r.pct = pct;
-  val.textContent = sgn(x) + (pct == null ? "" : " · " + ordinal(Math.round(pct * 100)) + " pctile (1Y)") +
-    " · " + r.contributions.length + "/" + r.total + " inputs";
+  val.innerHTML = '<b class="rai-num">' + sgn(x) + "</b><span>" + (pct == null ? "" : ordinal(Math.round(pct * 100)) + " percentile of its past year · ") +
+    r.contributions.length + " of " + r.total + " inputs</span>";
   /* ±2σ maps to the ends of the track. */
   const pos = Math.max(0, Math.min(100, 50 + x * 25));
   $("needle").style.left = pos + "%";

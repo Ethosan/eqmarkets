@@ -51,7 +51,7 @@ function showIOSSteps() {
     '<img src="/icons/icon-192.png" alt="" width="40" height="40">' +
     '<div class="pwa-txt"><b>Add to your Home Screen</b>' +
     "<span>Tap " + SHARE_ICON + " <b>Share</b>, then <b>Add to Home Screen</b>. It opens full screen and works offline.</span></div>" +
-    '<button type="button" class="pwa-x" aria-label="Close">×</button>';
+    '<button type="button" class="pwa-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>';
   el.querySelector(".pwa-x").addEventListener("click", () => hideBar(true));
   el.hidden = false;
 }
@@ -67,7 +67,7 @@ function offerBar() {
     '<img src="/icons/icon-192.png" alt="" width="40" height="40">' +
     '<div class="pwa-txt"><b>Install Equarian</b><span>Full screen, opens instantly, works offline.</span></div>' +
     '<button type="button" class="t-btn pwa-go">Install</button>' +
-    '<button type="button" class="pwa-x" aria-label="Not now">×</button>';
+    '<button type="button" class="pwa-x" aria-label="Not now"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>';
   el.querySelector(".pwa-go").addEventListener("click", install);
   el.querySelector(".pwa-x").addEventListener("click", () => hideBar(true));
   el.hidden = false;
@@ -89,7 +89,7 @@ function updateNotice() {
   el.innerHTML =
     '<div class="pwa-txt"><b>New version ready</b><span>Reload to use it.</span></div>' +
     '<button type="button" class="t-btn pwa-go">Reload</button>' +
-    '<button type="button" class="pwa-x" aria-label="Later">×</button>';
+    '<button type="button" class="pwa-x" aria-label="Later"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>';
   el.querySelector(".pwa-go").addEventListener("click", () => location.reload());
   el.querySelector(".pwa-x").addEventListener("click", () => hideBar(false));
   el.hidden = false;

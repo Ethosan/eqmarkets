@@ -36,12 +36,12 @@ const BODY = () => `
 <section id="g-routine" class="g-sec">
   <h3>A 30-second read before you trade</h3>
   <ol class="g-steps">
-    <li><b>Today's read.</b> Start with the sentences at the top. Each one names the numbers behind it, so you can check it against the cards.</li>
+    <li><b>Today's read.</b> Start with the sentences at the top. Each one names the numbers behind it, so you can check it against the rows below.</li>
     <li><b>Mood.</b> Read the Risk Appetite label, then glance at its history: is it drifting toward risk-off or recovering? The direction over the last week matters as much as the level.</li>
     <li><b>Drivers.</b> Look at which bars are red. Stress in rates vol (MOVE) or credit (HY spread) that stocks haven't followed yet is a divergence. They don't always end with stocks falling.</li>
     <li><b>Fragility.</b> If the absorption ratio's ΔAR is above +1, markets are moving as one block and a selloff can spread fast. That's a reason to cut size, not a reason to short.</li>
     <li><b>Backdrop.</b> The macro regime and the recession odds move slowly. They tell you what kind of quarter or year it is, not what to do today.</li>
-    <li><b>Your market.</b> Tap its card. Check where it sits in its 1-year range, and compare EWMA vol with 1-month vol: if EWMA is higher, volatility is picking up right now, so size down.</li>
+    <li><b>Your market.</b> Tap its row. Check where it sits in its 1-year range, and compare EWMA vol with 1-month vol: if EWMA is higher, volatility is picking up right now, so size down.</li>
   </ol>
   <p class="g-note">None of this is a trade signal. It's context, so you know what kind of tape you're stepping into.</p>
 </section>
@@ -51,7 +51,7 @@ const BODY = () => `
   <p>A short list of what stands out across markets this month, written by fixed rules rather than a model. Each rule looks for a specific pattern, and fires only when the numbers cross its thresholds. For example: "energy and food rising while stocks fall" needs oil up at least 1σ, grains up at least 0.75σ and ES down at least 0.75σ, then checks whether 10Y breakevens confirm it. The strongest four are shown, and the chips under each one are the exact numbers it used.</p>
   <p>σ here is a <b>vol-scaled move</b>: the 1-month change divided by the move you'd normally expect over a month, given that market's volatility <i>before</i> the move started. So 1σ in natural gas is a much bigger price change than 1σ in the S&amp;P, but both are equally unusual for that market. A bell curve says moves beyond 2σ happen about 1 month in 20; real markets have fat tails, so they happen more often than that.</p>
   <p>These are rules of thumb from standard cross-asset practice, not forecasts. When nothing fires, it says so.</p>
-  <p><b>Explain in plain English</b> sends the same numbers (only numbers, never text) to Mistral AI, which writes a two-paragraph note. It's told to use only the data on the page, to say "likely" rather than claim causes, and never to give trade advice. It can still be wrong, so treat it as a second opinion and check it against the cards.</p>
+  <p><b>Explain in plain English</b> sends the same numbers (only numbers, never text) to Mistral AI, which writes a two-paragraph note. It's told to use only the data on the page, to say "likely" rather than claim causes, and never to give trade advice. It can still be wrong, so treat it as a second opinion and check it against the rows below.</p>
 </section>
 
 <section id="g-bias" class="g-sec">

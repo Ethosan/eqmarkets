@@ -13,7 +13,7 @@ import { renderFlows } from "./ui/flows-panel.js";
 import { loadFomc } from "./data/fomc.js";
 import { initMethods } from "./ui/methods.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
-import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd } from "./ui/chrome.js";
+import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd, initTheme, foldOnPhones } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
 import { initGuide } from "./ui/guide.js";
 import { initRead } from "./ui/read-panel.js";
@@ -59,6 +59,7 @@ async function refresh() {
   refreshDetail();
   progEnd();
 
+  feedHealth();
   /* Fresh data means a feed answered this cycle; derived cards don't count. */
   const anyOk = FETCHABLE.some(it => STATE[it.id] && !STATE[it.id].error && !STATE[it.id].stale);
   if (anyOk) { lastOk = Date.now(); saveSnapshot(); }
@@ -72,6 +73,23 @@ async function refresh() {
 
   nextAt = Date.now() + REFRESH_MS;
   running = false;
+}
+
+/* How many feeds answered this cycle, and which source is down when one is. */
+function feedHealth() {
+  const bad = FETCHABLE.filter(it => !STATE[it.id] || STATE[it.id].error || STATE[it.id].stale);
+  const el = $("feedHealth");
+  if (!bad.length) { el.textContent = "All " + FETCHABLE.length + " feeds live"; el.classList.remove("warn"); return; }
+  /* Say what is true: rows on a saved or last good value, and rows with no data at all. */
+  const fred = FETCHABLE.filter(it => it.fredId && !it.symbols);
+  const fredDown = fred.filter(it => bad.includes(it)).length >= fred.length / 2;
+  const empty = bad.filter(it => !STATE[it.id] || STATE[it.id].error).length;
+  const kept = bad.length - empty;
+  const live = FETCHABLE.length - bad.length;
+  const detail = [kept && kept + " on last values", empty && empty + " without data"].filter(Boolean).join(", ");
+  el.innerHTML = '<span class="f-long">' + live + " of " + FETCHABLE.length + " feeds live" + (fredDown ? " · FRED not answering" : "") + " · " + detail + "</span>" +
+    '<span class="f-short">' + (fredDown ? "FRED down · " : live + "/" + FETCHABLE.length + " live · ") + detail + "</span>";
+  el.classList.add("warn");
 }
 
 /* Admin mode: ?admin=1 turns on the backtest lab tab for this browser, ?admin=0
@@ -92,7 +110,9 @@ let lab = null;
 /* The lab is its own chunk, fetched the first time its tab opens. */
 const openLab = f => { if (f === "lab" && ADMIN && !lab) lab = import("./lab/lab.js").then(m => m.mountLab($("lab"))); };
 
+initTheme();
 trackAppbar();
+foldOnPhones(["raiMore", "biasMore"]);
 /* Cards first: the saved or shortcut tab hides groups, so they must exist. */
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 initTabs(openLab);

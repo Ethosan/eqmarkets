@@ -79,11 +79,11 @@ export function lineChart(vals, { good = true, id = "s", w = 200, h = 40, pad = 
     : "";
   return '<svg viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" aria-hidden="true">' +
     '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0" stop-color="' + col + '" stop-opacity="0.16"/>' +
-    '<stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient></defs>' +
+    '<stop offset="0" style="stop-color:' + col + ';stop-opacity:.16"/>' +
+    '<stop offset="1" style="stop-color:' + col + ';stop-opacity:0"/></linearGradient></defs>' +
     bandRect + (zero ? hline(0, 0.4) : "") + (ref != null ? hline(ref, 0.3) : "") +
     '<path d="' + d + "L" + X(n - 1).toFixed(1) + "," + h + "L" + X(0).toFixed(1) + "," + h + 'Z" fill="url(#' + gid + ')"/>' +
-    '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<path d="' + d + '" fill="none" style="stroke:' + col + '" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
     "</svg>";
 }
 
@@ -99,4 +99,43 @@ export function tickFmt(fmt = {}) {
 export function stepDp(step) {
   const st = step.toFixed(6).replace(/0+$/, "");
   return st.includes(".") ? Math.min(st.split(".")[1].length, 4) : 0;
+}
+
+/* Value at fraction q of a sorted array (linear interpolation). */
+function quantile(sorted, q) {
+  const i = (sorted.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+
+/* The banded vital track: `recent` (about three months) drawn inside the bands
+   of `year` (the past year, which `recent` is part of). The outer tenth of the
+   year's range on each side is shaded amber, the outer 2.5% red, the median is
+   a dotted rule, and the latest point takes the colour of the zone it sits in.
+   Returns { svg, zone } where zone is "", "a" or "r". */
+export function bandTrack(recent, year, { w = 300, h = 34, pad = 4 } = {}) {
+  if (!recent || recent.length < 2 || !year || year.length < 40) return { svg: "", zone: "" };
+  const s = year.slice().sort((a, b) => a - b);
+  const q = [0.025, 0.1, 0.5, 0.9, 0.975].map(p => quantile(s, p));
+  let mn = Math.min(s[0], ...recent), mx = Math.max(s[s.length - 1], ...recent);
+  if (mx === mn) mx = mn + 1e-9;
+  const Y = v => h - pad - (v - mn) * (h - 2 * pad) / (mx - mn);
+  const n = recent.length;
+  const X = i => i * w / (n - 1);
+  const last = recent[n - 1];
+  const zone = last <= q[0] || last >= q[4] ? "r" : last <= q[1] || last >= q[3] ? "a" : "";
+  /* The bands sit quietly in grey; only the one holding the latest reading lights up. */
+  const band = (a, b, cls) => {
+    const y1 = Y(Math.max(a, b)), y2 = Y(Math.min(a, b));
+    const on = last >= Math.min(a, b) && last <= Math.max(a, b) ? " on" : "";
+    return y2 - y1 > 0.2 ? '<rect class="' + cls + on + '" x="0" width="' + w + '" y="' + y1.toFixed(1) + '" height="' + (y2 - y1).toFixed(1) + '"/>' : "";
+  };
+  let d = "";
+  for (let i = 0; i < n; i++) d += (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(recent[i]).toFixed(1);
+  const svg = '<svg viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" aria-hidden="true">' +
+    band(mn, q[0], "bt-r") + band(q[0], q[1], "bt-a") + band(q[3], q[4], "bt-a") + band(q[4], mx, "bt-r") +
+    '<line class="bt-mid" x1="0" x2="' + w + '" y1="' + Y(q[2]).toFixed(1) + '" y2="' + Y(q[2]).toFixed(1) + '" vector-effect="non-scaling-stroke"/>' +
+    '<path class="bt-line" d="' + d + '" vector-effect="non-scaling-stroke"/>' +
+    "</svg>" +
+    '<i class="bt-end ' + zone + '" style="top:' + (Y(last) / h * 100).toFixed(1) + '%"></i>';
+  return { svg, zone };
 }

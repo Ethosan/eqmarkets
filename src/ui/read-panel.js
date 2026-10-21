@@ -42,7 +42,7 @@ function cached(key) {
 function renderAnswer(body) {
   const paras = body.text.split(/\n{2,}/).map(p => "<p>" + esc(p.trim()) + "</p>").join("");
   const at = new Date(body.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Singapore" });
-  showAi(paras + '<p class="ai-meta">Written by Mistral AI from the numbers above at ' + at + " SGT. It can be wrong; check it against the cards. Not advice.</p>");
+  showAi(paras + '<p class="ai-meta">Written by Mistral AI from the numbers above at ' + at + " SGT. It can be wrong; check it against the indicators. Not advice.</p>");
 }
 
 const MESSAGES = {

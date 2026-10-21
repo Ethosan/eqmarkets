@@ -1,64 +1,74 @@
-/* ---------- app bar ---------- */
+/* Shell: a section rail on the left and a status bar over the work area on
+   desktop; on narrower screens the rail becomes a sticky row of section tabs
+   under a compact top bar. One DOM for both: the rail and main column flatten
+   into the page grid below 960px. */
+.shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh }
+.main-col { min-width: 0; display: flex; flex-direction: column }
+
+/* ---------- rail ---------- */
+.rail {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 20px;
+  padding: 20px 14px 24px; border-right: 1px solid var(--rule); background: var(--paper);
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px; font-weight: 700; font-size: var(--fs-lg); letter-spacing: -.02em; white-space: nowrap; color: var(--ink) }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--paper) }
+.brand-mark svg { width: 15px; height: 15px; display: block }
+.brand-m { display: none }
+.rail-note { margin-top: auto; padding: 0 10px; font-size: var(--fs-xs); line-height: 1.5; color: var(--ink-3) }
+
+/* ---------- status bar ---------- */
 .appbar {
   position: sticky; top: 0; z-index: 20;
-  background: rgba(10, 11, 15, .82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: saturate(1.2) blur(10px); -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  border-bottom: 1px solid var(--rule);
   padding-top: env(safe-area-inset-top);
 }
-.appbar-in {
-  max-width: 1120px; margin: 0 auto;
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 20px; height: 56px;
-}
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; white-space: nowrap }
-.brand-mark {
-  width: 22px; height: 22px; border-radius: 6px; flex: none;
-  background: linear-gradient(160deg, #141824, #0B0D13);
-  border: 1px solid var(--border-2);
-  display: grid; place-items: center;
-}
-.brand-mark svg { width: 13px; height: 13px; display: block }
-.appbar-meta { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
-.clocks { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap }
-.clocks b { font-weight: 500; color: var(--text-2) }
+.appbar-in { display: flex; align-items: center; gap: 16px; padding: 0 32px; min-height: 56px }
+.fresh { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.appbar-meta { margin-left: auto; display: flex; align-items: center; gap: 8px }
+.clocks { font-size: var(--fs-sm); color: var(--ink-3); white-space: nowrap; margin-right: 6px }
+.clocks b { font-weight: 600; color: var(--ink-2) }
 
-/* ---------- progress ---------- */
 .progress[hidden] { display: none }
-.progress { max-width: 1120px; margin: 0 auto; padding: 10px 20px 0; display: flex; align-items: center; gap: 12px }
-.pbar { flex: 1; height: 2px; border-radius: 999px; background: var(--border); overflow: hidden }
-.pbar i { display: block; height: 100%; width: 0%; background: var(--accent); border-radius: 999px; transition: width .3s linear }
-.pcap { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap }
+.progress { display: flex; align-items: center; gap: 12px; padding: 0 32px 8px }
+.pbar { flex: 1; height: 2px; border-radius: 2px; background: var(--rule); overflow: hidden }
+.pbar i { display: block; height: 100%; width: 0%; background: var(--teal); transition: width .3s linear }
+.pcap { font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap }
 
 /* ---------- page ---------- */
-.wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 28px }
-.pagehead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 16px }
-.pagehead h1 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px }
+.wrap { width: 100%; max-width: 1280px; padding: 24px 32px 40px; flex: 1 }
 
-.group { margin-bottom: 30px }
+.group { margin-top: 36px }
+#models { margin-top: 44px }
+#board[data-view]:not([data-view="all"]) .group { margin-top: 0 }
 .group.hidden { display: none }
-.group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px }
-.group-title { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2) }
-.group-sub { font-size: var(--fs-xs); color: var(--text-3) }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px }
 
 footer {
-  max-width: 1120px; margin: 0 auto; padding: 16px 20px 26px;
-  border-top: 1px solid var(--border);
-  font-size: var(--fs-xs); line-height: 1.7; color: var(--text-3);
+  max-width: 1280px; padding: 18px 32px 32px; border-top: 1px solid var(--rule);
+  font-size: var(--fs-xs); line-height: 1.7; color: var(--ink-3);
 }
+footer span:empty { display: none }
+@media (display-mode: standalone) { footer { padding-bottom: calc(32px + env(safe-area-inset-bottom)) } }
 
-@media (max-width: 680px) {
-  .appbar-in { height: 52px; padding-left: 16px; padding-right: 16px }
-  .appbar-meta { flex-wrap: nowrap; gap: 6px }
+/* ---------- tablet and phone ---------- */
+@media (max-width: 959px) {
+  .shell { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "tabs" "main" "foot" }
+  .rail, .main-col { display: contents }
+  .rail > .brand, .rail-note { display: none }
+  .appbar { grid-area: bar }
+  .wrap { grid-area: main; padding: 16px 20px 32px }
+  footer { grid-area: foot; padding: 16px 20px 28px }
+  .brand-m { display: flex; padding: 0; font-size: 16px }
+  .appbar-in { padding: 0 20px; min-height: 52px; gap: 12px }
+  .progress { padding: 0 20px 6px }
   .clocks { display: none }
-  .brand { min-width: 0 }
-  .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis }
-  .brand-sub { display: none }
-  .appbar-meta::-webkit-scrollbar { display: none }
-  .secs { display: none }
-  .wrap { padding-left: 16px; padding-right: 16px }
-  .grid { grid-template-columns: 1fr 1fr; gap: 10px }
 }
-@media (max-width: 380px) { .grid { grid-template-columns: 1fr } }
+@media (max-width: 560px) {
+  .brand-m .brand-name { display: none }
+  .appbar-in { padding: 0 16px; gap: 10px }
+  .wrap { padding: 14px 16px 28px }
+  footer { padding: 16px 16px 28px }
+  .progress { padding: 0 16px 6px }
+}

@@ -5,7 +5,9 @@
 /* [card id, rows]. Each row: [label, text]. Text may contain <i>, <sub>, <sup>. */
 const METHODS = [
   ["readCard", [
-    ["Data", "1-month moves in 21 markets (Yahoo, FRED), and VIX and MOVE levels against their past year."],
+    ["Data", "1-month moves in 21 markets (Yahoo, FRED), and VIX and MOVE levels against their past year; items tagged Today use the day's move instead."],
+    ["σ", "A move measured in that market's own typical move over the same span (a day for Today items, a month otherwise): 1σ is unusual, 2σ rare."],
+    ["Tags", "How long a pattern has held: New today, This week, or 2+ weeks (the same rules run on the data a day, a week and two weeks back)."],
     ["Move score", "1-month change ÷ (volatility before the month × √21), capped at ±3. 1 is unusual, 2 is rare."],
     ["Rules", "16 fixed patterns, each with explicit thresholds (e.g. oil ≥ 1, grains ≥ 0.75 and ES ≤ −0.75 for cost-push). A rule's strength is its weakest condition; the 4 strongest are shown."],
     ["Weights", "None. Rules either fire or don't."],

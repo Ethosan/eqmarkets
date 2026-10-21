@@ -101,11 +101,11 @@ const STEPS = [
   },
   {
     sel: () => "#card-" + sampleCard(),
-    title: "Every card is one market",
+    title: "Every row is one market",
     body: () => {
       const id = sampleCard(), s = ok(id), it = ITEM_BY_ID[id];
       const v = s ? " (" + it.ticker + " is at " + fmtNum(s.price, it.fmt) + ")" : "";
-      return "The coloured note says where it sits in its past year, and the bottom line shows the 1-month move and its volatility" + v + ". Tap any card for the full chart, multi-horizon changes and vol.";
+      return "The trace is its last three months inside the bands of its own past year: a band lights amber when today's reading is in the outer tenth, red in the outer 2.5%. The note says where it sits" + v + ". Tap any row for the full chart, multi-horizon changes and vol.";
     },
   },
   {
@@ -125,7 +125,7 @@ function target() {
 /* Height of sticky chrome at the top (app bar, plus the tab bar on phones). */
 function topInset() {
   const bar = document.querySelector(".appbar")?.offsetHeight || 0;
-  const tabs = narrow() ? document.getElementById("tabs")?.offsetHeight || 0 : 0;
+  const tabs = matchMedia("(max-width: 959px)").matches ? document.getElementById("tabs")?.offsetHeight || 0 : 0;
   return bar + tabs + 12;
 }
 
@@ -211,10 +211,10 @@ function mount() {
   el.innerHTML =
     '<div class="tour-hole" aria-hidden="true"></div>' +
     '<div class="tour-pop" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourBody">' +
-    '<p class="tour-step num"></p>' +
+
     '<h2 class="tour-title" id="tourTitle"></h2>' +
     '<p class="tour-body" id="tourBody" aria-live="polite"></p>' +
-    '<div class="tour-foot"><div class="tour-dots" aria-hidden="true"></div>' +
+    '<div class="tour-foot"><span class="tour-step num"></span><div class="tour-dots" aria-hidden="true"></div>' +
     '<div class="tour-acts"><button type="button" class="t-btn ghost" data-tskip>Skip</button>' +
     '<button type="button" class="t-btn ghost" data-tback>Back</button>' +
     '<button type="button" class="t-btn" data-tnext>Next</button></div></div></div>';
