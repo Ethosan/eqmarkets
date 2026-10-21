@@ -75,6 +75,8 @@
 }
 .m-wide { grid-column: 1 / -1 }
 .models { grid-auto-flow: row dense }
+/* Read and bias stack tight beside the score; spare height goes below the bias. */
+.overview { grid-template-rows: auto 1fr }
 .m-rai { grid-column: span 5; grid-row: span 2 }
 .m-read { grid-column: span 7 }
 #biasCard { grid-column: span 7 }
@@ -551,6 +553,7 @@ html.touring { overflow: hidden }
 /* ================================================================= breakpoints */
 @media (max-width: 1180px) {
   .m-rai, .m-read, #biasCard { grid-column: 1 / -1; grid-row: auto }
+  .overview { grid-template-rows: none }
   .m-rai .m-grid { grid-template-columns: 1.2fr 1fr; gap: 28px }
   .m-regime { grid-column: 1 / -1; grid-row: auto }
   #arCard, #recCard { grid-column: span 6 }
