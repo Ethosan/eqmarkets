@@ -196,10 +196,16 @@ export function buildFrame(S, inst, { ppy = 252 } = {}) {
   const vxn = S.vxn && S.vix ? on(levelZPath(ratioSeries(S.vxn, S.vix))) : empty();
   const v9d = S.vix9d && S.vix ? on(levelZPath(ratioSeries(S.vix9d, S.vix))) : empty();
   const vvixz = S.vvix ? on(levelZPath(S.vvix)) : empty();
+  /* VIX term structure (spot over 3-month, above 1 = backwardation) and credit
+     momentum: the 63-day vol-scaled move of high-yield bonds against
+     Treasuries (HYG over IEF, total return), so a credit sell-off that stocks
+     haven't followed shows up as a negative reading. */
+  const vixtsP = src.vixts ? on(src.vixts) : empty();
+  const cred = S.hygtr && S.ieftr ? on(ratioMove(S.hygtr, S.ieftr)) : empty();
 
   return {
     dates: cal, price: inst.values, rai, raiS, ar, dAR, rec, vrp, sbCorr, trend, rebal,
-    mom, rev, lead, ew, vxn, v9d, vvixz,
+    mom, rev, lead, ew, vxn, v9d, vvixz, vixts: vixtsP, cred,
     cal: calendarFlags(cal),
     vix: S.vix ? on(S.vix) : empty(),
     meta: {
@@ -215,7 +221,7 @@ export function reframe(base, inst, { ppy = 252 } = {}) {
   const at = new Map(base.dates.map((d, i) => [d, i]));
   const pick = arr => inst.dates.map(d => { const i = at.get(d); return i == null ? null : arr[i]; });
   const out = { dates: inst.dates, price: inst.values, meta: base.meta };
-  for (const k of ["rai", "raiS", "ar", "dAR", "rec", "vrp", "sbCorr", "vix", "rebal", "lead", "ew", "vxn", "v9d", "vvixz"]) out[k] = pick(base[k]);
+  for (const k of ["rai", "raiS", "ar", "dAR", "rec", "vrp", "sbCorr", "vix", "rebal", "lead", "ew", "vxn", "v9d", "vvixz", "vixts", "cred"]) out[k] = pick(base[k]);
   out.trend = trendPath(inst, { ppy }).values;
   out.mom = momentumPath(inst.values);
   out.rev = reversalPath(inst.values);

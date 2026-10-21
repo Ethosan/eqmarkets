@@ -45,7 +45,8 @@ export function validateFacts(raw) {
 
 const chgText = (id, x) => {
   if (x == null) return "";
-  return ITEM_BY_ID[id].kind === "price" ? (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1) + "%" : fmtBp(x);
+  const k = ITEM_BY_ID[id].kind;
+  return k === "price" ? (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1) + "%" : k === "level" ? (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1) + " points" : fmtBp(x);
 };
 
 export const SYSTEM_PROMPT = `You write the short daily note on a macro dashboard used by a retail futures trader. You are given today's market data as numbers, plus observations a rules engine has already drawn from them.
@@ -98,6 +99,18 @@ export function buildPrompt(facts) {
     if (!m) continue;
     const parts = [m.score != null ? fmtSigma(m.score) : null, chgText(id, m.chg1m) || null].filter(Boolean);
     lines.push("- " + ITEM_BY_ID[id].name + ": " + parts.join(", "));
+  }
+
+  const c = facts.credit;
+  if (c?.hy != null) {
+    lines.push("High-yield spread: " + c.hy.toFixed(2) + "%" + (c.hyChg1m != null ? ", 1-month change " + fmtBp(c.hyChg1m) : "") +
+      (c.hyPct1y != null ? ", " + ordinal(Math.round(c.hyPct1y * 100)) + " percentile of its past year" : "") +
+      (c.baaPctLong != null ? "; the Baa corporate spread is at its " + ordinal(Math.round(c.baaPctLong * 100)) + " percentile since " + c.baaSince + " (judge 'wide' or 'tight' on this long-run figure, not the one-year one)." : "; no long-run comparison available (FRED keeps three years of this series)."));
+  }
+  const day = Object.entries(facts.day || {}).filter(([, m]) => Math.abs(m.score) >= 1.5);
+  if (day.length) {
+    lines.push("", "Since the last close (in multiples of a normal day's move):");
+    for (const [id, m] of day) lines.push("- " + ITEM_BY_ID[id].name + ": " + fmtSigma(m.score).replace("σ", "×") + ", " + (chgText(id, m.chg1d) || m.chg1d));
   }
 
   lines.push("", "Rules-engine observations:");

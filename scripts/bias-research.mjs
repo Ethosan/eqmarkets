@@ -31,8 +31,8 @@ const ymd = ms => new Date(ms).toISOString().slice(0, 10);
 
 /* Yahoo daily bars, exchange-local dates (same parsing as src/data/sources.js,
    minus the live-quote fold). */
-async function yahoo(symbol) {
-  const key = path.join(CACHE, "y-" + symbol.replace(/[^A-Z0-9]/gi, "_") + ".json");
+async function yahoo(symbol, { adjusted = false } = {}) {
+  const key = path.join(CACHE, "y-" + symbol.replace(/[^A-Z0-9]/gi, "_") + (adjusted ? "-tr" : "") + ".json");
   if (existsSync(key) && !process.argv.includes("--refresh")) return JSON.parse(readFileSync(key));
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${P1}&period2=${Math.floor(Date.now() / 1000)}&interval=1d`;
   const r = await fetch(url, { headers: { "User-Agent": UA } });
@@ -42,7 +42,7 @@ async function yahoo(symbol) {
   if (!res?.indicators?.quote?.[0]?.close) throw new Error(symbol + ": no data");
   const off = (res.meta.gmtoffset || 0) * 1000;
   const ts = res.timestamp || [];
-  const cl = res.indicators.quote[0].close;
+  const cl = (adjusted && res.indicators.adjclose?.[0]?.adjclose) || res.indicators.quote[0].close;
   const dates = [], values = [];
   cl.forEach((c, i) => {
     if (c == null || !isFinite(c)) return;
@@ -85,11 +85,11 @@ const jobs = {
   es: ["ES=F"], nq: ["NQ=F"], gspc: ["^GSPC"], ndx: ["^NDX"], vix: ["^VIX"], vix3m: ["^VIX3M"],
   vix9d: ["^VIX9D"], vxn: ["^VXN"], vvix: ["^VVIX"], move: ["^MOVE"], us10y: ["^TNX"],
   dxy: ["DX-Y.NYB"], usdjpy: ["JPY=X"], btc: ["BTC-USD"], hyg: ["HYG"], gc: ["GC=F"], cl: ["CL=F"],
-  rsp: ["RSP"], spy: ["SPY"],
+  rsp: ["RSP"], spy: ["SPY"], hygtr: ["HYG", true], ieftr: ["IEF", true],
 };
 const S = {};
 const settled = await Promise.allSettled(
-  Object.entries(jobs).map(async ([id, [sym]]) => { S[id] = await yahoo(sym); })
+  Object.entries(jobs).map(async ([id, [sym, adjusted]]) => { S[id] = await yahoo(sym, { adjusted }); })
 );
 for (const [i, st] of settled.entries()) {
   if (st.status === "rejected") console.log("  yahoo", Object.keys(jobs)[i], "FAILED:", st.reason.message);
@@ -117,6 +117,12 @@ const TRIED = {
   vxn: { id: "vxn", sign: -1, label: "Nasdaq vol premium (VXN/VIX)", src: "Ang, Hodrick, Xing & Zhang (2006)" },
   v9d: { id: "v9d", sign: -1, label: "Front vol (VIX9D/VIX)", src: "Whaley (2009)" },
   vvixz: { id: "vvixz", sign: -1, label: "Vol of vol (VVIX)", src: "Baltussen, van Bekkum & van der Grient (2018)" },
+  /* Oct 21 2026 round. Acceptance rule, fixed before the run: a candidate ships
+     only if it raises the full-sample out-of-sample R² over v8 at 2 or more of
+     the 3 horizons for BOTH ES and NQ, and the average post-2019 R² across the
+     six instrument × horizon cells is not lower. */
+  vixts: { id: "vixts", sign: 1, label: "VIX term structure (VIX/VIX3M)", src: "Fassas & Hourvouliades (2019)" },
+  cred: { id: "cred", sign: 1, label: "Credit momentum (HYG vs IEF)", src: "Gilchrist & Zakrajšek (2012)" },
 };
 const MOM = ["mom", "rev"];
 const VOL = ["vxn", "v9d", "vvixz"];
@@ -129,6 +135,9 @@ const VARIANTS = {
   "v7 + abstain": { preds: pick([...OLD, ...CAL]), opts: {} },
   "v8 (ship)": { preds: pick([...OLD, "mom", "rev", ...CAL]), opts: {} },
   "v8 all-12 (tried, not shipped)": { preds: pick([...OLD, ...MOM, ...VOL, ...CAL]), opts: {} },
+  "v8 + vixts": { preds: pick([...OLD, ...MOM, "vixts", ...CAL]), opts: {} },
+  "v8 + cred": { preds: pick([...OLD, ...MOM, "cred", ...CAL]), opts: {} },
+  "v8 + vixts + cred": { preds: pick([...OLD, ...MOM, "vixts", "cred", ...CAL]), opts: {} },
 };
 
 const since = process.argv.includes("--since")
@@ -139,7 +148,7 @@ const pct = x => (x == null ? "  n/a" : (x >= 0 ? "+" : "") + (x * 100).toFixed(
 const out = {};
 for (const [inst, fr] of Object.entries(frames)) {
   out[inst] = {};
-  console.log(`\n=== ${inst.toUpperCase()}  (${fr.dates.length} bars, frame signals: ${["mom","rev","lead","ew","vxn","v9d","vvixz"].filter(k => fr[k].some(v => v != null)).join(", ")})`);
+  console.log(`\n=== ${inst.toUpperCase()}  (${fr.dates.length} bars, frame signals: ${["mom","rev","lead","ew","vxn","v9d","vvixz","vixts","cred"].filter(k => fr[k].some(v => v != null)).join(", ")})`);
   for (const H of HORIZONS) {
     for (const [name, { preds, opts }] of Object.entries(VARIANTS)) {
       const res = combinationForecast(fr, H.h, { predictors: preds, ...opts });

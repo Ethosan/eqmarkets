@@ -1,6 +1,6 @@
 /* "Today's read" card: rule-based observations with the numbers behind them,
    plus the optional AI explanation (POST /api/explain). */
-import { readMarket } from "../quant/narrative.js";
+import { AGE_LABEL, readMarket } from "../quant/narrative.js";
 import { $ } from "./format.js";
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -10,11 +10,13 @@ const AI_TTL = 30 * 60_000;
 let facts = null;
 let busy = false;
 
-export function renderRead(f) {
+/* past: the same facts 1, 5 and 10 sessions back, to tag how long each pattern has run. */
+export function renderRead(f, past = null) {
   facts = f;
-  const items = readMarket(f);
+  const items = readMarket(f, 5, past);
   $("readList").innerHTML = items.map(r =>
-    '<li class="read-item ' + (r.tone || "n") + '"><p>' + esc(r.text) + "</p>" +
+    '<li class="read-item ' + (r.tone || "n") + '"><p>' +
+    (r.age ? '<span class="read-age ' + r.age + '">' + AGE_LABEL[r.age] + "</span> " : "") + esc(r.text) + "</p>" +
     (r.evidence.length
       ? '<div class="chips">' + r.evidence.map(e => '<span class="chip"><b>' + esc(e.label) + "</b> " + esc(e.value) + "</span>").join("") + "</div>"
       : "") +

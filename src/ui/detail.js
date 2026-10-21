@@ -6,7 +6,7 @@ import { seriesStats } from "../quant/models.js";
 import { $, fmtNum, fmtChange, fmtDelta, fmtVol, ordinal, tickFmt } from "./format.js";
 import { chart } from "./chart.js";
 import { swipeToClose } from "./sheet.js";
-import { noteFor } from "./notes.js";
+import { longRunPct, noteFor } from "./notes.js";
 
 const RANGES = [
   { key: "1m", label: "1M", days: 21 },
@@ -14,6 +14,7 @@ const RANGES = [
   { key: "6m", label: "6M", days: 126 },
   { key: "1y", label: "1Y", days: 252 },
   { key: "2y", label: "2Y", days: 520 },
+  { key: "max", label: "All", days: 1e6 },
 ];
 
 let current = null;
@@ -80,6 +81,7 @@ function render() {
       ["Vol, 1M realized", fmtVol(item, st.vol21)],
       ["Vol, EWMA λ .94", fmtVol(item, st.volEwma)],
       ["1Y percentile", pct],
+      ...(item.longRun && longRunPct(s) != null ? [["Percentile since " + item.longRun, ordinal(Math.round(longRunPct(s) * 100))]] : []),
       ["1Y robust z", st.z1y == null ? "—" : (st.z1y >= 0 ? "+" : "−") + Math.abs(st.z1y).toFixed(2)],
       ["1Y high", fmtNum(st.hi1y, item.fmt)],
       ["1Y low", fmtNum(st.lo1y, item.fmt)],

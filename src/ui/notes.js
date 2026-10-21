@@ -4,7 +4,7 @@
    sits in its own one-year distribution. */
 import { ok } from "../state.js";
 import { recessionProbability } from "../quant/models.js";
-import { robustZ } from "../quant/stats.js";
+import { percentileRank, robustZ } from "../quant/stats.js";
 import { ordinal } from "./format.js";
 
 function rangeNote(item, st) {
@@ -16,6 +16,11 @@ function rangeNote(item, st) {
   const where = p >= 90 ? "Top decile" : p <= 10 ? "Bottom decile" : ordinal(p) + " pctile";
   const z = st.z1y == null ? "" : " · z\u00a0" + (st.z1y >= 0 ? "+" : "−") + Math.abs(st.z1y).toFixed(1);
   return { t: where + " (1Y)" + z, c: tone };
+}
+
+/* Where the latest value sits in the series' whole history (Baa: since 1986). */
+export function longRunPct(s) {
+  return s && s.values && s.values.length > 2000 ? percentileRank(s.values[s.values.length - 1], s.values.slice(0, -1)) : null;
 }
 
 export function noteFor(item, s, st) {
@@ -52,6 +57,21 @@ export function noteFor(item, s, st) {
       return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
     case "us10y":
       return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
+    case "baa": {
+      const lr = longRunPct(s), y = st?.pct1y;
+      if (lr == null) return rangeNote(item, st);
+      const p = Math.round(lr * 100);
+      return { t: ordinal(p) + " pctile since " + item.longRun + (y == null ? "" : " · " + ordinal(Math.round(y * 100)) + " over 1Y"), c: p >= 80 ? "d" : p <= 20 ? "u" : "" };
+    }
+    case "hyoas": {
+      /* FRED holds three years of the ICE series, so its own percentile is a
+         recent-years view; the Baa spread says whether that is wide for real. */
+      const r = rangeNote(item, st), lr = longRunPct(ok("baa"));
+      if (lr == null || !r) return r;
+      const p = Math.round(lr * 100);
+      const word = p >= 80 ? "wide" : p <= 30 ? "tight" : "normal";
+      return { t: r.t.replace(/ · z.*$/, "") + " · long run " + word + " (Baa " + ordinal(p) + ")", c: word === "tight" ? "" : r.c };
+    }
     default:
       return rangeNote(item, st);
   }

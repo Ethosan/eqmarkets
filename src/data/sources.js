@@ -177,7 +177,9 @@ export async function fetchItem(item) {
     const last = STATE[item.id];
     STATE[item.id] = last && !last.error ? { ...last, stale: true } : { error: true };
   };
-  const put = (s, src) => { STATE[item.id] = { ...s, error: false, stale: false, src }; };
+  /* item.div rescales a series into its display units (claims: thousands). */
+  const scaled = s => (item.div ? { ...s, price: s.price / item.div, prev: s.prev == null ? null : s.prev / item.div, values: s.values.map(v => v / item.div) } : s);
+  const put = (s, src) => { STATE[item.id] = { ...scaled(s), error: false, stale: false, src }; };
 
   if (item.cot) { const s = await cotSeries(); if (s) put(s, "cftc"); else keepLast(); return; }
   if (item.bojLive) {
@@ -195,7 +197,7 @@ export async function fetchItem(item) {
   };
   const fred = async () => {
     if (!item.fredId) return false;
-    const s = await fredSeries(item.fredId);
+    const s = await fredSeries(item.fredId, item.fredDays || FRED_DAYS);
     if (s) { put(s, "fred"); return true; }
     return false;
   };

@@ -8,14 +8,14 @@ import { buildFrame, loadModelSeries, reframe } from "./history.js";
 import { HORIZONS, combinationForecast, evaluate, readNow } from "../quant/composite.js";
 import { conditionalToday } from "../quant/conditional.js";
 
-const KEY = "eqm.bias.v10"; /* v10: all-abstain fallback - recompute so cached forecasts match the live model */
+const KEY = "eqm.bias.v11"; /* v11: adds the last-three-years record and the confidence cap that uses it */
 const TTL = 6 * 3600e3;
 export const BIAS_RANGE = "max";
 
 export function cachedBias() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY) || "null");
-    return c && c.v === 10 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
+    return c && c.v === 11 ? { ...c, fresh: Date.now() - c.ts < TTL } : null;
   } catch {
     return null;
   }
@@ -34,11 +34,30 @@ const condOf = fr => {
   return c ? { rev: c.rev, bucketId: c.bucketId, label: c.label, match: c.match, h: c.h } : null;
 };
 
+/* The same scorecard over the last three years only. Predictability comes and
+   goes (the whole-sample record since 2002 can hide a weak recent stretch), so
+   a lean whose horizon hasn't beaten the plain average over these three years
+   is graded Low whatever its long record says. The rule was set before looking
+   at which reads it would change. */
+const RECENT_YEARS = 3;
+const recentSince = dates => {
+  const t = new Date(dates[dates.length - 1] + "T00:00:00Z");
+  t.setUTCFullYear(t.getUTCFullYear() - RECENT_YEARS);
+  return t.toISOString().slice(0, 10);
+};
+const slimRecent = ev => ev && { n: ev.n, from: ev.from, to: ev.to, r2: ev.r2, cwP: ev.cwP, bull: ev.bull, bear: ev.bear };
+
 export function biasFromFrame(fr) {
   return HORIZONS.map(H => {
     const res = combinationForecast(fr, H.h);
     const ev = evaluate(res, { band: H.band, dates: fr.dates });
-    return { key: H.key, h: H.h, label: H.label, band: H.band, now: readNow(res, ev, H.band), ev: slim(ev) };
+    const recent = evaluate(res, { band: H.band, dates: fr.dates, since: recentSince(fr.dates) });
+    const now = readNow(res, ev, H.band);
+    if (now && now.label !== "Neutral" && recent && !(recent.r2 > 0)) {
+      now.confidence = "Low";
+      now.recentWeak = true;
+    }
+    return { key: H.key, h: H.h, label: H.label, band: H.band, now, ev: slim(ev), recent: slimRecent(recent) };
   });
 }
 
@@ -49,7 +68,7 @@ export async function computeBiasData(range, onProgress) {
   const es = buildFrame(S, S.es);
   const nq = reframe(es, S.nq);
   return {
-    v: 10, ts: Date.now(), range, missing: es.meta.missing,
+    v: 11, ts: Date.now(), range, missing: es.meta.missing,
     es: { asOf: es.dates[es.dates.length - 1], horizons: biasFromFrame(es), cond: condOf(es) },
     nq: { asOf: nq.dates[nq.dates.length - 1], horizons: biasFromFrame(nq), cond: condOf(nq) },
   };

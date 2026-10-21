@@ -26,6 +26,17 @@ export const HIDDEN = [
   { id: "gspc", symbols: ["^GSPC"], kind: "price" },
   { id: "rsp", symbols: ["RSP"], kind: "price" },
   { id: "spy", symbols: ["SPY"], kind: "price" },
+  /* Fed balance-sheet legs for the net-liquidity card (all FRED, $bn after scaling):
+     total assets (weekly, $mn), the Treasury General Account (weekly, $bn) and
+     overnight reverse repos (daily, $bn). */
+  { id: "walcl", fredId: "WALCL", kind: "level", weekly: true },
+  { id: "tga", fredId: "WTREGEN", kind: "level", weekly: true },
+  { id: "rrp", fredId: "RRPONTSYD", kind: "level" },
+  /* Oil and gold ETFs for day-to-day moves and 52-week extremes: a front-month
+     futures quote jumps when the contract rolls (CL=F "fell" 6% on 21 Oct 2026
+     when November expired), the funds don't. */
+  { id: "uso", symbols: ["USO"], kind: "price" },
+  { id: "gld", symbols: ["GLD"], kind: "price" },
 ];
 
 export const GROUPS = [
@@ -56,6 +67,8 @@ export const GROUPS = [
       desc: "Spot over 3-month VIX. Above 1 = backwardation, a stress signature.", fmt: { dp: 3 }, invert: true },
     { id: "vxn", symbols: ["^VXN"], kind: "level", ticker: "VXN", name: "Nasdaq 100 Vol",
       desc: "30-day implied vol of NDX options. VXN rising faster than VIX questions growth leadership under a calm surface.", fmt: { dp: 2 }, invert: true },
+    { id: "vix1d", symbols: ["^VIX1D"], kind: "level", ticker: "VIX1D", name: "1-Day VIX",
+      desc: "Implied vol for the next session alone, from same-day SPX options. Jumps before events the 30-day VIX averages away.", fmt: { dp: 2 }, invert: true },
     { id: "vvix", symbols: ["^VVIX"], kind: "level", ticker: "VVIX", name: "Vol of Vol",
       desc: "Implied vol of VIX options: how uncertain the market is about volatility itself. High = dealers demand a premium for vol risk.", fmt: { dp: 1 }, invert: true },
     { id: "skew", symbols: ["^SKEW"], kind: "level", ticker: "SKEW", name: "CBOE Skew",
@@ -63,13 +76,23 @@ export const GROUPS = [
     { id: "move", symbols: ["^MOVE"], kind: "level", ticker: "MOVE", name: "MOVE Index",
       desc: "ICE BofA implied Treasury volatility: the bond market's VIX.", fmt: { dp: 1 }, invert: true },
     { id: "hyoas", fredId: "BAMLH0A0HYM2", kind: "rate", ticker: "HY OAS", name: "High Yield OAS",
-      desc: "ICE BofA US High Yield option-adjusted spread. The price of default risk.", fmt: { dp: 2, suffix: "%" }, invert: true },
+      desc: "ICE BofA US High Yield option-adjusted spread. The price of default risk. FRED keeps three years of it, so its percentile is a recent-years view; the Baa card gives the long run.", fmt: { dp: 2, suffix: "%" }, invert: true },
+    { id: "baa", fredId: "BAA10Y", fredDays: 15000, longRun: "1986", kind: "rate", ticker: "Baa–10Y", name: "Baa Corporate Spread",
+      desc: "Moody's Baa corporate yield minus the 10-year Treasury, daily since 1986. The long-run yardstick for credit: FRED keeps only three years of the ICE spreads.", fmt: { dp: 2, suffix: "%" }, invert: true },
     { id: "igoas", fredId: "BAMLC0A0CM", kind: "rate", ticker: "IG OAS", name: "Investment Grade OAS",
       desc: "ICE BofA US Corporate option-adjusted spread.", fmt: { dp: 2, suffix: "%" }, invert: true },
     { id: "nfci", fredId: "NFCI", kind: "level", weekly: true, ticker: "NFCI", name: "Chicago Fed NFCI",
       desc: "105-indicator financial conditions index. 0 = average; positive = tighter.", fmt: { dp: 2 }, invert: true },
     { id: "stlfsi", fredId: "STLFSI4", kind: "level", weekly: true, ticker: "STLFSI", name: "St. Louis Fed Stress Index",
       desc: "18-series financial stress index. 0 = normal; positive = above-average stress.", fmt: { dp: 2 }, invert: true },
+    { id: "ovx", symbols: ["^OVX"], kind: "level", ticker: "OVX", name: "Oil Vol",
+      desc: "CBOE crude oil volatility index (USO options). Spikes on supply shocks and demand scares.", fmt: { dp: 1 }, invert: true },
+    { id: "gvz", symbols: ["^GVZ"], kind: "level", ticker: "GVZ", name: "Gold Vol",
+      desc: "CBOE gold volatility index (GLD options). Rises when the haven trade gets crowded or disorderly.", fmt: { dp: 1 }, invert: true },
+    { id: "claims", fredId: "ICSA", kind: "level", weekly: true, ticker: "Claims", name: "Initial Jobless Claims",
+      desc: "New unemployment-insurance filings, weekly, seasonally adjusted. The earliest hard read on layoffs.", div: 1000, fmt: { dp: 0, suffix: "k" }, invert: true },
+    { id: "netliq", computed: true, kind: "level", weekly: true, ticker: "Net liq", name: "Fed Net Liquidity",
+      desc: "Fed balance sheet minus the Treasury's cash account and reverse repos: the reserves left in the system. Weekly, $ trillions.", fmt: { dp: 2, prefix: "$", suffix: "T" } },
     { id: "hyg", symbols: ["HYG"], kind: "price", ticker: "HYG", name: "High Yield Bond ETF",
       desc: "Tradable credit proxy, intraday.", fmt: { dp: 2, prefix: "$" } },
     { id: "btc", symbols: ["BTC-USD"], kind: "price", ppy: 365, ticker: "BTC", name: "Bitcoin",

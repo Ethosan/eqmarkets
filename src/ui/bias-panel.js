@@ -30,9 +30,11 @@ function lede(name, horizons) {
   const order = ["Low", "Medium", "High"];
   const weakest = leaning.map(x => x.now.confidence).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
   const noEdge = leaning.some(x => x.now.why?.right != null && x.now.why.right < x.now.why.chance + 0.01);
+  const weakNow = leaning.filter(x => x.now.recentWeak).map(x => SHORT[x.key]);
   const deadLine = dead ? " None of its signals has a usable relationship with recent data right now, so these reads are just the long-run average." : "";
   return name + " leans " + parts.join(", and ") + ", with " + weakest.toLowerCase() + " confidence." +
-    (noEdge ? " Past calls like this did no better than other days." : "") + deadLine;
+    (noEdge ? " Past calls like this did no better than other days." : "") +
+    (weakNow.length ? " Over the last three years the " + words(weakNow) + " model" + (weakNow.length > 1 ? "s haven't" : " hasn't") + " beaten a plain average, so treat " + (weakNow.length > 1 ? "those reads" : "that read") + " lightly." : "") + deadLine;
 }
 
 function stateLine(state) {
@@ -64,7 +66,8 @@ function render() {
     } else if (n.label !== "Neutral") {
       const w = n.why;
       conf = `<span class="bias-c ${n.confidence.toLowerCase()}">${n.confidence}</span>` +
-        (w?.right != null ? `<span class="bias-sub">right ${pc(w.right)} of ${w.n.toLocaleString("en-US")} past calls${w.inState ? " in " + (state ? "stressed" : "calm") + " markets" : ""}, vs ${pc(w.chance)} on other days</span>` : "");
+        (w?.right != null ? `<span class="bias-sub">right ${pc(w.right)} of ${w.n.toLocaleString("en-US")} past calls${w.inState ? " in " + (state ? "stressed" : "calm") + " markets" : ""}, vs ${pc(w.chance)} on other days</span>` : "") +
+        (n.recentWeak ? '<span class="bias-sub">Low because it hasn’t beaten a plain average over the last 3 years</span>' : "");
     }
     return `<tr class="${sel ? "on" : ""}"><th scope="row"><button type="button" data-hz="${x.key}" aria-pressed="${sel}">Next ${SHORT[x.key]}</button></th>` +
       `<td class="bias-l ${TONE[n.label]}">${n.label}</td>` +
@@ -109,6 +112,7 @@ function render() {
     const row = (title, g, what) => `<div><dt>${title}</dt><dd>${g.n >= 20 ? `Right ${pc(g.right)} of the time, vs ${pc(g.others)} on other days <span class="bias-sub">${g.n.toLocaleString("en-US")} calls; right means ${name} ${what} its long-run average</span>` : "Too few calls to judge"}</dd></div>`;
     $("biasRecord").innerHTML =
       `<div><dt>Beats a plain average?</dt><dd>${ev.r2 > 0.001 && ev.cwP < 0.1 ? "Yes" : ev.r2 > 0 ? "Slightly, not reliably" : "No"} <span class="bias-sub">${year(ev.from)}–${year(ev.to)}, p ${ev.cwP < 0.001 ? "<0.001" : ev.cwP.toFixed(2)}</span></dd></div>` +
+      (cur.recent ? `<div><dt>Last 3 years</dt><dd>${cur.recent.r2 > 0.001 && cur.recent.cwP < 0.1 ? "Beats a plain average" : cur.recent.r2 > 0 ? "Slightly better than a plain average, not reliably" : "Doesn't beat a plain average"} <span class="bias-sub">${year(cur.recent.from)}–${year(cur.recent.to)}, ${cur.recent.n.toLocaleString("en-US")} forecasts, p ${cur.recent.cwP < 0.001 ? "<0.001" : cur.recent.cwP.toFixed(2)}</span></dd></div>` : "") +
       `<div><dt>Calm markets</dt><dd>${esc(vs(calm?.r2))}</dd></div>` +
       `<div><dt>Stressed markets</dt><dd>${esc(vs(str?.r2))}</dd></div>` +
       row("Bullish calls", ev.bull, "beat") + row("Bearish calls", ev.bear, "fell short of") + condRow();

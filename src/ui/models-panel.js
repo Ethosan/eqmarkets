@@ -108,5 +108,5 @@ export function renderModels() {
   LAST.regime = buildRegime();
   renderRegime(LAST.regime);
   LAST.facts = buildFacts(LAST);
-  renderRead(LAST.facts);
+  renderRead(LAST.facts, { d1: buildFacts({}, { lag: 1 }), w1: buildFacts({}, { lag: 5 }), w2: buildFacts({}, { lag: 10 }) });
 }

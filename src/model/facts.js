@@ -1,15 +1,51 @@
 /* The numbers behind "Today's read" and the AI explanation, built from STATE.
    Only finite numbers go in; labels and sentences are derived from them. */
 import { ITEM_BY_ID, READ_IDS } from "../config.js";
-import { hist, ok } from "../state.js";
+import { hist as histNow, ok } from "../state.js";
 import { obsFor, scaledMovePath } from "../quant/regime.js";
 import { seriesStats } from "../quant/models.js";
-import { alignSeries, robustZ } from "../quant/stats.js";
+import { alignSeries, ewmaVolPath, logReturns, percentileRank, robustZ } from "../quant/stats.js";
 
+function prevWeekday(d) {
+  const t = new Date(d + "T00:00:00Z");
+  do t.setUTCDate(t.getUTCDate() - 1); while (t.getUTCDay() === 0 || t.getUTCDay() === 6);
+  return t.toISOString().slice(0, 10);
+}
 const r2 = x => (Number.isFinite(x) ? Math.round(x * 100) / 100 : null);
 const last = p => (p.values.length ? p.values[p.values.length - 1] : null);
 
-export function buildFacts({ rai, regime, ar, rec } = {}) {
+/* Series scored for "since the last close" and for new 52-week highs and lows.
+   Front-month futures that aren't roll-adjusted (oil, gas, metals, grains) are
+   left out: their quote jumps when the contract rolls. Oil and gold come from
+   their ETFs instead; ES and NQ are roll-adjusted, DBC and DBA roll themselves. */
+const UNROLLED = ["cl", "ng", "gc", "si", "hg", "zc", "zw", "zs"];
+export const DAY_IDS = [...READ_IDS.filter(id => !UNROLLED.includes(id)), "uso", "gld", "vix", "vvix", "move", "ovx", "hyg"];
+const EXTREME_IDS = ["es", "nq", "gld", "uso", "btc", "dxy", "usdjpy", "us10y", "hyoas", "vix"];
+
+/* Today's move in units of the series' own daily volatility (EWMA known before
+   today), and in display units: % for prices, bp for rates, points for levels. */
+function dayMove(s, kind) {
+  const v = s.values, n = v.length;
+  if (n < 40) return null;
+  const steps = kind === "price" ? logReturns(v) : v.slice(1).map((x, i) => x - v[i]);
+  const vol = ewmaVolPath(steps)[steps.length - 2];
+  if (!(vol > 0)) return null;
+  const chg = kind === "price" ? (v[n - 1] / v[n - 2] - 1) * 100 : kind === "rate" ? (v[n - 1] - v[n - 2]) * 100 : v[n - 1] - v[n - 2];
+  return { score: r2(steps[steps.length - 1] / vol), chg1d: r2(chg), date: s.dates[n - 1] };
+}
+
+/* lag: build the facts as they stood that many ES sessions ago, by cutting every
+   series at that date (used to tell a new pattern from one that has run for weeks). */
+export function buildFacts({ rai, regime, ar, rec } = {}, { lag = 0 } = {}) {
+  const esDates = histNow("es", 2)?.dates;
+  const cut = lag && esDates ? esDates[esDates.length - 1 - lag] : null;
+  const hist = (id, min = 2) => {
+    const s = histNow(id, min);
+    if (!s || !cut) return s;
+    let k = s.dates.length;
+    while (k > 0 && s.dates[k - 1] > cut) k--;
+    return k >= min ? { dates: s.dates.slice(0, k), values: s.values.slice(0, k) } : null;
+  };
   const moves = {};
   for (const id of READ_IDS) {
     const it = ITEM_BY_ID[id], s = hist(id, 60);
@@ -59,9 +95,44 @@ export function buildFacts({ rai, regime, ar, rec } = {}) {
     chg10y: m1(hist("dgs10", 30)),
   };
   const asOf = hist("es", 2)?.dates.at(-1) || null;
+
+  /* Since the last close: only series whose latest bar is from the latest ES
+     session or the day before (weekly and stale feeds stay out). */
+  const day = {};
+  for (const id of DAY_IDS) {
+    const it = ITEM_BY_ID[id], s = hist(id, 40);
+    if (!it || !s || it.weekly) continue;
+    const m = dayMove(s, it.kind);
+    if (m && asOf && m.date >= prevWeekday(asOf)) day[id] = { score: m.score, chg1d: m.chg1d };
+  }
+  /* New 52-week highs and lows: the latest close against the prior year. */
+  const extremes = {};
+  for (const id of EXTREME_IDS) {
+    const s = hist(id, 200), it = ITEM_BY_ID[id];
+    if (!s || !it) continue;
+    const v = s.values, n = v.length, prior = v.slice(Math.max(0, n - 1 - (it.ppy || 252)), n - 1);
+    if (asOf && s.dates[n - 1] < prevWeekday(asOf)) continue;
+    if (v[n - 1] > Math.max(...prior)) extremes[id] = "high";
+    else if (v[n - 1] < Math.min(...prior)) extremes[id] = "low";
+  }
+  /* Credit level in context: the HY spread against its past year (all FRED
+     keeps of the ICE series is three years) and the Baa spread against its
+     whole history since 1986. */
+  let credit = null;
+  const hy = hist("hyoas", 60), baa = hist("baa", 60);
+  if (hy) {
+    const st = seriesStats(hy, "rate");
+    credit = { hy: r2(st.last), hyChg1m: r2(st.chg.m1), hyPct1y: r2(st.pct1y), hyLo1y: r2(st.lo1y) };
+    if (baa && baa.values.length > 2000) {
+      credit.baa = r2(last(baa));
+      credit.baaPctLong = r2(percentileRank(last(baa), baa.values.slice(0, -1)));
+      credit.baaPct1y = r2(seriesStats(baa, "rate")?.pct1y ?? null);
+      credit.baaSince = baa.dates[0].slice(0, 4);
+    }
+  }
   return {
     asOf,
-    moves, levels, curve, relative,
+    moves, levels, curve, relative, day, extremes, credit,
     rai: rai ? { value: r2(rai.smooth), pct: r2(rai.pct) } : null,
     regime: regime ? {
       growth: r2(regime.growth), inflation: r2(regime.inflation), since: regime.since || null,

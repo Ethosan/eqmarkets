@@ -8,6 +8,14 @@
      levels     = { vix, move }     robust z-score of the level vs its past year
      curve      = { chg2s10, chg2y, chg10y }  1-month changes in the 2s10s spread and
                                     its two H.15 legs, bp
+     day[id]    = { score, chg1d }  since the last close, in σ of a normal day and in
+                                    display units (rules marked daily)
+     extremes   = { id: "high" | "low" }  new 52-week closing highs and lows
+     credit     = { hy, hyChg1m, hyPct1y, baa, baaPctLong, baaSince }
+
+   Monthly patterns can hold for weeks, so readMarket tags each with how long it
+   has been firing (from the same facts built a day, a week and two weeks back)
+   and lets fresh observations lead.
 
    Thresholds are in σ of each market's own 1-month move: 1σ is unusual, 2σ rare.
    These are rules of thumb from standard cross-asset practice, not forecasts. */
@@ -283,21 +291,138 @@ export const RULES = [
   },
 ];
 
+/* ---------------------------------------------------- since the last close */
+const NAMES = {
+  es: "ES", nq: "NQ", btc: "Bitcoin", gc: "Gold", si: "Silver", hg: "Copper", cugold: "Copper/gold", cl: "Oil", ng: "Nat gas",
+  zc: "Corn", zw: "Wheat", zs: "Soybeans", dbc: "Commodities", dba: "Agriculture", dxy: "The dollar", usdjpy: "USD/JPY",
+  hyoas: "The HY spread", be10: "10Y breakeven", us10y: "The 10Y yield", us2y: "The 2Y yield", real10: "The real 10Y yield",
+  vix: "VIX", vvix: "VVIX", move: "MOVE", ovx: "Oil vol", hyg: "HYG", uso: "Oil (USO)", gld: "Gold (GLD)",
+};
+const short = id => NAMES[id].replace(/^The /, "");
+const mid = id => NAMES[id].replace(/^The /, "the ");
+const KIND = { hyoas: "rate", be10: "rate", us10y: "rate", us2y: "rate", real10: "rate", vix: "level", vvix: "level", move: "level", ovx: "level" };
+const fmtDay = (id, x) => (KIND[id] === "rate" ? fmtBp(x)
+  : KIND[id] === "level" ? (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1) + " pts"
+  : (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1) + "%");
+const list = xs => (xs.length > 1 ? xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1] : xs[0]);
+
+RULES.push(
+  {
+    id: "big_moves", daily: true,
+    test(f) {
+      const vols = ["vix", "vvix", "move", "ovx"];
+      const big = Object.entries(f.day || {}).filter(([id, m]) => NAMES[id] && !vols.includes(id) && Math.abs(m.score) >= 2)
+        .sort((a, b) => Math.abs(b[1].score) - Math.abs(a[1].score)).slice(0, 3);
+      if (!big.length) return null;
+      const top = Math.abs(big[0][1].score);
+      return {
+        strength: Math.min(3, top - 0.5), tone: "",
+        text: "Since the last close: " + list(big.map(([id, m]) => NAMES[id] + " " + fmtDay(id, m.chg1d))) +
+          (big.length > 1 ? ", each more than twice a normal day's move." : ", " + (top >= 3 ? "about three times" : "more than twice") + " a normal day's move."),
+        evidence: big.map(([id, m]) => ev(short(id), fmtSigma(m.score) + " day")),
+      };
+    },
+  },
+  {
+    id: "vol_jump", daily: true,
+    test(f) {
+      const v = f.day?.vix, vv = f.day?.vvix;
+      if (!v || Math.abs(v.score) < 2) return null;
+      const up = v.score > 0;
+      const both = vv && Math.sign(vv.score) === Math.sign(v.score) && Math.abs(vv.score) >= 1.5;
+      return {
+        strength: Math.abs(v.score) - 0.5, tone: up ? "d" : "u",
+        text: up
+          ? "VIX jumped " + Math.abs(v.chg1d).toFixed(1) + " points since the last close" + (both
+            ? ", and VVIX with it: traders are paying up for protection and for volatility itself."
+            : ", while VVIX stayed calm, so it reads as a repricing more than a scramble for crash insurance.")
+          : "VIX fell " + Math.abs(v.chg1d).toFixed(1) + " points since the last close" + (both ? " and VVIX fell too: fear is draining out of the options market." : "."),
+        evidence: [ev("VIX", fmtSigma(v.score) + " day"), vv && ev("VVIX", fmtSigma(vv.score) + " day")],
+      };
+    },
+  },
+  {
+    id: "new_extremes", daily: true,
+    test(f) {
+      const x = Object.entries(f.extremes || {}).filter(([id]) => NAMES[id]);
+      if (!x.length) return null;
+      const hi = x.filter(([, k]) => k === "high").map(([id]) => mid(id));
+      const lo = x.filter(([, k]) => k === "low").map(([id]) => mid(id));
+      const parts = [hi.length && "new 52-week highs in " + list(hi), lo.length && "new 52-week lows in " + list(lo)].filter(Boolean);
+      const text = parts.join("; ");
+      return {
+        strength: Math.min(2, 0.8 + 0.2 * x.length), tone: "",
+        text: text.charAt(0).toUpperCase() + text.slice(1) + ".",
+        evidence: x.map(([id, k]) => ev(short(id), "52W " + k)),
+      };
+    },
+  },
+  {
+    id: "credit_context",
+    test(f) {
+      const c = f.credit;
+      if (!c || c.hy == null) return null;
+      const wide1y = c.hyPct1y != null && c.hyPct1y >= 0.85, fast = c.hyChg1m != null && c.hyChg1m >= 35;
+      if (!wide1y && !fast) return null;
+      let text = "High-yield spreads " + (fast ? "have widened " + Math.round(c.hyChg1m) + " bp in a month to " : "are at ") + c.hy.toFixed(2) + "%" +
+        (wide1y ? ", near the top of their past year (" + Math.round(c.hyPct1y * 100) + "th percentile)" : "") + ". ";
+      let tone = "d";
+      if (c.baaPctLong == null) {
+        text += "FRED keeps only three years of this series, so on its own it can't say whether that is wide by long-run standards.";
+      } else {
+        const p = Math.round(c.baaPctLong * 100);
+        if (p <= 30) {
+          tone = "";
+          text += "By long-run standards credit is still tight: the Baa corporate spread is at its " + p + "th percentile since " + c.baaSince + ". The move is real; the level isn't stressed yet.";
+        } else if (p < 80) text += "That is ordinary by long-run standards: the Baa corporate spread is at its " + p + "th percentile since " + c.baaSince + ".";
+        else text += "It is wide by long-run standards too: the Baa corporate spread is at its " + p + "th percentile since " + c.baaSince + ".";
+      }
+      return {
+        strength: Math.min(3, 0.8 + Math.max(0, (c.hyChg1m ?? 0) / 50) + (wide1y ? 0.4 : 0)), tone, text,
+        evidence: [ev("HY OAS", c.hy.toFixed(2) + "%"), c.hyChg1m != null && ev("1M", fmtBp(c.hyChg1m)),
+          c.hyPct1y != null && ev("1Y pctile", Math.round(c.hyPct1y * 100) + "th"),
+          c.baaPctLong != null && ev("Baa since " + c.baaSince, Math.round(c.baaPctLong * 100) + "th pctile")],
+      };
+    },
+  },
+);
+
 export const QUIET = {
   id: "quiet", strength: 0, tone: "",
   text: "No strong cross-asset pattern this month. Most markets are moving within their normal ranges.",
   evidence: [],
 };
 
-/* The strongest observations, best first, at most `limit`. */
-export function readMarket(facts, limit = 4) {
+/* Ids of the monthly rules that fire on a set of facts. */
+function firing(facts) {
+  if (!facts) return null;
   const d = derive(facts);
+  return new Set(RULES.filter(r => !r.daily).filter(r => { const o = r.test(facts, d); return o && o.strength > 0; }).map(r => r.id));
+}
+
+/* How long a monthly pattern has been on: "new" (not yesterday), "week" (since
+   some day this week), "long" (a week and two weeks back as well). */
+function ageOf(id, past) {
+  if (!past?.d1) return null;
+  if (!past.d1.has(id)) return "new";
+  return past.w1?.has(id) && past.w2?.has(id) ? "long" : "week";
+}
+export const AGE_LABEL = { today: "Today", new: "New today", week: "This week", long: "2+ weeks" };
+
+/* The strongest observations, best first, at most `limit`. pastFacts:
+   { d1, w1, w2 }, the facts 1, 5 and 10 sessions ago. A pattern that has
+   been on for two weeks or more yields some rank to fresh news. */
+export function readMarket(facts, limit = 4, pastFacts = null) {
+  const d = derive(facts);
+  const past = pastFacts ? { d1: firing(pastFacts.d1), w1: firing(pastFacts.w1), w2: firing(pastFacts.w2) } : null;
   const fired = [];
   for (const r of RULES) {
     const out = r.test(facts, d);
-    if (out && out.strength > 0) fired.push({ id: r.id, excludes: r.excludes || [], ...out, evidence: out.evidence.filter(Boolean) });
+    if (!out || !(out.strength > 0)) continue;
+    const age = r.daily ? "today" : ageOf(r.id, past);
+    fired.push({ id: r.id, excludes: r.excludes || [], ...out, age, rank: out.strength * (age === "long" ? 0.75 : 1), evidence: out.evidence.filter(Boolean) });
   }
-  fired.sort((a, b) => b.strength - a.strength);
+  fired.sort((a, b) => b.rank - a.rank);
   const shown = [], blocked = new Set();
   for (const r of fired) {
     if (blocked.has(r.id)) continue;
@@ -305,5 +430,5 @@ export function readMarket(facts, limit = 4) {
     r.excludes.forEach(x => blocked.add(x));
     if (shown.length >= limit) break;
   }
-  return shown.length ? shown.map(r => { const o = { ...r }; delete o.excludes; return o; }) : [QUIET];
+  return shown.length ? shown.map(r => { const o = { ...r }; delete o.excludes; delete o.rank; return o; }) : [QUIET];
 }
