@@ -54,7 +54,7 @@ const METHODS = [
   ["ofCard", [
     ["Data", "The full CBOE delayed-quotes SPX option board (about 1.7 MB), refreshed every 20 minutes. Prices delayed 15 minutes; open interest from the previous session."],
     ["Net gamma", "Σ (call gamma × OI) − Σ (put gamma × OI), × 100 (contract multiplier) × index² × 1%: dollars of S&P hedging per 1% move. The usual naive positioning assumption: customers buy puts and sell covered calls, so dealers are long call gamma and short put gamma."],
-    ["Profile", "Each option's Black–Scholes gamma recomputed at a grid of index levels from −18% to +18%, holding its quoted IV fixed, dividend yield 1.25% and r the fed funds rate; options out to 126 days and within 30% of spot. Where the curve crosses zero is the flip level."],
+    ["Profile", "Each option's Black–Scholes gamma recomputed at a grid of index levels around spot (the chart zooms to ±3%, ±8% or the full ±18% grid; the flip always comes from the widest one), holding its quoted IV fixed, dividend yield 1.25% and r the fed funds rate; options out to 126 days and within 30% of spot. Where the curve crosses zero is the flip level."],
     ["Walls", "Strike with the largest call open interest, put open interest, and |gamma × OI| within 25% of spot."],
     ["Flow", "Put/call ratios on today's SPX volume and open interest; the share of volume in same-day (0DTE) and same-week expiries."],
     ["Vol curve", "VIX9D/VIX, VXN/VIX, VVIX and SKEW from CBOE indices via Yahoo, each with its 1-year percentile."],

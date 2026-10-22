@@ -4,7 +4,7 @@
    The chain is ~1.7 MB, so it loads once and is cached 20 minutes
    (src/data/sources.js spxChain); the card renders from whatever is in hand. */
 import { spxChain } from "../data/sources.js";
-import { optionFlow } from "../quant/optionflow.js";
+import { optionFlow, gexProfile } from "../quant/optionflow.js";
 import { percentileRank, robustZ } from "../quant/stats.js";
 import { ok, hist } from "../state.js";
 import { $, ordinal } from "./format.js";
@@ -16,16 +16,29 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const sgn = (x, dp = 2) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(dp);
 const fmt0 = x => Math.round(x).toLocaleString("en-US");
 
+/* The profile's index-level window. The full ±18% grid is where the flip is
+   found; the near windows show the levels actually in play around spot. */
+const ZOOMS = [
+  { id: "3", lo: 0.97, hi: 1.03, label: "±3%" },
+  { id: "8", lo: 0.92, hi: 1.08, label: "±8%" },
+  { id: "18", lo: 0.82, hi: 1.18, label: "±18%" },
+];
+let zoom = "3";
+try { const v = JSON.parse(localStorage.getItem("eqm.of.zoom") || "null"); if (ZOOMS.some(z => z.id === v)) zoom = v; } catch { /* storage blocked */ }
+let last = null; /* { chain, f, r } of the last render, so re-zooming needs no refetch */
+let wired = false;
+
 /* The gamma profile as its own SVG: index level on x, net dealer gamma per 1%
-   on y, zero line, today's spot and the flip level marked. Drawn at the
-   container's pixel width and redrawn when that changes, so text never scales. */
+   on y, zero line, today's spot, the flip level and the walls marked. Drawn at
+   the container's pixel width and redrawn when that changes, so text never
+   scales. */
 const profiles = new WeakMap();
-function drawProfile(el, p, flip) {
+function drawProfile(el, p, flip, walls) {
   if (!profiles.has(el)) new ResizeObserver(() => { const a = profiles.get(el); if (a && el.isConnected) render(el, ...a); }).observe(el);
-  profiles.set(el, [p, flip]);
-  render(el, p, flip);
+  profiles.set(el, [p, flip, walls]);
+  render(el, p, flip, walls);
 }
-function render(el, p, flip) {
+function render(el, p, flip, walls) {
   el.innerHTML = "";
   if (!p || !el.clientWidth) return;
   const W = el.clientWidth, H = W < 480 ? 190 : 230, P = { t: 22, r: 52, b: 22, l: 4 };
@@ -35,6 +48,16 @@ function render(el, p, flip) {
   mn -= padY; mx += padY;
   const X = s => P.l + (s - spots[0]) / (spots[spots.length - 1] - spots[0]) * (W - P.r - P.l);
   const Y = v => H - P.b - (v - mn) / (mx - mn) * (H - P.t - P.b);
+  const inView = v => v >= spots[0] && v <= spots[spots.length - 1];
+  /* Walls inside the window: dashed levels, labelled along the bottom, with
+     labels dropped when two would print over each other. */
+  const wallLabs = [];
+  if (walls) for (const [w, t] of [[walls.call, "call wall"], [walls.put, "put wall"], [walls.gamma, "gamma wall"]]) {
+    if (!w?.strike || !inView(w.strike)) continue;
+    const x = Math.max(P.l + 34, Math.min(W - P.r - 34, X(w.strike)));
+    if (wallLabs.some(q => Math.abs(q.x - x) < 62)) continue;
+    wallLabs.push({ v: w.strike, x, t });
+  }
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("width", W); svg.setAttribute("height", H);
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -63,6 +86,7 @@ function render(el, p, flip) {
   const xt = niceTicks(spots[0], spots[spots.length - 1], Math.max(3, Math.floor((W - P.r) / 110))).ticks;
   for (const t of xt) {
     if (t < spots[0] || t > spots[spots.length - 1]) continue;
+    if (wallLabs.some(q => Math.abs(X(t) - q.x) < 36)) continue; /* the wall's own label sits here */
     line(X(t), H - P.b, X(t), H - P.b + 3, "ch-axis");
     text(Math.max(P.l + 16, Math.min(W - P.r - 16, X(t))), H - 5, "ch-xlab", "middle", fmt0(t));
   }
@@ -73,12 +97,18 @@ function render(el, p, flip) {
   path.style.stroke = AMBER;
   path.setAttribute("stroke-width", "1.8");
   svg.appendChild(path);
+  /* Walls behind the spot and flip marks; a wall outside the window is not
+     drawn at all (its strike is still in the Walls row below). */
+  for (const q of wallLabs) {
+    line(X(q.v), P.t - 4, X(q.v), H - P.b, "ch-wall");
+    text(q.x, H - P.b - 6, "ch-walllab", "middle", q.t);
+  }
   /* Spot and flip as verticals, labelled along the top. The two usually sit a
      few points apart, so each label hangs off the outer side of its own line
      and the pair can never print over each other. */
   const spot = spots[Math.round((spots.length - 1) / 2)];
   const marks = [{ v: spot, t: "spot " + fmt0(spot), cls: "ch-mark" }];
-  if (flip != null) marks.push({ v: flip, t: "flip " + fmt0(flip), cls: "ch-mark ch-flip" });
+  if (flip != null && inView(flip)) marks.push({ v: flip, t: "flip " + fmt0(flip), cls: "ch-mark ch-flip" });
   marks.sort((a, b) => a.v - b.v);
   marks.forEach((m, i) => {
     const x = X(m.v);
@@ -156,7 +186,33 @@ function renderStats(f, spot, stale) {
   $("ofStats").innerHTML = rows.map(([k, v]) => `<li class=""><span class="cal-k">${k}</span><span class="cal-v">${esc(v)}</span></li>`).join("");
 }
 
+/* Re-draw the profile for the selected window. The flip always comes from the
+   widest grid, where the zero crossing closest to spot is searched. */
+function renderProfile() {
+  if (!last) return;
+  const z = ZOOMS.find(x => x.id === zoom) ?? ZOOMS[0];
+  const p = z.id === "18" ? last.f.profile : gexProfile(last.chain, { lo: z.lo, hi: z.hi, r: last.r });
+  drawProfile($("ofProfile"), p ?? last.f.profile, last.f.profile?.flip ?? null, last.f.walls);
+}
+
+function renderZoom() {
+  $("ofZoom").innerHTML = ZOOMS.map(z =>
+    `<button type="button" data-zoom="${z.id}" aria-pressed="${z.id === zoom}">${z.label}</button>`).join("");
+}
+
 export async function renderOptionFlow() {
+  if (!wired) {
+    wired = true;
+    $("ofZoom").addEventListener("click", e => {
+      const b = e.target.closest("button[data-zoom]");
+      if (!b) return;
+      zoom = b.dataset.zoom;
+      try { localStorage.setItem("eqm.of.zoom", JSON.stringify(zoom)); } catch { /* storage blocked */ }
+      renderZoom();
+      renderProfile();
+    });
+  }
+  renderZoom();
   renderCurve();
   let chain = await loadFlow();
   if (!chain) {
@@ -166,8 +222,10 @@ export async function renderOptionFlow() {
   }
   /* r = the policy rate, from the fed funds card when it's in. */
   const ff = ok("fedfunds");
-  const f = optionFlow(chain, { r: ff && ff.price > 0 && ff.price < 20 ? ff.price / 100 : 0.04 });
+  const r = ff && ff.price > 0 && ff.price < 20 ? ff.price / 100 : 0.04;
+  const f = optionFlow(chain, { r });
   if (!f) return;
+  last = { chain, f, r };
   renderStats(f, chain.spot, chain.stale);
-  drawProfile($("ofProfile"), f.profile, f.profile?.flip ?? null);
+  renderProfile();
 }

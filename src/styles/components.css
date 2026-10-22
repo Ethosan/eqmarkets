@@ -453,8 +453,13 @@
 .ch-ylab, .ch-xlab { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; font-family: inherit }
 .ch-mark { stroke: var(--ink-2); stroke-width: 1 }
 .ch-flip { stroke-dasharray: 3 3 }
+.ch-wall { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 6; opacity: .8 }
+.ch-walllab { fill: var(--ink-2); font-size: 11px; font-weight: 600; font-family: inherit; paint-order: stroke; stroke: var(--sheet); stroke-width: 3px; stroke-linejoin: round }
 .ch-marklab { fill: var(--ink-2); font-weight: 600 }
 #ofProfile { margin-top: 0 }
+.of-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px }
+.of-head .d-ranges { flex: none; margin-top: 0 }
+@media (max-width: 720px) { .of-head { flex-direction: column; align-items: flex-start; gap: 6px } .of-head .m-cap { margin-top: 0 } }
 .ch-cross { stroke: var(--ink-3); stroke-width: 1 }
 .ch-dot { stroke: var(--sheet); stroke-width: 2 }
 .ch-tip {
