@@ -250,7 +250,7 @@ A near-neutral clinical palette with one teal, a two-step alert ladder (amber, r
 
 The desktop shell is a two-column grid. A sticky 232px rail on chart paper holds the brand, Overview, Models & flows and the five group tabs, and is divided from the work area by a hairline. Above the work column sits a sticky 56px status strip on 92% paper with a 10px blur. The work column fills the space beside the rail; the whole shell is capped at 2080px and centered on the paper beyond that, so wide screens gain symmetrical margins instead of a dead right edge. Its side gutter is 32px, stepping to 40px at 1440px and up, and the status strip, work column and footer all share it.
 
-The models area is a 12-column grid with a 20px gap. The score card spans 5 columns and two rows, and the read and bias cards span 7. At 1180px and below every model card goes full width. At 720px and below card padding drops to 18px/16px and inner grids stack.
+The models area is a 12-column grid with a 20px gap. From 1600px the score, Today's read and the bias sit in one row of three equal cards; below that the score spans 5 columns and two rows with the read and bias stacked beside it. At 1180px and below every model card goes full width. At 720px and below card padding drops to 18px/16px and inner grids stack.
 
 Below 960px the same DOM flattens. The rail becomes a horizontally scrolling row of sticky section tabs under a 52px top bar. Clocks hide, and the feed summary shortens to a stamp. Each vital row reflows from five columns (name, value, today, track, reading) to two (name/value, track/pill, then reading).
 

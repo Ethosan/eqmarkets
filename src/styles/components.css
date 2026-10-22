@@ -558,7 +558,13 @@ html.touring { overflow: hidden }
 /* The admin lab renders on the night palette in either theme. */
 .lab { margin-top: 4px; margin-bottom: 28px; padding: 20px; border-radius: var(--radius); background: var(--paper); color: var(--ink) }
 
-/* ================================================================= breakpoints */
+/* =+ breakpoints */
+
+/* From 1600px the score, Today's read and the bias sit in one row of three. */
+@media (min-width: 1600px) {
+  .overview { grid-template-rows: none }
+  .overview .m-rai, .overview .m-read, .overview #biasCard { grid-column: span 4; grid-row: auto }
+}
 @media (max-width: 1180px) {
   .m-rai, .m-read, #biasCard { grid-column: 1 / -1; grid-row: auto }
   .overview { grid-template-rows: none }
