@@ -182,7 +182,7 @@ components:
 
 EQ Markets reads the market the way a ward nurse reads a patient chart. Every vital sits inside its own banded normal range from its past year, and the Risk Appetite Index is the early-warning score. The ground is chart paper in light mode and a night-ward slate in dark mode. Content sits on white sheets edged with hairline rules, the type is deep ink, and one clinical teal marks selection and focus. Colour is reserved for readings that are unusual. A quiet chart means a normal market.
 
-Density is high and calm. The desktop shell is a section rail plus a status strip over a 1280px work column. Panels are flat sheets, and the vitals are one long ruled table per indicator group. Hierarchy comes from scale and weight on a 4px rhythm. Weight does the work that boxes and fills would do elsewhere. The theme follows the system unless the user picks one. Both themes are first-class and share every rule.
+Density is high and calm. The desktop shell is a section rail plus a status strip over a fluid work column that fills the screen (centered on the paper past 2080px). Panels are flat sheets, and the vitals are one long ruled table per indicator group. Hierarchy comes from scale and weight on a 4px rhythm. Weight does the work that boxes and fills would do elsewhere. The theme follows the system unless the user picks one. Both themes are first-class and share every rule.
 
 The world rejects the category default, which is a dark terminal of tiles with green and red on every number. A day's change is plain ink unless the move is rare for that market.
 
@@ -248,7 +248,7 @@ A near-neutral clinical palette with one teal, a two-step alert ladder (amber, r
 
 ## Layout
 
-The desktop shell is a two-column grid. A sticky 232px rail on chart paper holds the brand, Overview, Models & flows and the five group tabs, and is divided from the work area by a hairline. Above the work column sits a sticky 56px status strip on 92% paper with a 10px blur. The work column is capped at 1280px with 24px/32px padding.
+The desktop shell is a two-column grid. A sticky 232px rail on chart paper holds the brand, Overview, Models & flows and the five group tabs, and is divided from the work area by a hairline. Above the work column sits a sticky 56px status strip on 92% paper with a 10px blur. The work column fills the space beside the rail; the whole shell is capped at 2080px and centered on the paper beyond that, so wide screens gain symmetrical margins instead of a dead right edge. Its side gutter is 32px, stepping to 40px at 1440px and up, and the status strip, work column and footer all share it.
 
 The models area is a 12-column grid with a 20px gap. The score card spans 5 columns and two rows, and the read and bias cards span 7. At 1180px and below every model card goes full width. At 720px and below card padding drops to 18px/16px and inner grids stack.
 

@@ -126,7 +126,11 @@
   --fs-val: 22px;
   --fs-big: 30px;
   --rail-w: 232px;
+  --gutter: 32px;
 }
+
+/* The work column's side gutter grows with the screen. */
+@media (min-width: 1440px) { :root { --gutter: 40px } }
 
 * { box-sizing: border-box; margin: 0; padding: 0 }
 html { -webkit-text-size-adjust: 100%; background: var(--paper); scrollbar-color: var(--rule-2) transparent }

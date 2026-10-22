@@ -2,7 +2,7 @@
    desktop; on narrower screens the rail becomes a sticky row of section tabs
    under a compact top bar. One DOM for both: the rail and main column flatten
    into the page grid below 960px. */
-.shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh }
+.shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); min-height: 100vh; max-width: 2080px; margin-inline: auto }
 .main-col { min-width: 0; display: flex; flex-direction: column }
 
 /* ---------- rail ---------- */
@@ -25,20 +25,20 @@
   border-bottom: 1px solid var(--rule);
   padding-top: env(safe-area-inset-top);
 }
-.appbar-in { display: flex; align-items: center; gap: 16px; padding: 0 32px; min-height: 56px }
+.appbar-in { display: flex; align-items: center; gap: 16px; padding: 0 var(--gutter); min-height: 56px }
 .fresh { display: flex; align-items: center; gap: 10px; min-width: 0 }
 .appbar-meta { margin-left: auto; display: flex; align-items: center; gap: 8px }
 .clocks { font-size: var(--fs-sm); color: var(--ink-3); white-space: nowrap; margin-right: 6px }
 .clocks b { font-weight: 600; color: var(--ink-2) }
 
 .progress[hidden] { display: none }
-.progress { display: flex; align-items: center; gap: 12px; padding: 0 32px 8px }
+.progress { display: flex; align-items: center; gap: 12px; padding: 0 var(--gutter) 8px }
 .pbar { flex: 1; height: 2px; border-radius: 2px; background: var(--rule); overflow: hidden }
 .pbar i { display: block; height: 100%; width: 0%; background: var(--teal); transition: width .3s linear }
 .pcap { font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap }
 
 /* ---------- page ---------- */
-.wrap { width: 100%; max-width: 1280px; padding: 24px 32px 40px; flex: 1 }
+.wrap { width: 100%; padding: 28px var(--gutter) 44px; flex: 1 }
 
 .group { margin-top: 36px }
 #models { margin-top: 44px }
@@ -46,7 +46,7 @@
 .group.hidden { display: none }
 
 footer {
-  max-width: 1280px; padding: 18px 32px 32px; border-top: 1px solid var(--rule);
+  padding: 18px var(--gutter) 32px; border-top: 1px solid var(--rule);
   font-size: var(--fs-xs); line-height: 1.7; color: var(--ink-3);
 }
 footer span:empty { display: none }
