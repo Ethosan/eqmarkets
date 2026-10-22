@@ -39,6 +39,20 @@
   status = 200
   force = true
 
+# Treasury.gov — daily yield curve and real yield curve CSVs (FRED alternative)
+[[redirects]]
+  from = "/ust/*"
+  to = "https://home.treasury.gov/:splat"
+  status = 200
+  force = true
+
+# NY Fed — ACM term premium CSV (FRED alternative)
+[[redirects]]
+  from = "/nyfed/*"
+  to = "https://www.newyorkfed.org/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/cftc/*"
   to = "https://publicreporting.cftc.gov/:splat"

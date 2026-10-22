@@ -181,7 +181,7 @@ export const READ_IDS = ["es", "nq", "btc", "gc", "si", "hg", "cugold", "cl", "n
 export const AR_UNIVERSE = ["es", "nq", "btc", "gc", "cl", "dxy", "usdjpy", "hyg", "us10y", "vix"];
 
 export function sourceUrl(item, src) {
-  if (src === "fred" && item.fredId) return "https://fred.stlouisfed.org/series/" + item.fredId;
+  if ((src === "fred" || src === "alt" || src === "static") && item.fredId) return "https://fred.stlouisfed.org/series/" + item.fredId;
   if (src === "cftc") return "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm";
   if (src === "boj" || item.bojLive) return "https://www.boj.or.jp/en/";
   if (item.symbols && item.symbols.length) return "https://finance.yahoo.com/quote/" + encodeURIComponent(item.symbols[0]);

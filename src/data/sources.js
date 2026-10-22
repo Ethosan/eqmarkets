@@ -5,6 +5,8 @@ import { STATE } from "../state.js";
 import { viaTransports } from "./transport.js";
 import { inRollWindow, rollAdjust, rollWindows } from "./roll.js";
 import { parseChain } from "../quant/optionflow.js";
+import { fetchAlternative, HAS_ALTERNATIVE } from "./alternatives.js";
+import { staticFallback } from "./fallbacks.js";
 
 /* Two years of history so one-year rolling statistics have a full window. */
 const YAHOO_RANGE = "2y";
@@ -171,7 +173,9 @@ async function cotSeries() {
 }
 
 /* Fetch one series into STATE. Keeps the last good value (marked stale) on failure.
-   Order: CFTC / BOJ special cases; then Yahoo first for live items, FRED first otherwise. */
+   Order: CFTC / BOJ special cases; then Yahoo first for live items, FRED first otherwise.
+   When FRED fails, tries non-FRED alternatives (Treasury.gov, NY Fed, computed),
+   then static fallbacks, before giving up to the snapshot. */
 export async function fetchItem(item) {
   const keepLast = () => {
     const last = STATE[item.id];
@@ -201,6 +205,30 @@ export async function fetchItem(item) {
     if (s) { put(s, "fred"); return true; }
     return false;
   };
-  const ok = item.live ? (await yahoo()) || (await fred()) : (await fred()) || (await yahoo());
+  /* Non-FRED alternative (Treasury.gov, NY Fed, computed breakeven, etc.) */
+  const alternative = async () => {
+    if (!item.fredId || !HAS_ALTERNATIVE.has(item.fredId)) return false;
+    const s = await fetchAlternative(item, id => fredSeries(id, item.fredDays || FRED_DAYS));
+    if (s) { put(s, "alt"); return true; }
+    return false;
+  };
+  /* Static last-known-good value when all live sources fail. */
+  const staticFb = () => {
+    if (!item.fredId) return false;
+    const s = staticFallback(item.fredId);
+    if (s) { put(s, "static"); return true; }
+    return false;
+  };
+
+  /* Fetch order: live items try Yahoo first; FRED-dependent items try FRED first,
+     then alternatives, then static fallbacks, then Yahoo (for items that have both). */
+  let ok;
+  if (item.live) {
+    ok = (await yahoo()) || (await fred()) || (await alternative()) || (await staticFb());
+  } else if (item.fredId) {
+    ok = (await fred()) || (await alternative()) || (await yahoo()) || (await staticFb());
+  } else {
+    ok = (await yahoo()) || (await staticFb());
+  }
   if (!ok) keepLast();
 }
