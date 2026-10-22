@@ -42,6 +42,7 @@ const BODY = () => `
     <li><b>Fragility.</b> If the absorption ratio's ΔAR is above +1, markets are moving as one block and a selloff can spread fast. That's a reason to cut size, not a reason to short.</li>
     <li><b>Backdrop.</b> The macro regime and the recession odds move slowly. They tell you what kind of quarter or year it is, not what to do today.</li>
     <li><b>Your market.</b> Tap its row. Check where it sits in its 1-year range, and compare EWMA vol with 1-month vol: if EWMA is higher, volatility is picking up right now, so size down.</li>
+    <li><b>One number, fast.</b> The filter box on the left rail narrows all 45 rows by name, ticker or group as you type; press / anywhere to jump to it, Esc to clear.</li>
   </ol>
   <p class="g-note">None of this is a trade signal. It's context, so you know what kind of tape you're stepping into.</p>
 </section>

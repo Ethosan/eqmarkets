@@ -96,7 +96,7 @@ const STEPS = [
   {
     sel: "#tabs",
     title: "Jump to a group",
-    body: () => "Rates, Risk, Carry, Commodities and the Tape each have a tab. Models shows just the model panels.",
+    body: () => "Rates, Risk, Carry, Commodities and the Tape each have a tab. Models shows just the model panels. The filter box under the tabs narrows all 45 rows by name or ticker; / focuses it from anywhere.",
     before: () => document.querySelector('.tab[data-filter="all"]')?.click(),
   },
   {

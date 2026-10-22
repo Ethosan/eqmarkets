@@ -28,7 +28,7 @@ export function buildBoard(onOpen) {
     sec.setAttribute("aria-labelledby", "grp-" + g.tab);
     sec.innerHTML =
       '<div class="group-head"><h2 class="group-title" id="grp-' + g.tab + '">' + g.label + "</h2>" +
-      '<span class="group-sub">' + g.items.length + " indicators</span></div>" + COLS;
+      '<span class="group-sub" data-total="' + g.items.length + '">' + g.items.length + " indicators</span></div>" + COLS;
     const grid = document.createElement("div");
     grid.className = "grid";
     for (const it of g.items) {
@@ -37,6 +37,8 @@ export function buildBoard(onOpen) {
       card.className = "card " + g.cls;
       card.id = "card-" + it.id;
       card.title = it.desc;
+      /* What the rail's filter box matches on: ticker, name, group. */
+      card.dataset.q = (it.ticker + " " + it.name + " " + g.label).toLowerCase();
       card.setAttribute("aria-label", it.name + ": loading");
       card.innerHTML =
         '<span class="v-id"><span class="v-name"><span class="gdot" aria-hidden="true"></span>' +

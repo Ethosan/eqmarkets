@@ -13,6 +13,7 @@ import { renderFlows } from "./ui/flows-panel.js";
 import { loadFomc } from "./data/fomc.js";
 import { initMethods } from "./ui/methods.js";
 import { initDetail, openDetail, refreshDetail } from "./ui/detail.js";
+import { initSearch } from "./ui/search.js";
 import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd, initTheme, foldOnPhones } from "./ui/chrome.js";
 import { $, clockIn } from "./ui/format.js";
 import { initGuide } from "./ui/guide.js";
@@ -116,6 +117,7 @@ foldOnPhones(["raiMore", "biasMore"]);
 /* Cards first: the saved or shortcut tab hides groups, so they must exist. */
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
 initTabs(openLab);
+initSearch();
 initDetail();
 initGuide({ onReplayTour: startTour });
 initMethods();

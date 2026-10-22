@@ -15,6 +15,12 @@
 .brand-mark { width: 26px; height: 26px; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--paper) }
 .brand-mark svg { width: 15px; height: 15px; display: block }
 .brand-m { display: none }
+.q-box { padding: 0 10px }
+#q { width: 100%; min-height: 36px; padding: 6px 10px; font: inherit; font-size: var(--fs-sm); color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-2); border-radius: 9px }
+#q::placeholder { color: var(--ink-3) }
+#q:focus-visible { outline-offset: 0 }
+.q-out { display: block; padding: 6px 2px 0; font-size: var(--fs-xs); color: var(--ink-3) }
+.q-out:empty { display: none }
 .rail-note { margin-top: auto; padding: 0 10px; font-size: var(--fs-xs); line-height: 1.5; color: var(--ink-3) }
 
 /* ---------- status bar ---------- */
@@ -44,6 +50,7 @@
 #models { margin-top: 44px }
 #board[data-view]:not([data-view="all"]) .group { margin-top: 0 }
 .group.hidden { display: none }
+.card.q-hide, .group.q-empty { display: none }
 
 footer {
   padding: 18px var(--gutter) 32px; border-top: 1px solid var(--rule);
@@ -56,7 +63,7 @@ footer span:empty { display: none }
 @media (max-width: 959px) {
   .shell { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "tabs" "main" "foot" }
   .rail, .main-col { display: contents }
-  .rail > .brand, .rail-note { display: none }
+  .rail > .brand, .q-box, .rail-note { display: none }
   .appbar { grid-area: bar }
   .wrap { grid-area: main; padding: 16px 20px 32px }
   footer { grid-area: foot; padding: 16px 20px 28px }

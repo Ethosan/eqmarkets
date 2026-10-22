@@ -299,6 +299,7 @@ A sheet-wash track with 3px padding. The selected option is a sheet tile with a 
 
 ### Navigation
 - **Rail:** 15px/500 secondary-ink rows, 40px tall, each with a 10px group swatch. Hover gives a wash. The selected row is a sheet tile with an inset hairline and lift, at 600.
+- **Search:** the indicator filter lives at the bottom of the rail: a sheet input with a strong hairline, 36px tall, 9px radius, 13px text. It matches ticker, name and group as you type, shows a live count beneath, folds empty groups and updates each group caption ("3 of 9"). The / key focuses it from anywhere (never inside a dialog or the tour), Esc clears it, and a query switches a single-group view back to Overview so matches across groups are visible. Desktop only; phones use the group tabs.
 - **Mobile:** the rail becomes sticky horizontal tabs on 94% paper with blur, 13px, 8px swatches.
 
 ### Vital Row (signature)
