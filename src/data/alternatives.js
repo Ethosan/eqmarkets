@@ -6,102 +6,69 @@ import { viaTransports } from "./transport.js";
 
 /* ── Treasury.gov Daily Yield Curve ────────────────────────────────────────
    Covers DGS3MO, DGS2, DGS10 (nominal) and DFII10 (real, from the real curve).
-   The CSV has one row per day with all maturities as columns.
-   We fetch the current year; for history we also fetch the prior year. */
+   The CSV has one row per day with all maturities as columns, one file per year;
+   the last three years are stitched together so the models' two-year windows fill. */
 
 const UST_BASE = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv";
+/* Years of history to stitch together: the models read two years of daily data. */
+const UST_YEARS = 3;
 
-async function fetchUstYieldCurve(year, type) {
-  const url = UST_BASE + "/" + year + "/all?type=" + type +
-    "&field_tdr_date_value=" + year + "&page&_format=csv";
-  return viaTransports(url, async r => {
-    const text = await r.text();
-    const rows = text.trim().split("\n");
-    if (rows.length < 3) return null;
-    const header = rows[0].split(",").map(h => h.trim());
-    return { header, rows: rows.slice(1) };
-  }, 15000);
+/* One CSV per curve type and calendar year, fetched once per page load. */
+const ustCache = new Map();
+function fetchUstYieldCurve(year, type) {
+  const key = type + ":" + year;
+  if (!ustCache.has(key)) {
+    const url = UST_BASE + "/" + year + "/all?type=" + type +
+      "&field_tdr_date_value=" + year + "&page&_format=csv";
+    const job = viaTransports(url, async r => {
+      const rows = (await r.text()).trim().split("\n");
+      if (rows.length < 2) return null;
+      /* Headers are quoted ("10 Yr"); match on the bare, lower-cased label. */
+      const header = rows[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
+      return { header, rows: rows.slice(1) };
+    }, 15000).catch(() => null);
+    ustCache.set(key, job);
+    /* a failed year is retried on the next refresh rather than cached */
+    job.then(d => { if (!d) ustCache.delete(key); });
+  }
+  return ustCache.get(key);
 }
 
-function parseUstRows(data, colName) {
-  if (!data) return null;
-  const colIdx = data.header.findIndex(h => h.toLowerCase() === colName.toLowerCase());
-  if (colIdx < 0) return null;
-  const dates = [], values = [];
-  /* Treasury CSV is newest-first; reverse to oldest-first. */
-  for (const row of data.rows.slice().reverse()) {
-    const cols = row.split(",");
-    const date = cols[0]?.trim();
-    const v = parseFloat(cols[colIdx]?.trim());
-    /* Treasury dates are MM/DD/YYYY */
-    const m = date?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (m && isFinite(v)) {
-      dates.push(m[3] + "-" + m[1] + "-" + m[2]);
-      values.push(v);
+/* Merge one column across years into a FRED-shaped series, oldest first. */
+function parseUstColumn(years, colName) {
+  const byDate = new Map();
+  for (const data of years) {
+    if (!data) continue;
+    const colIdx = data.header.indexOf(colName.toLowerCase());
+    if (colIdx < 0) continue;
+    for (const row of data.rows) {
+      const cols = row.split(",");
+      /* Treasury dates are MM/DD/YYYY; values are percent, like FRED's DGS series */
+      const m = cols[0]?.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      const v = parseFloat(cols[colIdx]?.trim());
+      if (m && isFinite(v)) byDate.set(m[3] + "-" + m[1] + "-" + m[2], v);
     }
   }
+  const dates = [...byDate.keys()].sort(), values = dates.map(d => byDate.get(d));
   const n = values.length;
   return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
 }
 
-async function fetchUstNominal(maturity) {
+async function fetchUstSeries(type, colName) {
   const year = new Date().getFullYear();
-  const thisYear = await fetchUstYieldCurve(year, "daily_treasury_yield_curve");
-  const s = parseUstRows(thisYear, maturity);
-  if (s && s.dates.length > 5) return s;
-  /* Fall back to prior year if current year has too few rows (early January). */
-  const lastYear = await fetchUstYieldCurve(year - 1, "daily_treasury_yield_curve");
-  const s2 = parseUstRows(lastYear, maturity);
-  return s2 || s;
+  const years = await Promise.all(Array.from({ length: UST_YEARS }, (_, i) => fetchUstYieldCurve(year - i, type)));
+  return parseUstColumn(years, colName);
 }
-
-async function fetchUstReal(maturity) {
-  const year = new Date().getFullYear();
-  const thisYear = await fetchUstYieldCurve(year, "daily_treasury_real_yield_curve");
-  const s = parseUstRows(thisYear, maturity);
-  if (s && s.dates.length > 5) return s;
-  const lastYear = await fetchUstYieldCurve(year - 1, "daily_treasury_real_yield_curve");
-  const s2 = parseUstRows(lastYear, maturity);
-  return s2 || s;
-}
-
-/* ── NY Fed ACM Term Premium ───────────────────────────────────────────────
-   THREEFYTP10 equivalent. CSV at a fixed URL, updated weekly. */
-
-async function fetchTermPremium() {
-  const url = "https://www.newyorkfed.org/medialibrary/media/research/policy/termpremium/ACMTermPremium.csv";
-  return viaTransports(url, async r => {
-    const text = await r.text();
-    const rows = text.trim().split("\n");
-    if (rows.length < 3) return null;
-    /* Find the 10-year column. Header: Date,OneYear,TwoYear,FiveYear,TenYear,... */
-    const header = rows[0].split(",").map(h => h.trim().toLowerCase());
-    const colIdx = header.findIndex(h => h.includes("tenyear") || h.includes("10"));
-    if (colIdx < 0) return null;
-    const dates = [], values = [];
-    for (const row of rows.slice(1)) {
-      const cols = row.split(",");
-      const date = cols[0]?.trim();
-      const v = parseFloat(cols[colIdx]?.trim());
-      /* NY Fed dates are MM/DD/YYYY */
-      const m = date?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (m && isFinite(v)) {
-        dates.push(m[3] + "-" + m[1] + "-" + m[2]);
-        values.push(v / 100); /* CSV is in percent, we want decimal like FRED */
-      }
-    }
-    const n = values.length;
-    return n > 1 ? { price: values[n - 1], prev: values[n - 2], dates, values, asOf: dates[n - 1] } : null;
-  }, 15000);
-}
+/* Column labels as Treasury's CSVs spell them */
+const fetchUstNominal = col => fetchUstSeries("daily_treasury_yield_curve", col); /* "3 Mo", "2 Yr", "10 Yr" */
+const fetchUstReal = col => fetchUstSeries("daily_treasury_real_yield_curve", col); /* "10 YR" */
 
 /* ── Computed Breakeven ────────────────────────────────────────────────────
    T10YIE = DGS10 − DFII10. If both are available from Treasury.gov, compute it.
    Falls back to FRED if Treasury.gov fails for either leg. */
 
 async function fetchBreakeven(fredFn) {
-  const nominal = await fetchUstNominal("10-Year");
-  const real = await fetchUstReal("10-Year");
+  const [nominal, real] = await Promise.all([fetchUstNominal("10 Yr"), fetchUstReal("10 YR")]);
   if (nominal && real) {
     /* Align on common dates */
     const realMap = new Map(real.dates.map((d, i) => [d, real.values[i]]));
@@ -130,29 +97,24 @@ export async function fetchAlternative(item, fredFn) {
   if (!id) return null;
 
   switch (id) {
-    /* Treasury yields → Treasury.gov */
-    case "DGS3MO": return fetchUstNominal("3-Month");
-    case "DGS2":   return fetchUstNominal("2-Year");
-    case "DGS10":  return fetchUstNominal("10-Year");
+    /* Treasury yields → Treasury.gov (the source FRED's DGS series come from) */
+    case "DGS3MO": return fetchUstNominal("3 Mo");
+    case "DGS2":   return fetchUstNominal("2 Yr");
+    case "DGS10":  return fetchUstNominal("10 Yr");
 
     /* Real yield → Treasury.gov real curve */
-    case "DFII10": return fetchUstReal("10-Year");
+    case "DFII10": return fetchUstReal("10 YR");
 
-    /* Breakeven → computed from Treasury.gov nominal − real */
+    /* Breakeven → computed from Treasury.gov nominal − real, as FRED defines T10YIE */
     case "T10YIE": return fetchBreakeven(fredFn);
 
-    /* Term premium → NY Fed ACM CSV */
-    case "THREEFYTP10": return fetchTermPremium();
-
-    /* Credit spreads, Fed balance sheet, jobless claims, financial conditions:
-       no clean alternative — return null so the caller falls through to
-       static fallbacks (see fallbacks.js) or the snapshot. */
+    /* Everything else, term premium included, has no live source outside FRED.
+       The NY Fed's ACM premium is a different model from Kim–Wright and its CSV
+       sits behind a bot check, so it is not used. Returning null leaves the
+       card on its last real reading, marked stale: never an invented number. */
     default: return null;
   }
 }
 
-/* Which series have a non-FRED alternative? Used to skip FRED entirely
-   when we know an alternative exists (avoids waiting for FRED to time out). */
-export const HAS_ALTERNATIVE = new Set([
-  "DGS3MO", "DGS2", "DGS10", "DFII10", "T10YIE", "THREEFYTP10",
-]);
+/* Which series have a non-FRED alternative. */
+export const HAS_ALTERNATIVE = new Set(["DGS3MO", "DGS2", "DGS10", "DFII10", "T10YIE"]);

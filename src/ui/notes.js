@@ -23,13 +23,16 @@ export function longRunPct(s) {
   return s && s.values && s.values.length > 2000 ? percentileRank(s.values[s.values.length - 1], s.values.slice(0, -1)) : null;
 }
 
+/* Which daily close a Treasury yield is: FRED's H.15, or Treasury.gov's own curve when FRED is down. */
+const closeNote = s => (s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : s.src === "alt" ? { t: "Treasury.gov close · " + s.asOf, c: "" } : null);
+
 export function noteFor(item, s, st) {
   const v = s.price;
   switch (item.id) {
     case "boj": {
       const ff = ok("fedfunds");
       const gap = ff ? " · US–JP gap " + (ff.price - v).toFixed(2) + " pp" : "";
-      return { t: (s.src === "boj" ? "Live from boj.or.jp" : "Fallback value") + (s.asOf ? ", " + s.asOf : "") + gap, c: "" };
+      return { t: (s.stale || s.cached ? "Last reading · boj.or.jp didn't answer" : "Live from boj.or.jp") + (s.asOf ? ", " + s.asOf : "") + gap, c: "" };
     }
     case "carryvol":
       return {
@@ -54,9 +57,9 @@ export function noteFor(item, s, st) {
     }
     case "us2y":
       if (s.src === "yahoo") return { t: "Futures proxy (2YY=F) · can drift from cash", c: "" };
-      return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
+      return closeNote(s) || rangeNote(item, st);
     case "us10y":
-      return s.src === "fred" ? { t: "H.15 close · " + s.asOf, c: "" } : rangeNote(item, st);
+      return closeNote(s) || rangeNote(item, st);
     case "baa": {
       const lr = longRunPct(s), y = st?.pct1y;
       if (lr == null) return rangeNote(item, st);

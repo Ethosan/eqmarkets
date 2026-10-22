@@ -10,10 +10,6 @@ export const UP = "var(--up)";
 export const DOWN = "var(--down)";
 export const SERIES = "var(--series)";
 
-/* BOJ policy rate fallback. The app scrapes boj.or.jp first; this value is only
-   used when that fails. Update after each BOJ move (8 meetings a year). */
-export const BOJ_RATE = { value: 1.0, asOf: "since 17 Jun 2026" };
-
 export const REFRESH_MS = 60_000;
 
 /* Series fetched for models only (not shown as cards). Spreads are built from
@@ -181,7 +177,8 @@ export const READ_IDS = ["es", "nq", "btc", "gc", "si", "hg", "cugold", "cl", "n
 export const AR_UNIVERSE = ["es", "nq", "btc", "gc", "cl", "dxy", "usdjpy", "hyg", "us10y", "vix"];
 
 export function sourceUrl(item, src) {
-  if ((src === "fred" || src === "alt" || src === "static") && item.fredId) return "https://fred.stlouisfed.org/series/" + item.fredId;
+  if (src === "alt") return "https://home.treasury.gov/resource-center/data-chart-center/interest-rates";
+  if (src === "fred" && item.fredId) return "https://fred.stlouisfed.org/series/" + item.fredId;
   if (src === "cftc") return "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm";
   if (src === "boj" || item.bojLive) return "https://www.boj.or.jp/en/";
   if (item.symbols && item.symbols.length) return "https://finance.yahoo.com/quote/" + encodeURIComponent(item.symbols[0]);

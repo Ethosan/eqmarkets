@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 const UPSTREAM = {
   "/yf": "https://query1.finance.yahoo.com",
   "/fred": "https://fred.stlouisfed.org",
+  "/ust": "https://home.treasury.gov",
   "/boj": "https://www.boj.or.jp",
   "/fed": "https://www.federalreserve.gov",
   "/cftc": "https://publicreporting.cftc.gov",

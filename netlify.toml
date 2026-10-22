@@ -46,13 +46,6 @@
   status = 200
   force = true
 
-# NY Fed — ACM term premium CSV (FRED alternative)
-[[redirects]]
-  from = "/nyfed/*"
-  to = "https://www.newyorkfed.org/:splat"
-  status = 200
-  force = true
-
 [[redirects]]
   from = "/cftc/*"
   to = "https://publicreporting.cftc.gov/:splat"

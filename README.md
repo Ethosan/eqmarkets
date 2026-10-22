@@ -36,7 +36,7 @@ Markets and [Oracular](https://oracular.ethantam.dev) are separate tools, and ne
 | Markets (this repo) | Oracular |
 |---|---|
 | Top-down and cross-asset: rates, credit, vol, FX, commodities, index futures | Bottom-up: one company or ticker at a time |
-| Live market data | Synthetic, deterministic data |
+| Live market data | Live market data, one ticker at a time |
 | Regimes, flows, premia and positioning (RAI, absorption, recession odds, CTA, VRP, stock–bond, SPX dealer gamma) | Investment memo, verdict badge and seven-factor scorecard |
 | Calendar *events* that move index futures (turn of month, FOMC, expiry, rebalancing), tested as event studies | Per-ticker seasonality tables with t-statistics, lifecycle phase map |
 | Testing whether a signal works (backtest lab, overfitting guards) | Options and derivatives analytics, alternative signals, research chat |
@@ -45,16 +45,18 @@ So Markets doesn't show single stocks, fundamentals, single-name option chains, 
 
 ## Data sources
 
+Every number on the page is a real reading. When a source is down, Treasury.gov stands in for the Treasury yields and the breakeven; anything else keeps its last real value, marked stale, or the device's saved copy. There are no typed-in fallback values.
+
 | Data | Source | Series | How it's reached |
 |---|---|---|---|
 | Futures, FX, indices, ETFs, BTC | Yahoo Finance chart API | `ES=F NQ=F GC=F CL=F JPY=X DX-Y.NYB HYG BTC-USD ^TNX ^VIX ^VIX3M ^MOVE` | `/yf/*` proxy |
-| Treasuries, real yields, breakevens | FRED (H.15, Fed Board) | `DGS3MO DGS2 DGS10 DFII10 T10YIE` | `/fred/*` proxy |
+| Treasuries, real yields, breakevens | FRED (H.15, Fed Board); **Treasury.gov** daily par and real yield curves when FRED is down (breakeven = 10Y nominal − 10Y real, as FRED defines it) | `DGS3MO DGS2 DGS10 DFII10 T10YIE` | `/fred/*` proxy; `/ust/*` proxy |
 | Term premium | FRED (Kim–Wright, Fed Board) | `THREEFYTP10` | `/fred/*` |
 | Credit spreads | FRED (ICE BofA; Moody's) | `BAMLH0A0HYM2 BAMLC0A0CM BAA10Y` | `/fred/*` |
 | Labour, Fed balance sheet | FRED (DoL; Fed H.4.1; NY Fed) | `ICSA` (weekly), `WALCL WTREGEN` (weekly), `RRPONTSYD` | `/fred/*` |
 | Financial conditions | FRED (Chicago Fed, St. Louis Fed) | `NFCI STLFSI4` (weekly) | `/fred/*` |
 | Fed funds | FRED (NY Fed) | `DFF` | `/fred/*` |
-| BOJ policy rate | boj.or.jp homepage | scraped | `/boj/*` proxy, manual fallback in `src/config.js` |
+| BOJ policy rate | boj.or.jp homepage | scraped | `/boj/*` proxy; if the scrape fails, the last real reading stays up, marked stale |
 | Yen speculative positioning | CFTC Legacy COT (Socrata `6dca-aqww`) | non-commercial net, 3 years | `/cftc/*` proxy |
 | Commodities | Yahoo Finance chart API | `HG=F SI=F NG=F ZC=F ZW=F ZS=F DBC DBA` | `/yf/*` proxy |
 | FOMC meeting dates | federalreserve.gov FOMC calendar page | scheduled statement days | `/fed/*` proxy, built-in fallback in `src/quant/calendar.js` |
@@ -210,7 +212,7 @@ index.html              page shell and static markup
 src/
   main.js               boot, refresh loop
   pwa.js                service worker, install bar, update notice
-  config.js             indicator list, BOJ fallback, refresh interval
+  config.js             indicator list, refresh interval
   state.js              latest series per indicator
   data/
     transport.js        proxy fallbacks and timeouts

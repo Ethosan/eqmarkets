@@ -1,12 +1,10 @@
 /* Upstream data sources. Every series is normalised to
    { price, prev, dates: [YYYY-MM-DD], values: [], src, asOf }. */
-import { BOJ_RATE } from "../config.js";
 import { STATE } from "../state.js";
 import { viaTransports } from "./transport.js";
 import { inRollWindow, rollAdjust, rollWindows } from "./roll.js";
 import { parseChain } from "../quant/optionflow.js";
 import { fetchAlternative, HAS_ALTERNATIVE } from "./alternatives.js";
-import { staticFallback } from "./fallbacks.js";
 
 /* Two years of history so one-year rolling statistics have a full window. */
 const YAHOO_RANGE = "2y";
@@ -109,7 +107,7 @@ export async function fredSeries(id, days = FRED_DAYS) {
 /* BOJ policy rate, scraped from the BOJ English homepage, cached 30 min. */
 let bojCache = null;
 async function bojRate() {
-  if (bojCache && Date.now() - bojCache.ts < 30 * 60_000) return bojCache;
+  if (bojCache && Date.now() - bojCache.ts < 30 * 60_000) return bojCache.live ? bojCache : null;
   const live = await viaTransports("https://www.boj.or.jp/en/", async r => {
     const text = (await r.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
     let m = text.match(/Complementary Deposit Facility\s*([\d.]+)\s*%\s*since\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/);
@@ -121,10 +119,10 @@ async function bojRate() {
     }
     return isFinite(value) && value >= 0 && value <= 5 ? { value, asOf } : null;
   });
-  bojCache = live
-    ? { ...live, live: true, ts: Date.now() }
-    : { value: BOJ_RATE.value, asOf: BOJ_RATE.asOf, live: false, ts: Date.now() };
-  return bojCache;
+  /* A failed scrape is remembered for the same 30 minutes, so the homepage isn't
+     re-fetched on every refresh; the card then keeps its last real reading. */
+  bojCache = live ? { ...live, live: true, ts: Date.now() } : { live: false, ts: Date.now() };
+  return bojCache.live ? bojCache : null;
 }
 
 /* CBOE delayed-quotes SPX chain (the whole option board, ~1.7 MB gzipped):
@@ -174,8 +172,9 @@ async function cotSeries() {
 
 /* Fetch one series into STATE. Keeps the last good value (marked stale) on failure.
    Order: CFTC / BOJ special cases; then Yahoo first for live items, FRED first otherwise.
-   When FRED fails, tries non-FRED alternatives (Treasury.gov, NY Fed, computed),
-   then static fallbacks, before giving up to the snapshot. */
+   When FRED fails, Treasury.gov stands in for the Treasury yields and the breakeven.
+   Every number shown is a real reading: with no live source the card keeps its last
+   one, marked stale (or the device's saved copy), never a typed-in value. */
 export async function fetchItem(item) {
   const keepLast = () => {
     const last = STATE[item.id];
@@ -188,7 +187,8 @@ export async function fetchItem(item) {
   if (item.cot) { const s = await cotSeries(); if (s) put(s, "cftc"); else keepLast(); return; }
   if (item.bojLive) {
     const r = await bojRate();
-    STATE[item.id] = { price: r.value, prev: null, dates: null, values: null, error: false, src: r.live ? "boj" : "manual", asOf: r.asOf };
+    if (r) STATE[item.id] = { price: r.value, prev: null, dates: null, values: null, error: false, stale: false, src: "boj", asOf: r.asOf };
+    else keepLast();
     return;
   }
   const yahoo = async () => {
@@ -212,23 +212,15 @@ export async function fetchItem(item) {
     if (s) { put(s, "alt"); return true; }
     return false;
   };
-  /* Static last-known-good value when all live sources fail. */
-  const staticFb = () => {
-    if (!item.fredId) return false;
-    const s = staticFallback(item.fredId);
-    if (s) { put(s, "static"); return true; }
-    return false;
-  };
-
   /* Fetch order: live items try Yahoo first; FRED-dependent items try FRED first,
-     then alternatives, then static fallbacks, then Yahoo (for items that have both). */
+     then the Treasury.gov alternative, then Yahoo (for items that have both). */
   let ok;
   if (item.live) {
-    ok = (await yahoo()) || (await fred()) || (await alternative()) || (await staticFb());
+    ok = (await yahoo()) || (await fred()) || (await alternative());
   } else if (item.fredId) {
-    ok = (await fred()) || (await alternative()) || (await yahoo()) || (await staticFb());
+    ok = (await fred()) || (await alternative()) || (await yahoo());
   } else {
-    ok = (await yahoo()) || (await staticFb());
+    ok = await yahoo();
   }
   if (!ok) keepLast();
 }
