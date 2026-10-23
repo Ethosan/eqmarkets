@@ -1,7 +1,7 @@
 /* Ordered ways of reaching the upstream data sources.
-   0: same-origin Netlify proxy (see netlify.toml), the reliable path once deployed.
+   0: same-origin proxy (see _redirects), the reliable path once deployed.
    1-3: public CORS proxies, a fallback for running the page somewhere else. */
-/* FRED CSVs go through /fredx/<id>/<start>/…: Netlify's edge cache keys on the
+/* FRED CSVs go through /fredx/<id>/<start>/…: Cloudflare's edge cache keys on the
    path, not the query string, so with every series on one path it served one
    series' cached CSV for another whenever FRED returned an error. */
 const fredPath = u => {

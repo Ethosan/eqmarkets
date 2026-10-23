@@ -42,7 +42,6 @@ describe("validateFacts", () => {
   });
 
   it("names the regime the card shows, not today's raw quadrant", () => {
-    /* Raw reading is Goldilocks territory, but the confirmed regime is still Reflation. */
     const f = validateFacts({ ...FACTS, regime: { growth: 0.8, inflation: -0.6, since: "2026-04-20", quadrant: "reflation", weeks: 26 } });
     expect(buildPrompt(f).user).toMatch(/Reflation, since the week of 2026-04-20 \(26 weeks\)/);
     const bad = validateFacts({ ...FACTS, regime: { growth: 0.8, inflation: -0.6, quadrant: "toString" } });
@@ -74,12 +73,14 @@ describe("buildPrompt", () => {
 });
 
 describe("/api/explain handler", () => {
-  let handler, calls;
+  let onRequestPost, calls;
   const realFetch = globalThis.fetch;
   const post = (body, headers = {}) => new Request("https://markets.example.com/api/explain", {
     method: "POST", body: typeof body === "string" ? body : JSON.stringify(body),
     headers: { "content-type": "application/json", origin: "https://markets.example.com", ...headers },
   });
+  const call = (req, env = { MISTRAL_API_KEY: "mistral-test" }) =>
+    onRequestPost({ request: req, env });
   const apiReply = (payload, status = 200) => {
     globalThis.fetch = vi.fn(async (url, init) => {
       calls.push({ url: String(url), init, body: JSON.parse(init.body) });
@@ -89,23 +90,20 @@ describe("/api/explain handler", () => {
 
   beforeEach(async () => {
     calls = [];
-    process.env.MISTRAL_API_KEY = "mistral-test";
     vi.resetModules();
-    ({ default: handler } = await import("../netlify/functions/explain.mjs"));
+    ({ onRequestPost } = await import("../functions/api/explain.mjs"));
   });
-  afterEach(() => { globalThis.fetch = realFetch; delete process.env.MISTRAL_API_KEY; });
+  afterEach(() => { globalThis.fetch = realFetch; });
 
   it("says when it isn't set up", async () => {
-    delete process.env.MISTRAL_API_KEY;
-    const res = await handler(post(FACTS));
+    const res = await call(post(FACTS), {});
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("not_configured");
   });
 
   it("refuses other sites and bad input", async () => {
-    expect((await handler(post(FACTS, { origin: "https://evil.example" }))).status).toBe(403);
-    expect((await handler(post("{not json"))).status).toBe(400);
-    expect((await handler(new Request("https://markets.example.com/api/explain"))).status).toBe(405);
+    expect((await call(post(FACTS, { origin: "https://evil.example" }))).status).toBe(403);
+    expect((await call(post("{not json"))).status).toBe(400);
   });
 
   it("calls Mistral with the rebuilt prompt and caches the answer", async () => {
@@ -114,7 +112,7 @@ describe("/api/explain handler", () => {
       choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "Markets are leaning risk-off." } }],
       usage: { prompt_tokens: 900, completion_tokens: 120, total_tokens: 1020 },
     });
-    const res = await handler(post(FACTS));
+    const res = await call(post(FACTS));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.text).toBe("Markets are leaning risk-off.");
@@ -129,7 +127,7 @@ describe("/api/explain handler", () => {
     expect(sent.messages[1].role).toBe("user");
     expect(sent.messages[1].content).toMatch(/Rules-engine observations/);
 
-    const again = await (await handler(post(FACTS))).json();
+    const again = await (await call(post(FACTS))).json();
     expect(again.cached).toBe(true);
     expect(calls).toHaveLength(1);
   });
@@ -137,22 +135,22 @@ describe("/api/explain handler", () => {
   it("keeps only the text chunks from a reasoning model", async () => {
     apiReply({ model: "magistral-medium-latest", choices: [{ index: 0, finish_reason: "length", message: { role: "assistant",
       content: [{ type: "thinking", thinking: [{ type: "text", text: "hmm" }] }, { type: "text", text: "Risk-off." }] } }] });
-    const body = await (await handler(post(FACTS))).json();
+    const body = await (await call(post(FACTS))).json();
     expect(body.text).toBe("Risk-off.");
     expect(body.truncated).toBe(true);
   });
 
   it("reports an empty answer", async () => {
     apiReply({ choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "" } }] });
-    expect((await (await handler(post(FACTS))).json()).error).toBe("empty");
+    expect((await (await call(post(FACTS))).json()).error).toBe("empty");
   });
 
   it("maps API errors to short codes", async () => {
     apiReply({ message: "Unauthorized" }, 401);
-    expect((await (await handler(post(FACTS))).json()).error).toBe("bad_key");
+    expect((await (await call(post(FACTS))).json()).error).toBe("bad_key");
     apiReply({ message: "Requests rate limit exceeded" }, 429);
-    expect((await handler(post({ ...FACTS, rec: { prob: 0.2 } }))).status).toBe(429);
+    expect((await call(post({ ...FACTS, rec: { prob: 0.2 } }))).status).toBe(429);
     apiReply({ message: "Internal error" }, 500);
-    expect(await (await handler(post({ ...FACTS, rec: { prob: 0.3 } }))).json()).toEqual({ error: "upstream", status: 500 });
+    expect(await (await call(post({ ...FACTS, rec: { prob: 0.3 } }))).json()).toEqual({ error: "upstream", status: 500 });
   });
 });

@@ -1,0 +1,12 @@
+# Same-origin proxies so the browser can read market data sources without CORS errors.
+# Status 200 = rewrite (proxy), not redirect.
+/yf/*       https://query1.finance.yahoo.com/:splat       200
+/fredx/:id/:start/*  https://fred.stlouisfed.org/:splat  200
+/fred/*     https://fred.stlouisfed.org/:splat            200
+/boj/*      https://www.boj.or.jp/:splat                  200
+/fed/*      https://www.federalreserve.gov/:splat         200
+/ust/*      https://home.treasury.gov/:splat             200
+/cftc/*     https://publicreporting.cftc.gov/:splat       200
+/cboe/*     https://cdn-api.cboe.com/:splat               200
+# Oracular's data worker: alt-signal feeds (pizza, nightlife, fear and greed)
+/odw/*      https://oracular-data.makan-bot.workers.dev/:splat  200
