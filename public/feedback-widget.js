@@ -30,7 +30,7 @@
     bottom: script.getAttribute("data-bottom") || "20px",
   };
   // Only lengths and calc()/env() expressions, so the attribute can't inject other CSS.
-  if (!/^[\w\s().,+*\/%-]+$/.test(cfg.bottom)) cfg.bottom = "20px";
+  if (!/^[\w\s().,+*%-]+$/.test(cfg.bottom)) cfg.bottom = "20px";
 
   if (!cfg.supabaseUrl || !cfg.supabaseKey) {
     console.warn("[feedback-widget] Missing data-supabase-url or data-supabase-key");

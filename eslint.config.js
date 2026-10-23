@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
-  { ignores: ["dist/", "assets/", ".impeccable/"] },
+  { ignores: ["dist/", "assets/", ".impeccable/", "netlify/", ".wrangler/"] },
   js.configs.recommended,
   {
     languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: globals.browser },
