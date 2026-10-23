@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { forwardAfter, moonBuckets, moonPhase, nightlife, phaseBin, pizza, tCrit } from "../src/data/signals.js";
+import { forwardAfter, moonBuckets, moonPhase, nightlife, phaseBin, pizza, pizzaTest, tCrit } from "../src/data/signals.js";
 
 /* n business days from 2020-01-02, with closes from `f(i)` */
 function series(n, f) {
@@ -95,18 +95,49 @@ describe("the measured Stripper Index", () => {
 });
 
 describe("the Pentagon Pizza Index", () => {
-  it("shows no level when no pizzeria reports live", () => {
-    const pz = pizza({ now: { defcon: 5, livePlaces: 0, reason: "compute_doughcon_v9: quiet", places: [{ name: "A", live: null }] }, hist: [] });
-    expect(pz.defcon).toBeNull();
-    expect(pz.reason).toBe("quiet");
+  it("says when Google sent no busyness instead of reading quiet", () => {
+    const pz = pizza({ now: { limited: true, signedIn: false, places: [{ name: "A", live: null, closed: true }, { name: "B", live: null, closed: false }] }, hist: [] });
+    expect(pz.limited).toBe(true);
+    expect(pz.pctUsual).toBeNull();
     expect(pz.live).toBe(0);
+    expect(pz.open).toBe(1);
   });
 
-  it("passes the feed's own level through when readings are live", () => {
-    const pz = pizza({ now: { defcon: 3, livePlaces: 2, reason: "x: busy", places: [{ live: 80 }, { live: 60 }, { live: null }] }, hist: [{ t: 1, busy: null }, { t: 2, busy: 40 }] });
-    expect(pz.defcon).toBe(3);
+  it("averages live busyness against each pizzeria's usual for the hour", () => {
+    const pz = pizza({ now: { places: [{ live: 90, pctUsual: 180 }, { live: 40, pctUsual: 100 }, { live: null, usualNow: 30 }] }, hist: [{ t: 1, pctUsual: null }, { t: 2, pctUsual: 120 }] });
     expect(pz.live).toBe(2);
+    expect(pz.pctUsual).toBe(140);
+    expect(pz.spikes).toBe(1);
     expect(pz.hist).toHaveLength(1);
-    expect(pz.logged).toBe(2);
+  });
+});
+
+describe("the Pizza Index against the next session", () => {
+  /* one reading at 9 PM Washington time on each business day of `px`, spiking where `spike(i)` */
+  const log = (px, spike) => px.dates.slice(0, -1).map((d, i) => ({ t: Date.parse(d + "T01:00:00Z") + 864e5, pctUsual: spike(i) ? 200 : 100 }));
+
+  it("waits for ten spike nights", () => {
+    const px = series(40, i => 100 + i);
+    const out = pizzaTest(log(px, i => i % 10 === 0), px);
+    expect(out.spikeNights).toBe(4);
+    expect(out.t).toBeNull();
+    expect(out.sig).toBe(false);
+  });
+
+  it("scores each night on the next session's move, either way", () => {
+    /* after every spike night a 3% rise or a 4% fall; after other nights 0.1% up or 0.2% down */
+    let level = 100, k = 0, j = 0;
+    const spikeAt = i => i % 5 === 0;
+    const px = series(300, i => (level *= i > 0 && spikeAt(i - 1) ? (k++ % 2 ? 0.96 : 1.03) : (j++ % 2 ? 0.998 : 1.001)));
+    const out = pizzaTest(log(px, spikeAt), px);
+    expect(out.spikeNights).toBe(60);
+    expect(out.avgSpike).toBeCloseTo(0.035, 4);
+    expect(out.avgRest).toBeCloseTo(0.0015, 3);
+    expect(out.sig).toBe(true);
+  });
+
+  it("needs a log and prices", () => {
+    expect(pizzaTest([], series(10, () => 100))).toBeNull();
+    expect(pizzaTest([{ t: 0, pctUsual: 100 }], null)).toBeNull();
   });
 });

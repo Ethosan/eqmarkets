@@ -128,17 +128,52 @@ export function nightlife(n) {
 }
 
 /* ------------------------------------------------------------- pentagon pizza */
-/* pizzint.watch's own level and wording; Oracular's worker logs the feed hourly. */
+/* Google Maps busyness at the pizzerias nearest the Pentagon (the idea is pizzint.watch's).
+   Oracular's worker reads Google and logs the index hourly; `limited` means Google sent
+   no busyness at all, which it does for signed-out requests. */
+export const PIZZA_SPIKE = 150;
 export function pizza(p) {
   const now = p?.now;
   if (!now) return null;
   const places = now.places || [];
   const live = places.filter(x => x.live != null);
+  const rated = live.filter(x => x.pctUsual != null);
   return {
-    defcon: now.livePlaces > 0 && now.defcon ? now.defcon : null,
-    reason: String(now.reason || "").replace(/^[^:]*:\s*/, ""),
-    places, live: live.length, ts: now.ts || now.sourceAt, stale: !!now.stale,
-    hist: (p.hist || []).filter(x => x.busy != null),
-    logged: (p.hist || []).length, since: p.hist?.length ? p.hist[0].t : null,
+    limited: !!now.limited, signedIn: !!now.signedIn,
+    places, live: live.length, open: places.filter(x => !x.closed).length,
+    pctUsual: rated.length ? Math.round(mean(rated.map(x => x.pctUsual))) : null,
+    spikes: rated.filter(x => x.pctUsual >= PIZZA_SPIKE).length,
+    ts: now.ts, stale: !!now.stale,
+    hist: (p.hist || []).filter(x => x.pctUsual != null),
   };
+}
+
+/* Does the S&P 500 move more than usual the session after a pizza spike? The theory is
+   that late Pentagon pizza runs come before news, and news moves the index either way,
+   so this compares the size of the move (|return|) after each "spike night" (any hourly
+   reading with the pizzerias at PIZZA_SPIKE% of their usual) with the move after every
+   other logged night. A night runs noon to noon Washington time and is scored on the next
+   trading session after its first day. Nothing is called with fewer than `minEp` of each. */
+const dcDay = ms => new Date(ms - 12 * 3600e3).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+export function pizzaTest(hist, px, { minEp = 10 } = {}) {
+  if (!hist?.length || !px?.dates?.length) return null;
+  const nights = new Map();
+  for (const h of hist) {
+    const d = dcDay(h.t);
+    nights.set(d, (nights.get(d) || false) || h.pctUsual >= PIZZA_SPIKE);
+  }
+  const moves = [];
+  for (const [d, spike] of nights) {
+    const i = px.dates.findIndex(x => x > d);
+    if (i > 0) moves.push({ d, spike, move: Math.abs(px.values[i] / px.values[i - 1] - 1) });
+  }
+  const sp = moves.filter(m => m.spike).map(m => m.move), rest = moves.filter(m => !m.spike).map(m => m.move);
+  const out = { nights: nights.size, tested: moves.length, spikeNights: [...nights.values()].filter(Boolean).length,
+    avgSpike: sp.length ? mean(sp) : null, avgRest: rest.length ? mean(rest) : null, t: null, sig: false, minEp };
+  if (sp.length >= minEp && rest.length >= minEp) {
+    const se = Math.sqrt(sd(sp) ** 2 / sp.length + sd(rest) ** 2 / rest.length);
+    out.t = se > 0 ? (mean(sp) - mean(rest)) / se : 0;
+    out.sig = Math.abs(out.t) >= tCrit(Math.min(sp.length, rest.length) - 1);
+  }
+  return out;
 }

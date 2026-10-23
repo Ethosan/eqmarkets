@@ -598,12 +598,6 @@ html.touring { overflow: hidden }
 /* moon phases: today's row is set in ink */
 .sg-moon li.on .cb-l { color: var(--ink); font-weight: 600 }
 .sg-moon .cb-l em { font-size: var(--fs-xs); color: var(--ink-3); margin-left: 4px }
-/* DOUGHCON 5 (quiet) to 1 (maximum): only the live level is filled, tinted from 3 */
-.sg-ladder { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 12px; max-width: 320px }
-.sg-ladder li { text-align: center; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 5px; padding: 4px 0 }
-.sg-ladder li.on { color: var(--ink); background: var(--sheet-2); border-color: var(--rule-2) }
-.sg-ladder li.on.a { background: var(--band-a) }
-.sg-ladder li.on.r { background: var(--band-r) }
 .sg-fill::after { display: none }
 .sg-fill i { left: 0 }
 .sg-fill i.usual { background: var(--rule-2) }

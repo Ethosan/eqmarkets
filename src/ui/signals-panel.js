@@ -3,7 +3,7 @@
    the scoreboard keeps entertainment and evidence apart. Loaded the first time the
    tab opens, and again when it reopens after ten minutes. */
 import { chart } from "./chart.js";
-import { forwardAfter, isoDay, loadSignals, moonBuckets, moonPhase, MOON, nightlife, phaseBin, PHASES, pizza } from "../data/signals.js";
+import { forwardAfter, isoDay, loadSignals, moonBuckets, moonPhase, MOON, nightlife, phaseBin, PHASES, pizza, PIZZA_SPIKE, pizzaTest } from "../data/signals.js";
 
 const STALE_MS = 10 * 60_000;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -93,29 +93,43 @@ function moonCard(mb) {
 }
 
 /* ------------------------------------------------------------------ pizza */
-function pizzaCard(pz) {
-  if (!pz) return '<div class="m-card sg-card" id="sg-pizza"><div class="m-top"><h3 class="m-kicker"><span class="sg-emo" aria-hidden="true">🍕</span>Pentagon Pizza Index</h3></div>' +
-    '<p class="sg-none">No reading: the pizzint.watch feed is down. It retries when you reopen this tab.</p><div class="sg-test"><p>' + stamp(V.down) + "</p></div></div>";
-  /* the ladder runs 5 (quiet) to 1 (maximum); 3 and 2 tint amber, 1 red, 5 and 4 never */
-  const ladder = [5, 4, 3, 2, 1].map(n => '<li' + (pz.defcon === n ? ' class="on ' + (n === 1 ? "r" : n <= 3 ? "a" : "") + '"' : "") + '>' + n + "</li>").join("");
+const pizzaWord = p => p >= PIZZA_SPIKE ? "Spiking" : p >= 110 ? "Busier than usual" : p <= 90 ? "Quieter than usual" : "About usual";
+const shortDate = ms => new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+function pizzaVerdict(pz, test) {
+  if (!pz) return { v: V.down, why: "" };
+  if (!test) return { v: V.thin, why: "No Google readings are logged yet. The data worker logs one every hour that Google sends busyness, and the test runs once ten spike nights and ten quiet ones are in." };
+  const since = shortDate(pz.hist[0].t);
+  if (test.t == null) return { v: V.thin, why: test.nights + " night" + (test.nights === 1 ? "" : "s") + " logged since " + since + ", " + test.spikeNights + " of them with a spike (" + PIZZA_SPIKE + "% of usual or more). A fair test needs " + test.minEp + " spike nights and " + test.minEp + " quiet ones." };
+  const sizes = "the S&P 500 moved " + (test.avgSpike * 100).toFixed(2) + "% the next session after a spike night, " + (test.avgRest * 100).toFixed(2) + "% after a quiet one (t = " + sgn(test.t, 2) + ")";
+  return test.sig ? { v: V.edge, why: test.spikeNights + " spike nights since " + since + ": " + sizes + ", more than chance." }
+    : { v: V.none, why: test.spikeNights + " spike nights since " + since + ": " + sizes + ", within chance." };
+}
+function pizzaCard(pz, test) {
+  const head = '<div class="m-top"><h3 class="m-kicker"><span class="sg-emo" aria-hidden="true">🍕</span>Pentagon Pizza Index</h3><span class="m-sub sg-src">Inspired by pizzint.watch</span></div>';
+  if (!pz) return '<div class="m-card sg-card" id="sg-pizza">' + head +
+    '<p class="sg-none">No reading: Google Maps isn\'t answering the data worker. It retries when you reopen this tab.</p><div class="sg-test"><p>' + stamp(V.down) + "</p></div></div>";
+  const fv = pizzaVerdict(pz, test);
   const rows = pz.places.map(s => {
     const v = s.live != null ? s.live : s.usualNow;
-    const hot = s.live != null && s.pctUsual != null ? (s.pctUsual >= 150 ? "r" : s.pctUsual >= 110 ? "a" : "") : "";
+    const hot = s.live != null && s.pctUsual != null ? (s.pctUsual >= PIZZA_SPIKE ? "r" : s.pctUsual >= 110 ? "a" : "") : "";
     return '<li><span class="cb-l">' + esc(s.name) + "</span>" +
       '<span class="cb-bar sg-fill">' + (v != null ? '<i class="' + (s.live != null ? "live " + hot : "usual") + '" style="width:' + Math.min(100, v) + '%"></i>' : "") + "</span>" +
       '<span class="cb-v num">' + (s.closed ? "closed" : s.live != null ? s.live + "%" : s.usualNow != null ? "~" + s.usualNow + "%" : "—") + "</span></li>";
   }).join("");
-  const why = "There's no long record of readings to line up with world events" + (pz.since ? " (Oracular has logged it hourly since " + new Date(pz.since).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ")" : "") + ", so it stays a curiosity.";
-  return '<div class="m-card sg-card" id="sg-pizza">' +
-    '<div class="m-top"><h3 class="m-kicker"><span class="sg-emo" aria-hidden="true">🍕</span>Pentagon Pizza Index</h3>' +
-    '<a class="m-sub sg-src" href="https://www.pizzint.watch/" target="_blank" rel="noopener">pizzint.watch</a></div>' +
-    '<div class="sg-read"><span class="regime-label">' + (pz.defcon ? "DOUGHCON " + pz.defcon : "No live reading") + "</span>" +
-    '<span class="m-sub">' + (pz.defcon ? esc(pz.reason) + " · " : "") + pz.live + " of " + pz.places.length + " pizzerias reporting live</span></div>" +
-    '<ol class="sg-ladder" aria-label="DOUGHCON level, 5 quiet to 1 maximum">' + ladder + "</ol>" +
-    '<p class="sg-blurb">The theory: when the Pentagon works through the night, it orders pizza. This reads Google Maps busyness at the pizzerias nearest it. Solid bars are live; faint ones are Google\'s usual for this hour.</p>' +
-    '<ul class="cbars sg-places">' + rows + "</ul>" +
-    '<div class="sg-test"><p>' + stamp(V.untestable) + " " + esc(why) + "</p></div>" +
-    (pz.ts ? '<p class="m-cap">Updated ' + ago(pz.ts) + (pz.stale ? " · last good copy" : "") + "</p>" : "") + "</div>";
+  const read = pz.limited
+    ? '<span class="regime-label">No Google reading</span><span class="m-sub">' + (pz.signedIn
+      ? "Google stopped accepting the data worker's saved sign-in, so it sends no busyness. " + pz.open + " of " + pz.places.length + " pizzerias open."
+      : "Google Maps now shows busyness only to signed-in visitors, and the data worker has no sign-in. " + pz.open + " of " + pz.places.length + " pizzerias open.") + "</span>"
+    : pz.pctUsual != null
+      ? '<span class="m-value num">' + pz.pctUsual + '%</span><span class="sg-zone">' + pizzaWord(pz.pctUsual) + '</span><span class="m-sub">of the usual for this hour · ' + pz.live + " of " + pz.places.length + " pizzerias live" + (pz.spikes ? " · " + pz.spikes + " spiking" : "") + "</span>"
+      : '<span class="regime-label">No live reading</span><span class="m-sub">' + pz.open + " of " + pz.places.length + " pizzerias open. Google posts a live reading only when a place has enough visitors.</span>";
+  return '<div class="m-card sg-card" id="sg-pizza">' + head +
+    '<div class="sg-read">' + read + "</div>" +
+    '<p class="sg-blurb">The theory: when the Pentagon works through the night, it orders pizza. This reads Google Maps busyness at the pizzerias nearest it.' + (pz.limited ? "" : " Solid bars are live; faint ones are Google's usual for this hour.") + "</p>" +
+    (pz.limited ? "" : '<ul class="cbars sg-places">' + rows + "</ul>") +
+    '<div class="sg-test"><p>' + stamp(fv.v) + " " + esc(fv.why) + "</p>" +
+    (test?.avgSpike != null && test?.avgRest != null && test.t == null ? '<p class="m-cap">So far: S&amp;P 500 ' + (test.avgSpike * 100).toFixed(2) + "% after spike nights vs " + (test.avgRest * 100).toFixed(2) + "% after quiet ones, in size.</p>" : "") + "</div>" +
+    (pz.ts ? '<p class="m-cap">Google Maps, updated ' + ago(pz.ts) + (pz.stale ? " · last good copy" : "") + (pz.hist.length ? " · logged hourly since " + shortDate(pz.hist[0].t) : "") + "</p>" : "") + "</div>";
 }
 
 /* -------------------------------------------------------------- stripper */
@@ -173,7 +187,7 @@ function render() {
   const crHist = (cr?.hist || []).map(x => ({ d: isoDay(x.t), v: x.v }));
   const cnnTest = cnn ? forwardAfter(cnnHist, spx, { h: 21 }) : null;
   const crTest = cr ? forwardAfter(crHist, btc, { h: 30 }) : null;
-  const mb = moonBuckets(spx), pz = pizza(pzRaw), nl = nightlife(night);
+  const mb = moonBuckets(spx), pz = pizza(pzRaw), pzTest = pz ? pizzaTest(pz.hist, spx) : null, nl = nightlife(night);
   const feed = o => !o ? "Down" : o.stale ? "Last good copy" : "Live";
   const cnnV = cnn ? fgVerdict(cnnTest).v : V.down, crV = cr ? fgVerdict(crTest).v : V.down;
   const bin = phaseBin(moonPhase(Date.now()));
@@ -181,7 +195,7 @@ function render() {
     { id: "cnn", emo: "😱", name: "Fear & Greed, stocks", now: cnn ? Math.round(cnn.score) + " · " + fgZone(cnn.score).label : "—", feed: feed(cnn), v: cnnV },
     { id: "crypto", emo: "🪙", name: "Fear & Greed, crypto", now: cr ? cr.value + " · " + fgZone(cr.value).label : "—", feed: feed(cr), v: crV },
     { id: "moon", emo: MOON[bin], name: "The moon", now: PHASES[bin], feed: "Computed", v: !mb ? V.down : mb.edge ? V.edge : V.none },
-    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: pz ? (pz.defcon ? "DOUGHCON " + pz.defcon : "No live reading") : "—", feed: pz ? (pz.stale ? "Last good copy" : "Live") : "Down", v: pz ? V.untestable : V.down },
+    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", feed: !pz ? "Down" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
     { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nl.jobsChg) + "% jobs, 12m" + (nl.double ? " · double signal" : "") : "—", feed: feed(night), v: nl ? V.thin : V.down },
     { id: "crowd", emo: "🔎", name: "Distress searches", now: sig.trends ? sig.trends.terms.filter(x => x.pct >= 25).length + " of " + sig.trends.terms.length + " spiking" : "—", feed: feed(sig.trends), v: sig.trends ? V.untestable : V.down },
     { id: "crowd", emo: "📱", name: "Coinbase app rank", now: !sig.coinbase ? "—" : sig.coinbase.overall ? "#" + sig.coinbase.overall : sig.coinbase.overall === null ? "Outside top 100" : "—", feed: feed(sig.coinbase), v: sig.coinbase ? V.untestable : V.down },
@@ -196,8 +210,8 @@ function render() {
       cnn ? { v: cnn.score, sub: "1 week " + sgn(cnn.score - cnn.prevWeek, 0) + " · 1 month " + sgn(cnn.score - cnn.prevMonth, 0), ts: cnn.ts, stale: cnn.stale } : null, cnnHist, cnnTest, "the S&P 500", 21) +
     fgCard("crypto", "🪙", "Fear &amp; Greed, crypto", "alternative.me", "https://alternative.me/crypto/fear-and-greed-index/",
       cr ? { v: cr.value, sub: crHist.length > 7 ? "1 week " + sgn(cr.value - crHist[crHist.length - 8].v, 0) : "", ts: cr.ts, stale: cr.stale } : null, crHist, crTest, "Bitcoin", 30) +
-    moonCard(mb) + pizzaCard(pz) + nightCard(nl, night) + crowdCard(sig.trends, sig.coinbase) +
-    '<p class="m-wide sg-foot">Readings come from Oracular\'s data worker, which relays CNN, alternative.me, Apple\'s charts, Google Trends, pizzint.watch and the BLS; the tests use Yahoo\'s S&amp;P 500 and Bitcoin closes. For one company at a time, <a href="https://oracular.ethantam.dev" target="_blank" rel="noopener">Oracular</a> does the research. Entertainment and context, not advice.</p>';
+    moonCard(mb) + pizzaCard(pz, pzTest) + nightCard(nl, night) + crowdCard(sig.trends, sig.coinbase) +
+    '<p class="m-wide sg-foot">Readings come from Oracular\'s data worker, which relays CNN, alternative.me, Apple\'s charts, Google Trends, Google Maps and the BLS; the tests use Yahoo\'s S&amp;P 500 and Bitcoin closes. For one company at a time, <a href="https://oracular.ethantam.dev" target="_blank" rel="noopener">Oracular</a> does the research. Entertainment and context, not advice.</p>';
   drawCharts(cnnHist, crHist, nl);
 }
 
