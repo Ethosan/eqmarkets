@@ -1,5 +1,7 @@
 # Cloudflare Pages Migration — eqmarkets (markets.ethantam.dev)
 
+> **Account**: Log into Cloudflare Dashboard as **ethantam0206@gmail.com** (not eatentam@gmail.com).
+
 ## What changed
 
 - **`public/_headers`** (new): Security + cache headers from `netlify.toml`. Vite copies `public/` → `dist/` automatically.
