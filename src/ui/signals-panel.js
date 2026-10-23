@@ -117,7 +117,9 @@ function pizzaCard(pz, test) {
       '<span class="cb-v num">' + (s.closed ? "closed" : s.live != null ? s.live + "%" : s.usualNow != null ? "~" + s.usualNow + "%" : "—") + "</span></li>";
   }).join("");
   const read = pz.limited
-    ? '<span class="regime-label">No Google reading</span><span class="m-sub">' + (pz.signedIn
+    ? '<span class="regime-label">No Google reading</span><span class="m-sub">' + (pz.blocked
+      ? "Google Maps shows busyness only to signed-in visitors, and it answers the data worker's sign-in with its robot check. " + pz.open + " of " + pz.places.length + " pizzerias open."
+      : pz.signedIn
       ? "Google stopped accepting the data worker's saved sign-in, so it sends no busyness. " + pz.open + " of " + pz.places.length + " pizzerias open."
       : "Google Maps now shows busyness only to signed-in visitors, and the data worker has no sign-in. " + pz.open + " of " + pz.places.length + " pizzerias open.") + "</span>"
     : pz.pctUsual != null
@@ -195,7 +197,7 @@ function render() {
     { id: "cnn", emo: "😱", name: "Fear & Greed, stocks", now: cnn ? Math.round(cnn.score) + " · " + fgZone(cnn.score).label : "—", feed: feed(cnn), v: cnnV },
     { id: "crypto", emo: "🪙", name: "Fear & Greed, crypto", now: cr ? cr.value + " · " + fgZone(cr.value).label : "—", feed: feed(cr), v: crV },
     { id: "moon", emo: MOON[bin], name: "The moon", now: PHASES[bin], feed: "Computed", v: !mb ? V.down : mb.edge ? V.edge : V.none },
-    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", feed: !pz ? "Down" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
+    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", feed: !pz ? "Down" : pz.blocked ? "Blocked by Google" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
     { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nl.jobsChg) + "% jobs, 12m" + (nl.double ? " · double signal" : "") : "—", feed: feed(night), v: nl ? V.thin : V.down },
     { id: "crowd", emo: "🔎", name: "Distress searches", now: sig.trends ? sig.trends.terms.filter(x => x.pct >= 25).length + " of " + sig.trends.terms.length + " spiking" : "—", feed: feed(sig.trends), v: sig.trends ? V.untestable : V.down },
     { id: "crowd", emo: "📱", name: "Coinbase app rank", now: !sig.coinbase ? "—" : sig.coinbase.overall ? "#" + sig.coinbase.overall : sig.coinbase.overall === null ? "Outside top 100" : "—", feed: feed(sig.coinbase), v: sig.coinbase ? V.untestable : V.down },
