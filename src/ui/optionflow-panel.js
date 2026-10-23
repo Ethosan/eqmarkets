@@ -49,14 +49,33 @@ function render(el, p, flip, walls) {
   const X = s => P.l + (s - spots[0]) / (spots[spots.length - 1] - spots[0]) * (W - P.r - P.l);
   const Y = v => H - P.b - (v - mn) / (mx - mn) * (H - P.t - P.b);
   const inView = v => v >= spots[0] && v <= spots[spots.length - 1];
-  /* Walls inside the window: dashed levels, labelled along the bottom, with
-     labels dropped when two would print over each other. */
+  /* Walls inside the window: one dashed level per wall, every one of them
+     drawn. The labels carry the strike and stagger onto up to three rows,
+     so walls clustered near spot never hide each other. */
   const wallLabs = [];
-  if (walls) for (const [w, t] of [[walls.call, "call wall"], [walls.put, "put wall"], [walls.gamma, "gamma wall"]]) {
+  if (walls) for (const [w, t] of [[walls.call, "call"], [walls.put, "put"], [walls.gamma, "gamma"]]) {
     if (!w?.strike || !inView(w.strike)) continue;
-    const x = Math.max(P.l + 34, Math.min(W - P.r - 34, X(w.strike)));
-    if (wallLabs.some(q => Math.abs(q.x - x) < 62)) continue;
-    wallLabs.push({ v: w.strike, x, t });
+    wallLabs.push({ vx: X(w.strike), t: t + " wall " + fmt0(w.strike) });
+  }
+  /* Label width at 11px semibold with tabular figures, ~6.6px a character.
+     A label that would run off the plot anchors inward from its line. */
+  for (const q of wallLabs) {
+    q.w = q.t.length * 6.6;
+    if (q.vx - q.w / 2 < P.l + 2) { q.anchor = "start"; q.lx = q.vx + 4; }
+    else if (q.vx + q.w / 2 > W - P.r - 2) { q.anchor = "end"; q.lx = q.vx - 4; }
+    else { q.anchor = "middle"; q.lx = q.vx; }
+    q.left = q.anchor === "start" ? q.lx : q.anchor === "end" ? q.lx - q.w : q.lx - q.w / 2;
+    q.right = q.left + q.w;
+  }
+  /* Greedy row assignment, left to right: each label takes the first row
+     in which it clears the label already there. */
+  wallLabs.sort((a, b) => a.vx - b.vx);
+  const rowEnd = [];
+  for (const q of wallLabs) {
+    let row = rowEnd.findIndex(end => q.left >= end + 8);
+    if (row < 0) { row = rowEnd.length; rowEnd.push(0); }
+    rowEnd[row] = q.right;
+    q.y = H - P.b - 6 - row * 12;
   }
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("width", W); svg.setAttribute("height", H);
@@ -86,7 +105,7 @@ function render(el, p, flip, walls) {
   const xt = niceTicks(spots[0], spots[spots.length - 1], Math.max(3, Math.floor((W - P.r) / 110))).ticks;
   for (const t of xt) {
     if (t < spots[0] || t > spots[spots.length - 1]) continue;
-    if (wallLabs.some(q => Math.abs(X(t) - q.x) < 36)) continue; /* the wall's own label sits here */
+    if (wallLabs.some(q => Math.abs(X(t) - q.vx) < 36 || Math.abs(X(t) - q.lx) < 36)) continue; /* a wall's own label sits here */
     line(X(t), H - P.b, X(t), H - P.b + 3, "ch-axis");
     text(Math.max(P.l + 16, Math.min(W - P.r - 16, X(t))), H - 5, "ch-xlab", "middle", fmt0(t));
   }
@@ -100,8 +119,8 @@ function render(el, p, flip, walls) {
   /* Walls behind the spot and flip marks; a wall outside the window is not
      drawn at all (its strike is still in the Walls row below). */
   for (const q of wallLabs) {
-    line(X(q.v), P.t - 4, X(q.v), H - P.b, "ch-wall");
-    text(q.x, H - P.b - 6, "ch-walllab", "middle", q.t);
+    line(q.vx, P.t - 4, q.vx, H - P.b, "ch-wall");
+    text(q.lx, q.y, "ch-walllab", q.anchor, q.t);
   }
   /* Spot and flip as verticals, labelled along the top. The two usually sit a
      few points apart, so each label hangs off the outer side of its own line
