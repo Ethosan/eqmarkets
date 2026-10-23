@@ -1,7 +1,7 @@
 /* Offline shell for Equarian Markets.
    - Pages: network first, cached copy when offline.
    - /assets/* (fingerprinted by Vite): cache first, they never change.
-   - Market data (every proxy in _redirects) and cross-origin requests: never cached.
+   - Market data (every proxy in functions/_middleware.js) and cross-origin requests: never cached.
      A proxy missing here would be served cache-first forever, as /cboe, /ust and
      /fredx were until eqm-v21. */
 const CACHE = "eqm-v21";

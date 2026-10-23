@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 
-/* Local copies of the _redirects rewrites, so `npm run dev` and `npm run preview`
+/* Local copies of the proxies in functions/_middleware.js, so `npm run dev` and `npm run preview`
    reach the data sources same-origin, as the deployed site does. sec-ch-ua is
    dropped because FRED answers 500 when it names HeadlessChrome. */
 const UPSTREAM = {

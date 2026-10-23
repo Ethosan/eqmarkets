@@ -5,7 +5,7 @@
 ## What changed
 
 - **`public/_headers`** (new): Security + cache headers from `netlify.toml`. Vite copies `public/` → `dist/` automatically.
-- **`public/_redirects`** (new): All 9 same-origin proxy redirects (Yahoo Finance, FRED, BOJ, Fed, Treasury, CFTC, CBOE, Oracular data worker). Uses the same syntax as Netlify.
+- **`functions/_middleware.js`** (new): All 9 same-origin data proxies (Yahoo Finance, FRED, BOJ, Fed, Treasury, CFTC, CBOE, Oracular data worker). These first went into `public/_redirects`, but Cloudflare Pages can't proxy to another domain from `_redirects`: every feed fell through to `index.html` and the dashboard showed 0 of 51 feeds live. **`public/_routes.json`** runs Functions only on the proxy paths and `/api/*`.
 - **`functions/api/explain.mjs`** (new): Cloudflare Pages Function replacing `netlify/functions/explain.mjs`. Changes:
   - `export default async function handler(req)` → `export async function onRequestPost(context)`
   - `process.env.X` → `context.env.X`
@@ -14,7 +14,7 @@
   - IP header: `cf-connecting-ip` instead of Netlify's implicit IP
 - **`tests/explain.test.js`**: Updated import path and handler invocation for Pages Functions API
 - **`eslint.config.js`**: Updated glob from `netlify/**/*.mjs` to `functions/**/*.mjs`
-- **`vite.config.js`**, **`src/data/transport.js`**, **`public/sw.js`**: Comments updated (netlify.toml → _redirects)
+- **`vite.config.js`**, **`src/data/transport.js`**, **`public/sw.js`**: Comments updated (netlify.toml → functions/_middleware.js)
 
 ## Cloudflare Pages Setup
 

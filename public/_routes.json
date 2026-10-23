@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/api/*", "/yf/*", "/fred/*", "/fredx/*", "/ust/*", "/boj/*", "/fed/*", "/cftc/*", "/cboe/*", "/odw/*"],
+  "exclude": []
+}
