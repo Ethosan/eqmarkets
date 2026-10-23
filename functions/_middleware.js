@@ -27,20 +27,27 @@ export async function onRequest({ request, next }) {
 
   /* A fresh request rather than the browser's: no Origin (the Oracular data worker
      turns away other sites), no cookies, and no sec-ch-ua (FRED answers 500 when it
-     names HeadlessChrome). */
+     names HeadlessChrome). Yahoo rate-limits requests without a browser user agent,
+     so the browser's is passed on. FRED is the opposite: from Cloudflare it mostly
+     refuses (403/520) a browser user agent, so it gets a plain one, plus two retries
+     because it still drops some requests. */
+  const fred = prefix === "/fred";
   const headers = new Headers({ accept: request.headers.get("accept") || "*/*" });
-  const ua = request.headers.get("user-agent");
+  const ua = fred ? "eqmarkets-proxy (+https://markets.ethantam.dev)" : request.headers.get("user-agent");
   if (ua) headers.set("user-agent", ua);
 
+  const target = UPSTREAM[prefix] + path.slice(prefix.length) + url.search;
+  const method = request.method === "HEAD" ? "HEAD" : "GET";
   let res;
-  try {
-    res = await fetch(UPSTREAM[prefix] + path.slice(prefix.length) + url.search, {
-      method: request.method === "HEAD" ? "HEAD" : "GET",
-      headers,
-    });
-  } catch {
-    return new Response("Upstream unreachable", { status: 502 });
+  for (let attempt = 0; attempt < (fred ? 3 : 1); attempt++) {
+    try {
+      res = await fetch(target, { method, headers });
+    } catch {
+      res = null;
+    }
+    if (res && res.ok) break;
   }
+  if (!res) return new Response("Upstream unreachable", { status: 502 });
   const out = new Headers();
   for (const h of KEEP) { const v = res.headers.get(h); if (v) out.set(h, v); }
   return new Response(res.body, { status: res.status, headers: out });
