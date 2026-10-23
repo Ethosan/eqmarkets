@@ -1,11 +1,13 @@
-/* Offline shell for Equarian Markets.
-   - Pages: network first, cached copy when offline.
-   - /assets/* (fingerprinted by Vite): cache first, they never change.
-   - Market data (every proxy in functions/_middleware.js) and cross-origin requests: never cached.
-     A proxy missing here would be served cache-first forever, as /cboe, /ust and
-     /fredx were until eqm-v21. */
-const CACHE = "eqm-v21";
-const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/favicon-32.png"];
+/* Offline shell for Equarian Markets. scripts/build-sw.mjs fills in the cache name
+   and the precache list from dist/ at build time, so every deploy gets a fresh cache
+   (activate deletes the old generations) and the shell plus its exact assets are
+   cached atomically at install — an offline or flaky launch always finds them.
+   - Pages: network first, cached copy when offline; only a real HTML answer is cached.
+   - /assets/* (fingerprinted by Vite): precached, then cache first, they never change.
+   - Market data (every proxy in functions/_middleware.js) and cross-origin requests:
+     never cached. A proxy missing here would be served cache-first forever. */
+const CACHE = "__CACHE_NAME__";
+const SHELL = JSON.parse("__SHELL_LIST__");
 const LIVE = ["/yf/", "/fred/", "/fredx/", "/boj/", "/cftc/", "/fed/", "/ust/", "/cboe/", "/odw/"];
 
 self.addEventListener("install", e => {
@@ -31,8 +33,11 @@ self.addEventListener("fetch", e => {
     e.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put("/", copy));
+          /* Only a real HTML answer may become the offline shell — never an error page. */
+          if (res.ok && (res.headers.get("content-type") || "").includes("text/html")) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put("/", copy));
+          }
           return res;
         })
         /* Offline: the cached shell, whatever query the launch URL carries. */
@@ -47,6 +52,8 @@ self.addEventListener("fetch", e => {
         caches.open(CACHE).then(c => c.put(req, copy));
       }
       return res;
-    }))
+    /* A missing asset on a flaky network degrades to a 503 — a rejected fetch
+       would blank the whole app. */
+    }).catch(() => new Response("offline", { status: 503, headers: { "content-type": "text/plain" } })))
   );
 });
