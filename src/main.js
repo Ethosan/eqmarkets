@@ -110,13 +110,15 @@ if (!ADMIN) { $("tabLab").remove(); $("lab").remove(); }
 let lab = null;
 /* The lab is its own chunk, fetched the first time its tab opens. */
 const openLab = f => { if (f === "lab" && ADMIN && !lab) lab = import("./lab/lab.js").then(m => m.mountLab($("lab"))); };
+/* Alt signals is its own chunk too, fetched when its tab opens and refreshed on reopening. */
+const openSignals = f => { if (f === "signals") import("./ui/signals-panel.js").then(m => m.showSignals($("signals"))).catch(() => {}); };
 
 initTheme();
 trackAppbar();
 foldOnPhones(["raiMore", "biasMore"]);
 /* Cards first: the saved or shortcut tab hides groups, so they must exist. */
 buildBoard(item => openDetail(ITEM_BY_ID[item.id]));
-initTabs(openLab);
+initTabs(f => { openLab(f); openSignals(f); });
 initSearch();
 initDetail();
 initGuide({ onReplayTour: startTour });

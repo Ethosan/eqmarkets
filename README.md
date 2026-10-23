@@ -39,7 +39,10 @@ Markets and [Oracular](https://oracular.ethantam.dev) are separate tools, and ne
 | Live market data | Live market data, one ticker at a time |
 | Regimes, flows, premia and positioning (RAI, absorption, recession odds, CTA, VRP, stock–bond, SPX dealer gamma) | Investment memo, verdict badge and seven-factor scorecard |
 | Calendar *events* that move index futures (turn of month, FOMC, expiry, rebalancing), tested as event studies | Per-ticker seasonality tables with t-statistics, lifecycle phase map |
-| Testing whether a signal works (backtest lab, overfitting guards) | Options and derivatives analytics, alternative signals, research chat |
+| Testing whether a signal works (backtest lab, overfitting guards) | Options and derivatives analytics, research chat |
+| Alt signals: fear-and-greed gauges, the Pentagon Pizza Index, the Stripper Index, distress searches, the Coinbase rank and the moon, each tested against the index (moved from Oracular, Oct 2026) | |
+
+The alt-signal feeds come from Oracular's data worker through the same-origin `/odw` proxy; the worker turns away browsers from other sites, and a same-origin rewrite sends no Origin header.
 
 So Markets doesn't show single stocks, fundamentals, single-name option chains, buy/hold verdicts or month-of-year seasonality tables — index-level option positioning (dealer gamma, index put/call flow, the vol curve) is macro and lives here — and Oracular doesn't do macro regimes or cross-asset flows.
 

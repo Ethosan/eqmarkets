@@ -32,7 +32,8 @@ Every number is live, unit-aware and explained, and every model shows its own tr
 
 - Static Vite app in vanilla JS (no framework), CSS in `src/styles/`, tests with Vitest, lint with ESLint. The quant code (`src/quant`, `src/model`, `src/data`) is the product's substance and is out of scope for UI work.
 - 45 indicator cards in five groups (Rates, Risk, Carry, Commodities, Tape), each with a detail sheet (chart with ranges, stats, source link).
-- Panels: Today's read (+ AI explain), Market bias (ES/NQ, day/week/month), Risk Appetite Index, Macro regime map, Absorption ratio, Recession probability, Flows & premia, SPX option flow, Guide, first-visit tour, install prompt.
+- Panels: Today's read (+ AI explain), Market bias (ES/NQ, day/week/month), Risk Appetite Index, Macro regime map, Absorption ratio, Recession probability, Flows & premia, SPX option flow, Alt signals, Guide, first-visit tour, install prompt.
+- Alt signals (tab added 2026-10-23, moved from Oracular, which links to `/?tab=signals`): fear-and-greed for stocks and crypto, the Pentagon Pizza Index, the Stripper Index (BLS bar and nightclub jobs), distress searches, the Coinbase rank and the moon. Fun first, but a scoreboard says for each one whether its feed is live and whether it held up in a test (forward index returns after extremes using non-overlapping windows; moon phases with a multiple-testing check). Signals with too little history or no record say so instead of guessing.
 - The owner allowed cutting or hiding what isn't used during a redesign (21 Oct 2026); anything removed must be named to him afterwards.
 - Terminology: σ (vol-scaled move), bp, percentile, z-score, OAS, VIX/VVIX, etc., as defined in the in-app Guide.
 

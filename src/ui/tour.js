@@ -258,6 +258,9 @@ export function maybeStartTour() {
   let seen = false;
   try { seen = !!localStorage.getItem(KEY); } catch { seen = true; }
   if (seen || active || document.querySelector("dialog[open]")) return;
-  if (new URLSearchParams(location.search).has("notour")) return;
+  /* A link into one section (?tab=signals from Oracular, a home-screen shortcut) means
+     the visitor came for that section: the tour would pull them back to Overview. */
+  const q = new URLSearchParams(location.search);
+  if (q.has("notour") || q.has("tab")) return;
   setTimeout(startTour, 600);
 }

@@ -1,10 +1,12 @@
 /* Offline shell for Equarian Markets.
    - Pages: network first, cached copy when offline.
    - /assets/* (fingerprinted by Vite): cache first, they never change.
-   - Market data (/yf, /fred, /boj, /cftc, /fed) and cross-origin requests: never cached. */
-const CACHE = "eqm-v20";
+   - Market data (every proxy in netlify.toml) and cross-origin requests: never cached.
+     A proxy missing here would be served cache-first forever, as /cboe, /ust and
+     /fredx were until eqm-v21. */
+const CACHE = "eqm-v21";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/favicon-32.png"];
-const LIVE = ["/yf/", "/fred/", "/boj/", "/cftc/", "/fed/"];
+const LIVE = ["/yf/", "/fred/", "/fredx/", "/boj/", "/cftc/", "/fed/", "/ust/", "/cboe/", "/odw/"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

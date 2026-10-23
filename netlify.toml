@@ -59,6 +59,14 @@
   status = 200
   force = true
 
+# Oracular's data worker: the alt-signal feeds (pizza, nightlife, fear and greed).
+# The worker turns away browsers from other sites; a same-origin rewrite sends no Origin.
+[[redirects]]
+  from = "/odw/*"
+  to = "https://oracular-data.makan-bot.workers.dev/:splat"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]

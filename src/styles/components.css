@@ -563,6 +563,59 @@ html.touring { overflow: hidden }
 /* The admin lab renders on the night palette in either theme. */
 .lab { margin-top: 4px; margin-bottom: 28px; padding: 20px; border-radius: var(--radius); background: var(--paper); color: var(--ink) }
 
+/* ============================================================== alt signals */
+/* The same sheets, rules and quiet bands as the rest of the board; the emoji are the fun. */
+.signals .sg-card { grid-column: span 6 }
+.sg-emo { margin-right: 8px; font-size: 20px; line-height: 1 }
+.sg-src { margin-left: auto }
+.sg-lede, .sg-blurb { font-size: var(--fs-md); line-height: 1.55; color: var(--ink-2); max-width: 78ch }
+.sg-lede { margin-bottom: 14px }
+.sg-blurb { font-size: var(--fs-sm); margin: 10px 0 12px }
+.sg-none { font-size: var(--fs-sm); color: var(--ink-3); padding: 8px 0 }
+.sg-read { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap }
+.sg-read .m-value { margin-top: 0 }
+.sg-zone { font-size: var(--fs-lg); font-weight: 600 }
+.sg-board th a { color: var(--ink); text-decoration: none }
+.sg-board th a:hover { color: var(--teal); text-decoration: underline }
+.sg-reload { font: inherit; color: var(--teal); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+.sg-foot { font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.5; max-width: 90ch }
+/* verdict stamp, like the stale stamp: ink for a result, amber ink while history is too short */
+.sg-stamp { display: inline-block; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); border: 1px solid var(--rule-2); border-radius: 5px; padding: 1px 7px; white-space: nowrap }
+.sg-stamp.thin { color: var(--amber-ink); border-color: currentColor }
+.sg-stamp.yes { color: var(--up); border-color: currentColor }
+.sg-test { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: var(--fs-sm); line-height: 1.55; color: var(--ink-2) }
+.sg-test .m-cap { margin-bottom: 0 }
+.sg-chart { padding-top: 4px }
+/* the 0–100 gauge: grey bands at rest, only the band holding the reading lights */
+.sg-gauge { position: relative; height: 14px; margin-top: 14px; border: 1px solid var(--rule); border-radius: 4px; background: var(--sheet) }
+.sg-gauge i { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--rule) }
+.sg-gauge i:last-of-type { border-right: 0 }
+.sg-gauge i.a { background: var(--band-a) }
+.sg-gauge i.r { background: var(--band-r) }
+.sg-gauge b { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--ink); box-shadow: 0 0 0 2px var(--sheet) }
+.sg-gauge b.a { background: var(--zone-a) }
+.sg-gauge b.r { background: var(--zone-r) }
+/* moon phases: today's row is set in ink */
+.sg-moon li.on .cb-l { color: var(--ink); font-weight: 600 }
+.sg-moon .cb-l em { font-size: var(--fs-xs); color: var(--ink-3); margin-left: 4px }
+/* DOUGHCON 5 (quiet) to 1 (maximum): only the live level is filled, tinted from 3 */
+.sg-ladder { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 12px; max-width: 320px }
+.sg-ladder li { text-align: center; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 5px; padding: 4px 0 }
+.sg-ladder li.on { color: var(--ink); background: var(--sheet-2); border-color: var(--rule-2) }
+.sg-ladder li.on.a { background: var(--band-a) }
+.sg-ladder li.on.r { background: var(--band-r) }
+.sg-fill::after { display: none }
+.sg-fill i { left: 0 }
+.sg-fill i.usual { background: var(--rule-2) }
+.sg-fill i.live { background: var(--series) }
+.sg-fill i.live.a { background: var(--zone-a) }
+.sg-fill i.live.r { background: var(--zone-r) }
+.sg-terms .cb-bar i.a { background: var(--zone-a) }
+.sg-rank { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--rule) }
+.sg-rank-v { font-size: var(--fs-md); font-weight: 600; color: var(--ink) }
+.sg-rank .m-cap { margin: 2px 0 0 }
+@media (max-width: 1180px) { .signals .sg-card { grid-column: 1 / -1 } }
+
 /* =+ breakpoints */
 
 /* From 1600px the score, Today's read and the bias sit in one row of three. */

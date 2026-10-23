@@ -15,6 +15,7 @@ const SECTIONS = [
   { id: "rec", label: "Recession" },
   { id: "flows", label: "Flows" },
   { id: "oflow", label: "Option flow" },
+  { id: "signals", label: "Alt signals" },
   { id: "glossary", label: "Indicators" },
   { id: "timing", label: "Data timing" },
 ];
@@ -146,6 +147,13 @@ const BODY = () => `
   <p><b>Walls and 0DTE.</b> The strikes with the biggest call open interest, put open interest and gamma are levels hedging flow gravitates to near expiry. The gamma-profile chart marks those walls as dashed lines and can zoom to ±3%, ±8% or the full ±18% of spot. The share of the day's SPX volume trading in same-day expiries (0DTE) says how much of the flow is fast money recycling gamma intraday.</p>
   <p><b>The vol curve.</b> VIX9D/VIX above 1 means the front of the implied-vol curve is in backwardation — near-term fear above the 30-day price, a classic stress signature. VXN/VIX rising means Nasdaq vol is being bid harder than S&P vol: growth leadership being questioned under a calm surface. A high VVIX or SKEW means dealers are charging more for volatility risk and for crash insurance.</p>
 </section>
+<section id="g-signals" class="g-sec">
+  <h3>Alt signals</h3>
+  <p>The odd indicators traders pass around: fear-and-greed gauges, the Pentagon Pizza Index, the Stripper Index, distress searches, the Coinbase app rank and the moon. Each card shows its live reading, and the scoreboard says whether its feed is up and whether it has ever held up in a test. The readings come from Oracular's data worker, which relays each source; nothing is filled in when a source is down.</p>
+  <p><b>How a signal is tested.</b> For the two fear-and-greed gauges: what the S&amp;P 500 (or Bitcoin) did over the next month after readings below 25 or above 75, against what it did after every reading in the same window. Back-to-back days share most of that month, so only non-overlapping windows count, and with fewer than ten of them the card says "Too little history" instead of guessing. For the moon: the S&amp;P 500's average daily return in each of the eight phases over ten years, each tested at its own 95% bar. With eight tries a pass or two can be luck, so the card reports how often that many would pass by chance.</p>
+  <p><b>The verdicts.</b> <i>Held up</i>: beat chance in the test above. <i>No edge found</i>: tested, and within chance. <i>Too little history</i>: the data is too short to test fairly. <i>Can't be tested</i>: there's no record to test against, such as the pizza readings or the app rank. None of these is a trading signal.</p>
+</section>
+
 <section id="g-glossary" class="g-sec">
   <h3>Every indicator</h3>
   ${glossary()}

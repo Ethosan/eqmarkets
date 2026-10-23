@@ -111,6 +111,7 @@ function selectTab(btn, focus) {
   $("models").classList.toggle("hidden", f !== "all" && f !== "models");
   $("method").classList.toggle("hidden", f !== "all" && f !== "models");
   $("lab")?.classList.toggle("hidden", f !== "lab");
+  $("signals").classList.toggle("hidden", f !== "signals");
   onSelect?.(f);
   /* Switching after scrolling down: start the chosen section at the top. */
   if (focus !== undefined && window.scrollY > 0) window.scrollTo({ top: 0, behavior: "instant" });

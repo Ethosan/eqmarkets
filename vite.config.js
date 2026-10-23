@@ -11,6 +11,7 @@ const UPSTREAM = {
   "/fed": "https://www.federalreserve.gov",
   "/cftc": "https://publicreporting.cftc.gov",
   "/cboe": "https://cdn-api.cboe.com",
+  "/odw": "https://oracular-data.makan-bot.workers.dev",
 };
 
 const proxy = Object.fromEntries(Object.entries(UPSTREAM).map(([prefix, target]) => [prefix + "/", {
