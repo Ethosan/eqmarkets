@@ -583,6 +583,15 @@ html.touring { overflow: hidden }
 .sg-stamp { display: inline-block; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); border: 1px solid var(--rule-2); border-radius: 5px; padding: 1px 7px; white-space: nowrap }
 .sg-stamp.thin { color: var(--amber-ink); border-color: currentColor }
 .sg-stamp.yes { color: var(--up); border-color: currentColor }
+/* bias badges: bullish = green, bearish = red, neutral = grey, unclear = amber */
+.sg-bias { display: inline-block; font-size: var(--fs-xs); font-weight: 600; border-radius: 5px; padding: 1px 7px; white-space: nowrap; border: 1px solid transparent }
+.sg-bias.b-bull { color: var(--up); background: var(--up-soft); border-color: var(--up) }
+.sg-bias.b-bull.strong { color: var(--sheet); background: var(--up); border-color: var(--up) }
+.sg-bias.b-bear { color: var(--down); background: var(--down-soft); border-color: var(--down) }
+.sg-bias.b-bear.strong { color: var(--sheet); background: var(--down); border-color: var(--down) }
+.sg-bias.b-neutral { color: var(--ink-3); background: var(--sheet-2); border-color: var(--rule-2) }
+.sg-bias.b-unclear { color: var(--amber-ink); background: var(--band-a); border-color: var(--zone-a) }
+.sg-bias-cell { white-space: nowrap }
 .sg-test { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: var(--fs-sm); line-height: 1.55; color: var(--ink-2) }
 .sg-test .m-cap { margin-bottom: 0 }
 .sg-chart { padding-top: 4px }

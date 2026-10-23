@@ -39,6 +39,73 @@ function fgVerdict(test) {
   return { v: V.thin, why: span + " give at most " + ep + " separate episode" + (ep === 1 ? "" : "s") + " at either extreme; a fair test needs " + test.minEp + "." };
 }
 
+/* ------------------------------------------------------------------ bias */
+/* Each signal gets a two-part bias: direction (bullish / bearish / neutral /
+   unclear) and strength (strong / weak). Contrarian where the crowd is wrong:
+   extreme fear is a buy, extreme greed is a sell, retail FOMO at #1 is a top. */
+const BIAS = {
+  strongBull: { cls: "b-bull strong", text: "Strong Bullish", dir: "bullish", strength: "strong" },
+  weakBull:   { cls: "b-bull",       text: "Weak Bullish",   dir: "bullish", strength: "weak" },
+  neutral:    { cls: "b-neutral",    text: "Neutral",        dir: "neutral", strength: "" },
+  weakBear:   { cls: "b-bear",       text: "Weak Bearish",   dir: "bearish", strength: "weak" },
+  strongBear: { cls: "b-bear strong", text: "Strong Bearish", dir: "bearish", strength: "strong" },
+  unclear:    { cls: "b-unclear",    text: "Unclear",        dir: "unclear", strength: "" },
+  none:       { cls: "b-none",       text: "—",         dir: "",        strength: "" },
+};
+const biasBadge = b => b.dir === "" ? "—" : '<span class="sg-bias ' + b.cls + '" title="' + b.dir + (b.strength ? ", " + b.strength : "") + '">' + b.text + "</span>";
+
+/* Fear & Greed: contrarian. Extreme fear = strong buy, extreme greed = strong sell. */
+function fgBias(v) {
+  if (v == null) return BIAS.none;
+  if (v < 25) return BIAS.strongBull;
+  if (v < 45) return BIAS.weakBull;
+  if (v <= 55) return BIAS.neutral;
+  if (v <= 75) return BIAS.weakBear;
+  return BIAS.strongBear;
+}
+
+/* Moon: full moon = weak bearish (sell before the peak), new moon = weak bullish. */
+function moonBias(bin) {
+  if (bin === 4) return BIAS.weakBear;
+  if (bin === 0) return BIAS.weakBull;
+  return BIAS.unclear;
+}
+
+/* Pizza: a spike predicts volatility, not direction. */
+function pizzaBias(pz) {
+  if (!pz || pz.pctUsual == null) return BIAS.none;
+  if (pz.spikes > 0 || pz.pctUsual >= PIZZA_SPIKE) return BIAS.unclear;
+  return BIAS.neutral;
+}
+
+/* Stripper Index: double signal (jobs falling + unemployment rising) = strong bearish. */
+function nightBias(nl) {
+  if (!nl) return BIAS.none;
+  if (nl.double) return BIAS.strongBear;
+  if (nl.jobsChg < 0) return BIAS.weakBear;
+  if (nl.jobsChg > 0) return BIAS.weakBull;
+  return BIAS.neutral;
+}
+
+/* Distress searches: contrarian. Many spiking = fear = weak bullish. */
+function crowdBias(tr) {
+  if (!tr || !tr.terms || !tr.terms.length) return BIAS.none;
+  const spikes = tr.terms.filter(x => x.pct != null && x.pct >= 25).length;
+  if (spikes >= 3) return BIAS.weakBull;
+  return BIAS.neutral;
+}
+
+/* Coinbase rank: contrarian. #1 = retail FOMO = strong bearish top signal.
+   Outside top 100 = retail disinterest = weak bullish. */
+function coinbaseBias(cb) {
+  if (!cb || cb.overall == null) return BIAS.none;
+  const r = cb.overall;
+  if (r === null) return BIAS.weakBull;
+  if (r <= 5) return BIAS.strongBear;
+  if (r <= 20) return BIAS.weakBear;
+  return BIAS.neutral;
+}
+
 /* ------------------------------------------------------------ fear & greed */
 const fgZone = v => v < 25 ? { label: "Extreme fear", band: 0 } : v < 45 ? { label: "Fear", band: 1 } : v <= 55 ? { label: "Neutral", band: 2 } : v <= 75 ? { label: "Greed", band: 3 } : { label: "Extreme greed", band: 4 };
 /* The 0–100 gauge: five bands at rest in grey; only the one holding the reading lights,
@@ -176,8 +243,8 @@ function crowdCard(tr, cb) {
 
 /* ------------------------------------------------------------- scoreboard */
 function board(rows) {
-  return '<table class="bias-table sg-board"><thead><tr><th scope="col">Signal</th><th scope="col">Now</th><th scope="col">Feed</th><th scope="col">Holds up?</th></tr></thead><tbody>' +
-    rows.map(r => '<tr><th scope="row"><a href="#sg-' + r.id + '">' + r.emo + " " + r.name + "</a></th><td>" + esc(r.now) + '</td><td class="' + (r.feed === "Live" ? "" : "muted") + '">' + r.feed + "</td><td>" + stamp(r.v) + "</td></tr>").join("") +
+  return '<table class="bias-table sg-board"><thead><tr><th scope="col">Signal</th><th scope="col">Now</th><th scope="col">Bias</th><th scope="col">Feed</th><th scope="col">Holds up?</th></tr></thead><tbody>' +
+    rows.map(r => '<tr><th scope="row"><a href="#sg-' + r.id + '">' + r.emo + " " + r.name + "</a></th><td>" + esc(r.now) + '</td><td class="sg-bias-cell">' + biasBadge(r.bias) + '</td><td class="' + (r.feed === "Live" ? "" : "muted") + '">' + r.feed + "</td><td>" + stamp(r.v) + "</td></tr>").join("") +
     "</tbody></table>";
 }
 
@@ -194,13 +261,13 @@ function render() {
   const cnnV = cnn ? fgVerdict(cnnTest).v : V.down, crV = cr ? fgVerdict(crTest).v : V.down;
   const bin = phaseBin(moonPhase(Date.now()));
   const rows = [
-    { id: "cnn", emo: "😱", name: "Fear & Greed, stocks", now: cnn ? Math.round(cnn.score) + " · " + fgZone(cnn.score).label : "—", feed: feed(cnn), v: cnnV },
-    { id: "crypto", emo: "🪙", name: "Fear & Greed, crypto", now: cr ? cr.value + " · " + fgZone(cr.value).label : "—", feed: feed(cr), v: crV },
-    { id: "moon", emo: MOON[bin], name: "The moon", now: PHASES[bin], feed: "Computed", v: !mb ? V.down : mb.edge ? V.edge : V.none },
-    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", feed: !pz ? "Down" : pz.blocked ? "Blocked by Google" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
-    { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nl.jobsChg) + "% jobs, 12m" + (nl.double ? " · double signal" : "") : "—", feed: feed(night), v: nl ? V.thin : V.down },
-    { id: "crowd", emo: "🔎", name: "Distress searches", now: sig.trends ? sig.trends.terms.filter(x => x.pct >= 25).length + " of " + sig.trends.terms.length + " spiking" : "—", feed: feed(sig.trends), v: sig.trends ? V.untestable : V.down },
-    { id: "crowd", emo: "📱", name: "Coinbase app rank", now: !sig.coinbase ? "—" : sig.coinbase.overall ? "#" + sig.coinbase.overall : sig.coinbase.overall === null ? "Outside top 100" : "—", feed: feed(sig.coinbase), v: sig.coinbase ? V.untestable : V.down },
+    { id: "cnn", emo: "😱", name: "Fear & Greed, stocks", now: cnn ? Math.round(cnn.score) + " · " + fgZone(cnn.score).label : "—", bias: fgBias(cnn ? cnn.score : null), feed: feed(cnn), v: cnnV },
+    { id: "crypto", emo: "🪙", name: "Fear & Greed, crypto", now: cr ? cr.value + " · " + fgZone(cr.value).label : "—", bias: fgBias(cr ? cr.value : null), feed: feed(cr), v: crV },
+    { id: "moon", emo: MOON[bin], name: "The moon", now: PHASES[bin], bias: moonBias(bin), feed: "Computed", v: !mb ? V.down : mb.edge ? V.edge : V.none },
+    { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", bias: pizzaBias(pz), feed: !pz ? "Down" : pz.blocked ? "Blocked by Google" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
+    { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nl.jobsChg) + "% jobs, 12m" + (nl.double ? " · double signal" : "") : "—", bias: nightBias(nl), feed: feed(night), v: nl ? V.thin : V.down },
+    { id: "crowd", emo: "🔎", name: "Distress searches", now: sig.trends ? sig.trends.terms.filter(x => x.pct >= 25).length + " of " + sig.trends.terms.length + " spiking" : "—", bias: crowdBias(sig.trends), feed: feed(sig.trends), v: sig.trends ? V.untestable : V.down },
+    { id: "crowd", emo: "📱", name: "Coinbase app rank", now: !sig.coinbase ? "—" : sig.coinbase.overall ? "#" + sig.coinbase.overall : sig.coinbase.overall === null ? "Outside top 100" : "—", bias: coinbaseBias(sig.coinbase), feed: feed(sig.coinbase), v: sig.coinbase ? V.untestable : V.down },
   ];
   root.innerHTML =
     '<div class="m-card m-wide sg-intro">' +
