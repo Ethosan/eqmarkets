@@ -1,6 +1,9 @@
-/* Ordered ways of reaching the upstream data sources.
-   0: same-origin proxy (see functions/_middleware.js), the reliable path once deployed.
-   1-3: public CORS proxies, a fallback for running the page somewhere else. */
+/* The one way of reaching the upstream data sources: the same-origin proxy (see
+   functions/_middleware.js), which the deployed site serves on every path. The public
+   CORS proxies that used to follow it are gone — corsproxy.io answers 401 without an
+   API key, allorigins blocks the request with CORS, and codetabs hangs until the
+   timeout — so a proxy failure now fails fast instead of dragging a feed through a
+   minute of dead retries while the progress bar sits one short. */
 /* FRED CSVs go through /fredx/<id>/<start>/…: Cloudflare's edge cache keys on the
    path, not the query string, so with every series on one path it served one
    series' cached CSV for another whenever FRED returned an error. */
@@ -20,14 +23,9 @@ const TRANSPORTS = [
     .replace("https://home.treasury.gov", "/ust")
     .replace("https://publicreporting.cftc.gov", "/cftc")
     .replace("https://cdn-api.cboe.com", "/cboe"),
-  u => "https://corsproxy.io/?url=" + encodeURIComponent(u),
-  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-  u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
 ];
 
-/* The transport to try first: per upstream host once one has worked for it,
-   so a slow fallback that one source needs (FRED) doesn't become the first
-   choice for the others. */
+/* The transport to try first: per upstream host once one has worked for it. */
 let preferred = 0;
 const preferredFor = new Map();
 const hostOf = u => { try { return new URL(u).host; } catch { return ""; } };

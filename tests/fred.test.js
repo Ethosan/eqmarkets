@@ -11,14 +11,19 @@ describe("FRED fetch", () => {
     vi.stubGlobal("fetch", vi.fn(async url => {
       urls.push(url);
       /* The same-origin proxy answers with a cached CSV for a different series. */
-      const body = urls.length === 1
-        ? csv("BAMLC0A0CM", [["2026-10-14", "0.84"], ["2026-10-15", "0.84"]])
-        : csv("T10YIE", [["2026-10-14", "2.35"], ["2026-10-15", "."], ["2026-10-16", "2.32"]]);
-      return new Response(body, { status: 200 });
+      return new Response(csv("BAMLC0A0CM", [["2026-10-14", "0.84"], ["2026-10-15", "0.84"]]), { status: 200 });
     }));
     const s = await fredSeries("T10YIE", 30);
     expect(urls[0]).toMatch(/^\/fredx\/T10YIE\/\d{4}-\d{2}-\d{2}\/graph\/fredgraph\.csv\?id=T10YIE&/);
-    expect(urls).toHaveLength(2); /* fell through to the next transport */
+    /* One transport: a rejected CSV fails the feed instead of falling through. */
+    expect(urls).toHaveLength(1);
+    expect(s).toBeNull();
+  });
+
+  it("parses a CSV that names the series", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(csv("T10YIE", [["2026-10-14", "2.35"], ["2026-10-15", "."], ["2026-10-16", "2.32"]]), { status: 200 })));
+    const s = await fredSeries("T10YIE", 30);
     expect(s.values).toEqual([2.35, 2.32]);
     expect(s.asOf).toBe("2026-10-16");
   });

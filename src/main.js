@@ -48,9 +48,16 @@ async function refresh() {
   progStart("Pulling feeds", FETCHABLE.length);
 
   if (reachable) {
-    await Promise.allSettled(FETCHABLE.map((it, i) =>
-      wait(i * 110).then(() => fetchItem(it)).finally(progBump)
-    ));
+    /* The batch has a deadline: a feed still running when it passes keeps its last
+       value (marked stale) and is retried next cycle. Without it one flaky source
+       freezes the progress bar one short and holds `running` until its retries
+       exhaust, skipping every refresh in between. */
+    await Promise.race([
+      Promise.allSettled(FETCHABLE.map((it, i) =>
+        wait(i * 110).then(() => fetchItem(it)).finally(progBump)
+      )),
+      wait(30_000),
+    ]);
   }
   FETCHABLE.forEach(it => { if (!STATE[it.id]) STATE[it.id] = { error: true }; });
   computeDerived();
