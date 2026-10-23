@@ -1,15 +1,38 @@
+<img src="public/icons/icon-512.png" width="88" alt="Equarian Markets logo: a gold line chart rising to a dot, on dark navy">
+
 # Equarian Markets
 
 A live macro dashboard for futures traders. Rates, credit, carry, the options market and the tape on one screen, read through a rule-based daily read and four quantitative models: a **Risk Appetite Index**, a **growth × inflation regime**, the **absorption ratio** of systemic risk, and the **NY Fed recession probability** — plus a walk-forward **market-bias forecast** scored out of sample since 2000 and an **SPX option-flow** panel built from the live option board.
 
-> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended.
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
+![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-F38020?logo=cloudflarepages&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-5A0FC8?logo=pwa&logoColor=white)
+
+<p align="center">
+  <img src="docs/screenshots/overview.png" width="24%" alt="Overview: the Risk Appetite Index with its gauge, today's read, and the market bias for ES and NQ">
+  <img src="docs/screenshots/risk-appetite.png" width="24%" alt="Risk Appetite Index opened: the one-year history against the neutral band, and each input's score">
+  <img src="docs/screenshots/models-flows.png" width="24%" alt="Models and flows: the growth and inflation regime map reading Reflation, its 13-week trail, and the inputs behind each axis">
+  <img src="docs/screenshots/detail.png" width="24%" alt="Detail sheet for S&P 500 futures: a three-month chart, then changes, volatility, percentile and range over several horizons">
+</p>
+<p align="center"><sub>Overview, the Risk Appetite Index and its drivers, the macro regime, and the S&P 500 futures detail sheet. Live data, 23 Oct 2026.</sub></p>
+
+> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended. Moved to Cloudflare Pages on 23 Oct 2026 (see `MIGRATION.md`).
+
+## At a glance
 
 | | |
 |---|---|
 | **Live** | https://markets.ethantam.dev |
-| **Hosting** | Netlify site `eqmarkets` (static Vite build plus the Netlify Function `/api/explain`) |
+| **Hosting** | Cloudflare Pages project `eqmarkets`, connected to this repository; every push to `main` deploys. Static Vite build, plus Pages Functions: the data proxies (`functions/_middleware.js`) and `/api/explain` |
+| **Data** | Live public sources (Yahoo Finance, FRED, Treasury.gov, the BOJ, the Fed, the CFTC, CBOE) through same-origin proxies; the last good values are saved on the device |
 | **Run locally** | `npm install && npm run dev` (see *Develop*) |
-| **Settings** | `MISTRAL_API_KEY` (optional, enables AI explanations), `EXPLAIN_MODEL` (optional). Set in Netlify environment variables, scope Functions. |
+| **Source** | [gitlab.com/eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets) |
+
+Settings (names only; values live in the Pages project's environment variables): `MISTRAL_API_KEY` (optional, enables AI explanations), `EXPLAIN_MODEL` (optional).
+
+## Features
 
 - **45 indicators** in five groups. **Rates:** 3M, 2Y, 10Y, 2s10s, 3m10y, 10Y real yield, 10Y breakeven, Kim–Wright term premium, DXY. **Risk:** VIX, VIX/VIX3M term structure, VXN (Nasdaq vol), 1-day VIX (VIX1D), VVIX (vol of vol), CBOE SKEW, MOVE, HY OAS, Moody's Baa–10Y spread (daily since 1986), IG OAS, Chicago Fed NFCI, St. Louis Fed stress index, oil vol (OVX), gold vol (GVZ), initial jobless claims, Fed net liquidity (balance sheet − TGA − reverse repos), HYG, BTC. **Carry:** USD/JPY, EFFR, BOJ, CFTC yen positioning, carry-to-vol. **Commodities:** copper, copper/gold ratio, silver, natural gas, corn, wheat, soybeans, DBC (broad) and DBA (agriculture). **Tape:** ES, NQ, gold, crude.
 - **Today's read:** fixed rules turn this month's cross-asset moves into plain-English observations (for example, oil and grains up while stocks fall reads as cost-push, checked against breakevens; NDX lagging SPX by more than a month's normal move while the S&P holds reads as leadership damage). Each line shows the exact numbers that triggered it. An optional **Explain in plain English** button has Mistral AI write a short note from the same numbers (see *AI explanations* below).
@@ -73,7 +96,7 @@ All of these are free and need no API key.
 
 **Credit spreads start in October 2023.** FRED only serves the ICE BofA high-yield and investment-grade spreads for the last three years, so the HY card's percentile, the Risk Appetite Index's credit input and anything else built on it can only say "wide for the last year or three", never "wide by history". That matters: on 16 Oct 2026 HY OAS was 3.23%, the 96th percentile of its past year after widening 58 bp in three weeks, yet that is well below the long-run norm of roughly 4.5–5% in ICE's full history (which peaked near 20% in 2008 and 11% in 2020). The **Baa–10Y card** (Moody's, daily since 1986, not licence-limited) is the long-run yardstick: its note gives its percentile since 1986, the HY card's note adds "long run tight / normal / wide" from it, and *Today's read* says whether a widening is a move from tight levels or real stress. In the long-history market-bias model and the lab, the Risk Appetite Index also lacks Bitcoin before 2014 and VIX3M before 2007, so for much of 2000–2023 it runs on 5 to 7 of its 8 inputs (it needs at least 4).
 
-None of these send CORS headers, so the browser can't call them directly. `netlify.toml` rewrites the five paths to the upstream hosts, which makes them same-origin. Outside Netlify the app falls back to public CORS proxies.
+None of these send CORS headers, so the browser can't call them directly. On Cloudflare Pages, `functions/_middleware.js` proxies each path to its upstream host, which makes them same-origin (`netlify.toml` does the same on Netlify, and `vite.config.js` in development). Anywhere else the app falls back to public CORS proxies.
 
 ## Methodology
 
@@ -200,12 +223,12 @@ Caveats: futures use Yahoo's continuous front-month series, so roll gaps count a
 
 ## AI explanations (optional)
 
-The **Explain in plain English** button calls `netlify/functions/explain.mjs`, which asks Mistral (`mistral-medium-latest`, Mistral Medium 3.5) for a two-paragraph note.
+The **Explain in plain English** button calls `functions/api/explain.mjs` (a Cloudflare Pages Function; `netlify/functions/explain.mjs` is the Netlify version), which asks Mistral (`mistral-medium-latest`, Mistral Medium 3.5) for a two-paragraph note.
 
-- **Turn it on:** Netlify → Site configuration → Environment variables → add `MISTRAL_API_KEY` (scope: Functions), then redeploy. Create the key at console.mistral.ai → API Keys. Without it the button says it isn't set up.
+- **Turn it on:** Cloudflare → Workers & Pages → `eqmarkets` → Settings → Variables and secrets → add `MISTRAL_API_KEY` as a secret, then redeploy. Create the key at console.mistral.ai → API Keys. Without it the button says it isn't set up.
 - **Optional:** `EXPLAIN_MODEL` to use a different Mistral model, for example `mistral-small-latest` (cheaper and faster) or `mistral-large-latest`.
 - **What it sends:** only numbers. The browser posts the scores behind *Today's read*. The function checks them against a fixed schema (known ids, bounded finite numbers, ISO dates), rebuilds every sentence itself in `src/ai/explain.js`, and only then calls the API, so nothing typed by a visitor can reach the prompt.
-- **Cost control:** a per-IP rate limit of 6 a minute (Netlify's in-code function rate limiting; check it's enabled on your plan), a 30-minute cache per identical data block, a 9-second timeout and at most 700 output tokens. A call costs about half a US cent on Medium 3.5 ($1.5/M input, $7.5/M output). **Set a monthly spend limit in the Mistral console (Admin → Limits)** as the backstop, because the endpoint is public.
+- **Cost control:** a per-IP rate limit of 6 a minute (kept in memory, so it resets when the function restarts), a 30-minute cache per identical data block, a 25-second timeout and at most 700 output tokens. A call costs about half a US cent on Medium 3.5 ($1.5/M input, $7.5/M output). **Set a monthly spend limit in the Mistral console (Admin → Limits)** as the backstop, because the endpoint is public.
 - **Errors:** a rejected key, rate limit, timeout or empty answer each shows a short notice instead of partial text.
 
 ## Project structure
@@ -266,12 +289,15 @@ src/
     sheet.js            swipe-to-dismiss for bottom sheets
     format.js           number formatting and sparklines
   styles/               base tokens, layout, components
-public/                 manifest, icons, service worker (copied as-is)
+public/                 manifest, icons, service worker, _headers, _routes.json (copied as-is)
+functions/              Cloudflare Pages Functions
+  _middleware.js        same-origin data proxies (/yf, /fred, /ust, /boj, /fed, /cftc, /cboe, /odw)
+  api/explain.mjs       POST /api/explain (Mistral)
 netlify/functions/
-  explain.mjs           POST /api/explain (Mistral)
+  explain.mjs           the same endpoint for Netlify
 scripts/
   bias-research.mjs     research harness: downloads history, runs the walk-forward offline, prints and saves the results table in the README
-netlify.toml            build settings, data proxies, headers
+netlify.toml            the Netlify build settings, data proxies and headers (kept so the site can go back)
 ```
 
 ## Develop
@@ -283,7 +309,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-`vite.config.js` mirrors the `netlify.toml` proxies, so `npm run dev` and `npm run preview` fetch data same-origin like the deployed site. Open `http://localhost:5173/?admin=1&tab=lab` for the lab.
+`vite.config.js` mirrors the proxies in `functions/_middleware.js`, so `npm run dev` and `npm run preview` fetch data same-origin like the deployed site. Open `http://localhost:5173/?admin=1&tab=lab` for the lab.
 
 | Script | What it does |
 |---|---|
@@ -295,11 +321,11 @@ npm run dev          # http://localhost:5173
 | `npm test` | Vitest unit tests for the quant library and backtest engine |
 | `npm run audit:design` | [impeccable](https://www.npmjs.com/package/impeccable) design anti-pattern scan (`npx impeccable` if not installed) |
 
-## Deploy on Netlify
+## Deploy
 
-1. In Netlify: **Add new site → Import an existing project → GitLab →** `eatentam/eqmarkets`. (For the existing site: **Site configuration → Build & deploy → Link repository**.)
-2. Netlify reads `netlify.toml`: build command `npm run build`, publish directory `dist`. Nothing to fill in.
-3. Every push to `main` deploys. Merge requests get deploy previews.
+The live site is the Cloudflare Pages project `eqmarkets`, connected to this repository: build command `npm run build`, output directory `dist`. Every push to `main` deploys. `functions/` is picked up automatically, and `public/_routes.json` runs Functions only on the proxy paths and `/api/*`. Setup steps are in `MIGRATION.md`.
+
+To go back to Netlify, import the repository there: it reads `netlify.toml` (build command `npm run build`, publish directory `dist`).
 
 `.gitlab-ci.yml` runs lint, tests and the build on every merge request and every push to `main`.
 
