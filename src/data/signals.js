@@ -140,7 +140,7 @@ export function pizza(p) {
   const rated = live.filter(x => x.pctUsual != null);
   return {
     limited: !!now.limited, signedIn: !!now.signedIn,
-    places, live: live.length, open: places.filter(x => !x.closed).length,
+    places, live: live.length, open: places.filter(x => x.closed === false).length,
     pctUsual: rated.length ? Math.round(mean(rated.map(x => x.pctUsual))) : null,
     spikes: rated.filter(x => x.pctUsual >= PIZZA_SPIKE).length,
     ts: now.ts, stale: !!now.stale,
