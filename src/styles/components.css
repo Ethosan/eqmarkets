@@ -81,6 +81,9 @@
 .m-read { grid-column: span 7 }
 #biasCard { grid-column: span 7 }
 .m-regime { grid-column: span 8; grid-row: span 2 }
+.m-side-col { grid-column: span 4; grid-row: span 2; display: flex; flex-direction: column; gap: 20px }
+.m-side-col > .m-card { flex: 1; min-height: 0 }
+.m-side-col .m-chart { flex: 1; min-height: 80px }
 #arCard, #recCard { grid-column: span 4 }
 .m-top { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 14px }
 .m-kicker { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.015em; color: var(--ink); display: inline-flex; align-items: center }
@@ -631,7 +634,8 @@ html.touring { overflow: hidden }
   .overview { grid-template-rows: none }
   .m-rai .m-grid { grid-template-columns: 1.2fr 1fr; gap: 28px }
   .m-regime { grid-column: 1 / -1; grid-row: auto }
-  #arCard, #recCard { grid-column: span 6 }
+  .m-side-col { grid-column: span 6; grid-row: auto; flex-direction: row }
+  .m-side-col > .m-card { flex: 1 }
   /* Too narrow for chart and notes side by side: the chart goes full width above. */
   #ofCard .m-grid { grid-template-columns: 1fr }
   .grid, .vit-cols { --vit-cols: minmax(180px, 1.4fr) 104px 96px minmax(150px, 1.2fr) minmax(150px, 1fr) }
@@ -647,7 +651,8 @@ html.touring { overflow: hidden }
 }
 @media (max-width: 720px) {
   .models { gap: 14px }
-  .m-card, #arCard, #recCard { grid-column: 1 / -1 }
+  .m-card, .m-side-col { grid-column: 1 / -1 }
+  .m-side-col { grid-row: auto; flex-direction: column }
   .m-card { padding: 18px 16px }
   .m-grid, .m-rai .m-grid { grid-template-columns: 1fr; gap: 14px }
   .m-top { gap: 4px 12px; margin-bottom: 12px }

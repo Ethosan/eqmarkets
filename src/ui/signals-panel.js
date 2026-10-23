@@ -104,13 +104,28 @@ function pizzaBias(pz) {
   return BIAS.neutral;
 }
 
+/* Stripper Index: pick the jobs change for the selected chart range. */
+function nightChgForRange(nl, rangeMonths) {
+  if (!nl) return null;
+  if (rangeMonths >= 60) return nl.jobsChg5y ?? nl.jobsChg;
+  if (rangeMonths >= 24) return nl.jobsChg2y ?? nl.jobsChg;
+  return nl.jobsChg1y ?? nl.jobsChg;
+}
+function nightRangeLabel(rangeMonths) {
+  if (rangeMonths >= 60) return "60 months";
+  if (rangeMonths >= 24) return "24 months";
+  return "12 months";
+}
+
 /* Stripper Index: jobs falling is economic weakness (bearish).
    The double signal (jobs down + unemployment up) is a recession tell = strong. */
-function nightBias(nl) {
+function nightBias(nl, rangeMonths) {
   if (!nl) return BIAS.none;
+  const chg = nightChgForRange(nl, rangeMonths ?? 12);
+  if (chg == null) return BIAS.none;
   if (nl.double) return BIAS.strongBear;
-  if (nl.jobsChg < 0) return BIAS.weakBear;
-  if (nl.jobsChg > 0) return BIAS.weakBull;
+  if (chg < 0) return BIAS.weakBear;
+  if (chg > 0) return BIAS.weakBull;
   return BIAS.neutral;
 }
 
@@ -240,8 +255,8 @@ function nightCard(nl, raw) {
   return '<div class="m-card sg-card" id="sg-night">' +
     '<div class="m-top"><h3 class="m-kicker"><span class="sg-emo" aria-hidden="true">🪩</span>The Stripper Index, measured</h3>' +
     '<a class="m-sub sg-src" href="https://www.bls.gov/ces/" target="_blank" rel="noopener">BLS</a></div>' +
-    '<div class="sg-read"><span class="m-value num">' + sgn(nl.jobsChg) + '%</span><span class="m-sub num">' + esc(nl.label.toLowerCase()) + " over 12 months, " + monthName(nl.last.t) + (nl.last.prelim ? " (preliminary)" : "") +
-    " · unemployment " + nl.unrate.v + "% (" + sgn(nl.unrateChg) + " pts)</span></div>" +
+    '<div class="sg-read"><span class="m-value num">' + sgn(nightChgForRange(nl, ranges.night) ?? 0) + '%</span><span class="m-sub num">' + esc(nl.label.toLowerCase()) + " over " + nightRangeLabel(ranges.night) + ", " + monthName(nl.last.t) + (nl.last.prelim ? " (preliminary)" : "") +
+    " · unemployment " + nl.unrate.v + "% (" + sgn(nl.unrateChg) + " pts, 12m)</span></div>" +
     '<p class="sg-blurb">The theory: people cut bottle service before groceries, so dancers see a recession first. Club tips aren\'t published; payroll jobs at bars and nightclubs are the closest official count. ' + esc(read) + "</p>" +
     '<div class="of-head"><p class="m-cap">' + esc(nl.label) + ", thousands, monthly</p><div class=\"d-ranges\" role=\"group\" aria-label=\"Chart range\">" + rangeBtns + '</div></div><div class="m-chart sg-chart" data-chart="night"></div>' +
     '<div class="sg-test"><p>' + stamp(V.thin) + " This series starts in " + monthName(nl.since) + ". The only downturn in it is COVID, which closed the bars by order, so there is nothing fair to test it against.</p></div>" +
@@ -293,7 +308,7 @@ function render() {
     { id: "crypto", emo: "🪙", name: "Fear & Greed, crypto", now: cr ? cr.value + " · " + fgZone(cr.value).label : "—", bias: fgBias(cr ? cr.value : null, crTest), feed: feed(cr), v: crV },
     { id: "moon", emo: MOON[bin], name: "The moon", now: PHASES[bin], bias: moonBias(bin, mb), feed: "Computed", v: !mb ? V.down : mb.edge ? V.edge : V.none },
     { id: "pizza", emo: "🍕", name: "Pentagon Pizza Index", now: !pz ? "—" : pz.limited ? "No Google reading" : pz.pctUsual != null ? pz.pctUsual + "% of usual" : "No live reading", bias: pizzaBias(pz), feed: !pz ? "Down" : pz.blocked ? "Blocked by Google" : pz.limited ? "Sign-in needed" : feed(pz), v: pizzaVerdict(pz, pzTest).v },
-    { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nl.jobsChg) + "% jobs, 12m" + (nl.double ? " · double signal" : "") : "—", bias: nightBias(nl), feed: feed(night), v: nl ? V.thin : V.down },
+    { id: "night", emo: "🪩", name: "Stripper Index", now: nl ? sgn(nightChgForRange(nl, ranges.night) ?? 0) + "% jobs, " + (ranges.night >= 60 ? "5y" : ranges.night >= 24 ? "2y" : "1y") + (nl.double ? " · double signal" : "") : "—", bias: nightBias(nl, ranges.night), feed: feed(night), v: nl ? V.thin : V.down },
     { id: "crowd", emo: "🔎", name: "Distress searches", now: sig.trends ? sig.trends.terms.filter(x => x.pct >= 25).length + " of " + sig.trends.terms.length + " spiking" : "—", bias: crowdBias(sig.trends), feed: feed(sig.trends), v: sig.trends ? V.untestable : V.down },
     { id: "crowd", emo: "📱", name: "Coinbase app rank", now: !sig.coinbase ? "—" : sig.coinbase.overall ? "#" + sig.coinbase.overall : sig.coinbase.overall === null ? "Outside top 100" : "—", bias: coinbaseBias(sig.coinbase), feed: feed(sig.coinbase), v: sig.coinbase ? V.untestable : V.down },
   ];

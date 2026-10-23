@@ -165,25 +165,52 @@ async function loadFlow() {
 
 function renderStats(f, spot, stale) {
   const gex = f.gex.netBn;
-  const tag = gex >= 0 ? ["Positive gamma · hedging dampens moves", "u"] : ["Negative gamma · hedging amplifies moves", "d"];
+  const isLong = gex >= 0;
+  /* Gamma regime: what the current dealer positioning means for how the market moves. */
+  const regime = isLong
+    ? "Long gamma — dealers sell rallies and buy dips, so moves get dampened"
+    : "Short gamma — dealers chase the move, so moves get amplified";
+  const regimeCls = isLong ? "u" : "d";
   $("ofGex").textContent = (gex >= 0 ? "+$" : "−$") + Math.abs(gex).toFixed(1) + "bn";
   $("ofGex").className = "m-value num";
-  $("ofTag").innerHTML = `<span class="m-tag ${tag[1]}">${tag[0]}</span>` +
-    ` calls +$${Math.abs(f.gex.callBn).toFixed(1)}bn · puts −$${Math.abs(f.gex.putBn).toFixed(1)}bn per 1%`;
+  $("ofTag").innerHTML = '<span class="m-tag ' + regimeCls + '">' + regime + '</span>' +
+    ' calls +$' + Math.abs(f.gex.callBn).toFixed(1) + 'bn · puts −$' + Math.abs(f.gex.putBn).toFixed(1) + 'bn per 1%';
   $("ofAsOf").textContent = "SPX " + fmt0(spot) + " · as of " + f.asOf + ", delayed" + (stale ? " · stale" : "");
 
   const flip = f.profile?.flip;
   const rows = [];
+  /* Gamma flip with distance and interpretation */
   if (flip != null) {
     const d = (flip / spot - 1) * 100;
-    rows.push(["Gamma flip", fmt0(flip) + " (" + sgn(d, 1) + "% from spot). " +
-      (spot >= flip ? "Above it, dealer hedging leans against the move." : "Below it, dealer hedging leans with the move — moves get amplified.")]);
+    const interp = spot >= flip
+      ? "Spot is above the flip — dealer hedging leans against the move, damping it."
+      : "Spot is below the flip — dealer hedging leans with the move, amplifying it.";
+    rows.push(["Gamma flip", fmt0(flip) + " (" + sgn(d, 1) + "% from spot) · " + interp]);
   }
-  if (f.pc.d0Share != null) rows.push(["0DTE share", Math.round(f.pc.d0Share * 100) + "% of today's SPX option volume is in same-day expiries · " + Math.round((f.pc.weekShare ?? 0) * 100) + "% within a week"]);
-  if (f.pc.pcVol != null) rows.push(["Put/call today", f.pc.pcVol.toFixed(2) + " on volume (" + (f.pc.putVol / 1e6).toFixed(1) + "M puts / " + (f.pc.callVol / 1e6).toFixed(1) + "M calls) · " + (f.pc.pcOi ?? 0).toFixed(2) + " on open interest"]);
-  if (f.walls) rows.push(["Walls", "Call " + fmt0(f.walls.call.strike) + " · put " + fmt0(f.walls.put.strike) + " · gamma " + fmt0(f.walls.gamma.strike) + " — strikes where hedging flow concentrates"]);
-  rows.push(["Gamma by expiry", f.byDte.map(b => `${b.from === 91 ? "3M+" : b.from + (b.to === 1 ? "D" : "–" + b.to + "D")} ${sgn(b.gexBn, 1)}`).join(" · ")]);
-  $("ofStats").innerHTML = rows.map(([k, v]) => `<li class=""><span class="cal-k">${k}</span><span class="cal-v">${esc(v)}</span></li>`).join("");
+  /* 0DTE share with warning when elevated */
+  if (f.pc.d0Share != null) {
+    const d0pct = Math.round(f.pc.d0Share * 100);
+    const wkPct = Math.round((f.pc.weekShare ?? 0) * 100);
+    const warn = d0pct >= 30 ? ' <span class="m-tag d">elevated</span>' : "";
+    rows.push(["0DTE share", d0pct + "% of today's SPX option volume is same-day" + warn + " · " + wkPct + "% within a week"]);
+  }
+  /* Put/call with interpretation */
+  if (f.pc.pcVol != null) {
+    const pcInterp = f.pc.pcVol > 1.2 ? "puts leading — hedging demand"
+      : f.pc.pcVol < 0.8 ? "calls leading — speculation or upside bets"
+      : "balanced";
+    rows.push(["Put/call today", f.pc.pcVol.toFixed(2) + " on volume (" + (f.pc.putVol / 1e6).toFixed(1) + "M puts / " + (f.pc.callVol / 1e6).toFixed(1) + "M calls) · " + (f.pc.pcOi ?? 0).toFixed(2) + " on OI · " + pcInterp]);
+  }
+  /* Walls with distance from spot */
+  if (f.walls) {
+    const dist = s => s?.strike ? sgn((s.strike / spot - 1) * 100, 1) + "%" : "—";
+    rows.push(["Walls", "Call " + fmt0(f.walls.call.strike) + " (" + dist(f.walls.call) + ") · put " + fmt0(f.walls.put.strike) + " (" + dist(f.walls.put) + ") · gamma " + fmt0(f.walls.gamma.strike) + " (" + dist(f.walls.gamma) + ")"]);
+  }
+  /* Gamma by expiry with interpretation */
+  const nearGex = f.byDte[0]?.gexBn ?? 0;
+  const nearInterp = nearGex >= 0 ? "near-term is long gamma" : "near-term is short gamma";
+  rows.push(["Gamma by expiry", f.byDte.map(b => b.from === 91 ? "3M+" : b.from + (b.to === 1 ? "D" : "–" + b.to + "D") + " " + sgn(b.gexBn, 1)).join(" · ") + " · " + nearInterp]);
+  $("ofStats").innerHTML = rows.map(([k, v]) => '<li class=""><span class="cal-k">' + k + '</span><span class="cal-v">' + v + '</span></li>').join("");
 }
 
 /* Re-draw the profile for the selected window. The flip always comes from the

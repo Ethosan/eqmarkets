@@ -116,11 +116,34 @@ export function moonBuckets(px) {
 export function nightlife(n) {
   if (!n?.jobs || n.jobs.length < 13 || !n.unrate || n.unrate.length < 13) return null;
   const j = n.jobs, u = n.unrate, jl = j[j.length - 1], ul = u[u.length - 1];
-  const yearAgo = (arr, last) => arr.find(x => x.t === (+last.t.slice(0, 4) - 1) + last.t.slice(4)) || arr[arr.length - 13];
-  const jobsChg = (jl.v / yearAgo(j, jl).v - 1) * 100, unrateChg = ul.v - yearAgo(u, ul).v;
+  /* Look back N months for the jobs change at each timeframe. Falls back to
+     the oldest available reading when the series is shorter than the window. */
+  const chgMonths = (arr, last, months) => {
+    const targetYear = +last.t.slice(0, 4) - Math.floor(months / 12);
+    const targetMonth = last.t.slice(4);
+    const ref = arr.find(x => x.t === targetYear + targetMonth)
+      || arr.find(x => x.t === (+last.t.slice(0, 4) - Math.floor(months / 12)) + last.t.slice(4))
+      || arr[Math.max(0, arr.length - 1 - months)];
+    return ref ? (last.v / ref.v - 1) * 100 : null;
+  };
+  const unrateChgMonths = (arr, last, months) => {
+    const targetYear = +last.t.slice(0, 4) - Math.floor(months / 12);
+    const ref = arr.find(x => x.t === targetYear + last.t.slice(4))
+      || arr[Math.max(0, arr.length - 1 - months)];
+    return ref ? last.v - ref.v : null;
+  };
+  const jobsChg = chgMonths(j, jl, 12);
+  const unrateChg = unrateChgMonths(u, ul, 12);
   const bls = n.source !== "fred";
   return {
-    last: jl, unrate: ul, jobsChg, unrateChg, double: jobsChg < 0 && unrateChg > 0,
+    last: jl, unrate: ul,
+    jobsChg, unrateChg, double: jobsChg < 0 && unrateChg > 0,
+    jobsChg1y: jobsChg,
+    jobsChg2y: chgMonths(j, jl, 24),
+    jobsChg5y: chgMonths(j, jl, 60),
+    unrateChg1y: unrateChg,
+    unrateChg2y: unrateChgMonths(u, ul, 24),
+    unrateChg5y: unrateChgMonths(u, ul, 60),
     label: bls ? "Bar and nightclub jobs" : "Restaurant and bar jobs",
     source: bls ? "BLS " + (n.jobsSeries || "CES7072240001") + " and LNS14000000" : "FRED " + (n.jobsSeries || "CES7072200001") + " and UNRATE",
     since: j[0].t, series: j,
