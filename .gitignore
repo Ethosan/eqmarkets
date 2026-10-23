@@ -10,3 +10,4 @@ scripts/cache/
 /sw.js
 /manifest.webmanifest
 /.impeccable/
+.wrangler/
