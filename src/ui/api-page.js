@@ -90,7 +90,7 @@ curl https://markets.ethantam.dev/api/risk</code></pre>
     <div><dt>Third-party services</dt><dd>The site relies on Cloudflare (hosting), Yahoo Finance, FRED, the Bank of Japan, the CFTC (market data) and Mistral AI (explanations). Their own terms and privacy policies apply to their services.</dd></div>
     <div><dt>The legal bit</dt><dd>Provided as it is, without warranties of any kind. As far as the law allows, we aren't liable for losses arising from your use of the app, and total liability is limited to what you paid us in the 12 months before the claim (so far, nothing). Governed by the laws of Singapore.</dd></div>
     <div><dt>Changes</dt><dd>If these terms change in a way that matters, the app will say so before it takes effect.</dd></div>
-    <div><dt>Contact</dt><dd><a href="mailto:eatentam@gmail.com">eatentam@gmail.com</a></dd></div>
+    <div><dt>Contact</dt><dd><a href="mailto:ethan@ethantam.dev">ethan@ethantam.dev</a></dd></div>
   </dl>
 </section>
 
@@ -103,7 +103,7 @@ curl https://markets.ethantam.dev/api/risk</code></pre>
     <div><dt>Who else processes data</dt><dd>Cloudflare (hosting and the serverless function); Yahoo Finance, FRED (St. Louis Fed), the Bank of Japan and the CFTC (market data); Mistral AI (only if you tap "Explain in plain English").</dd></div>
     <div><dt>What is not done</dt><dd>No ads, no analytics, no tracking pixels, no cross-site tracking. No selling or sharing of personal data (there isn't any to sell). No account system — there is nothing to delete, because nothing is stored about you server-side.</dd></div>
     <div><dt>Changes</dt><dd>If this policy changes in a way that matters, the app will say so before it takes effect.</dd></div>
-    <div><dt>Contact</dt><dd><a href="mailto:eatentam@gmail.com">eatentam@gmail.com</a></dd></div>
+    <div><dt>Contact</dt><dd><a href="mailto:ethan@ethantam.dev">ethan@ethantam.dev</a></dd></div>
   </dl>
 </section>`;
 

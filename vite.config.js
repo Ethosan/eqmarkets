@@ -23,7 +23,12 @@ const proxy = Object.fromEntries(Object.entries(UPSTREAM).map(([prefix, target])
 /* /fredx/<id>/<start>/<path>: the id and start only make the URL unique (see transport.js). */
 proxy["/fredx/"] = { ...proxy["/fred/"], rewrite: path => path.replace(/^\/fredx\/[^/]+\/[^/]+/, "") };
 
+import { readFileSync } from "fs";
+import { resolve } from "path";
+const pkg = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf-8"));
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   server: { proxy },
   preview: { proxy },
 });

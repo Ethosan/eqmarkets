@@ -29,4 +29,4 @@ If this policy changes in a way that matters, the app will say so before it take
 
 ## Contact
 
-[eatentam@gmail.com](mailto:eatentam@gmail.com)
+[ethan@ethantam.dev](mailto:ethan@ethantam.dev)

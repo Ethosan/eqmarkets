@@ -1,3 +1,4 @@
+const __APP_VERSION__ = import.meta.env?.__APP_VERSION__ || "";
 import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
@@ -165,3 +166,6 @@ document.addEventListener("visibilitychange", () => {
 $("stamp").addEventListener("click", refresh);
 
 initPwa();
+
+// Version display
+const _av = document.getElementById("appVersion"); if (_av && typeof __APP_VERSION__ !== "undefined") _av.textContent = "v" + __APP_VERSION__;

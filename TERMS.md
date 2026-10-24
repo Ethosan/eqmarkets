@@ -44,4 +44,4 @@ If these terms change in a way that matters, the app will say so before it takes
 
 ## Contact
 
-[eatentam@gmail.com](mailto:eatentam@gmail.com)
+[ethan@ethantam.dev](mailto:ethan@ethantam.dev)
