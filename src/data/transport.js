@@ -14,16 +14,29 @@ const fredPath = u => {
   return "/fredx/" + encodeURIComponent(q.get("id") || "_") + "/" + (q.get("cosd") || "_") + "/graph/fredgraph.csv?" + m[1];
 };
 
-const TRANSPORTS = [
-  u => fredPath(u)
-    .replace("https://query1.finance.yahoo.com", "/yf")
-    .replace("https://fred.stlouisfed.org", "/fred")
-    .replace("https://www.boj.or.jp", "/boj")
-    .replace("https://www.federalreserve.gov", "/fed")
-    .replace("https://home.treasury.gov", "/ust")
-    .replace("https://publicreporting.cftc.gov", "/cftc")
-    .replace("https://cdn-api.cboe.com", "/cboe"),
-];
+/* In a Pages Function there is no window and no same-origin proxy to rewrite
+   to: fetch the upstreams directly. Under vitest the proxy branch stays, so
+   the transport tests keep asserting the browser paths. */
+const isFunction = typeof window === "undefined" && !globalThis.process?.env?.VITEST;
+
+/* The same user-agent split the proxy applies in functions/_middleware.js:
+   Yahoo rate-limits requests without a browser user agent; FRED refuses a
+   browser one from Cloudflare. */
+const SERVER_UA = { "fred.stlouisfed.org": "eqmarkets-proxy (+https://markets.ethantam.dev)" };
+const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+const TRANSPORTS = isFunction
+  ? [u => u]
+  : [
+      u => fredPath(u)
+        .replace("https://query1.finance.yahoo.com", "/yf")
+        .replace("https://fred.stlouisfed.org", "/fred")
+        .replace("https://www.boj.or.jp", "/boj")
+        .replace("https://www.federalreserve.gov", "/fed")
+        .replace("https://home.treasury.gov", "/ust")
+        .replace("https://publicreporting.cftc.gov", "/cftc")
+        .replace("https://cdn-api.cboe.com", "/cboe"),
+    ];
 
 /* The transport to try first: per upstream host once one has worked for it. */
 let preferred = 0;
@@ -34,7 +47,9 @@ async function fetchWithTimeout(url, ms = 9000) {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), ms);
   try {
-    const r = await fetch(url, { signal: c.signal, cache: "no-store" });
+    const init = { signal: c.signal, cache: "no-store" };
+    if (isFunction) init.headers = { "user-agent": SERVER_UA[new URL(url).host] || BROWSER_UA };
+    const r = await fetch(url, init);
     if (!r.ok) {
       /* Release the unread body, or the connection stays open after the abort timer is cleared. */
       r.body?.cancel().catch(() => {});
