@@ -282,7 +282,12 @@
 </main>
 
 <footer>
-  Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Netlify proxy. Tap any row for its full history. Each trace shows three months inside the bands of its own past year: amber is the outer tenth, red the outer 2.5%. Rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span>
+  <p>Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Cloudflare Pages proxy. Tap any row for its full history. Each trace shows three months inside the bands of its own past year: amber is the outer tenth, red the outer 2.5%. Rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span></p>
+  <nav class="foot-nav" aria-label="API and legal">
+    <button type="button" data-api="api">API</button>
+    <button type="button" data-api="terms">Terms</button>
+    <button type="button" data-api="privacy">Privacy</button>
+  </nav>
 </footer>
 </div>
 </div>
@@ -319,6 +324,20 @@
     <nav class="g-nav" id="gNav" aria-label="Guide sections"></nav>
     <div id="gBody"></div>
     <div class="g-end"><button type="button" class="t-btn ghost" id="gInstall" hidden>Install as an app</button><button type="button" class="t-btn" id="gTour">Replay the tour</button></div>
+  </div>
+</dialog>
+
+<dialog id="api" class="detail guide" aria-labelledby="aTitle">
+  <div class="d-in">
+    <div class="d-grab" id="aGrab" aria-hidden="true"></div>
+    <div class="d-head">
+      <h2 class="d-name" id="aTitle">API, terms &amp; privacy</h2>
+      <button type="button" class="d-close" id="aClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="d-desc">The public API contract, and the terms and privacy that cover this site.</p>
+    <nav class="g-nav" id="aNav" aria-label="API and legal sections"></nav>
+    <div id="aBody"></div>
+    <div class="g-end"><a class="t-btn ghost" href="mailto:eatentam@gmail.com">Contact</a></div>
   </div>
 </dialog>
 

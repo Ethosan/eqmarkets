@@ -28,7 +28,7 @@ As an installable app (PWA), the last good data and your preferences are saved o
 
 ## Third-party services
 
-Equarian Markets relies on Netlify (hosting), Yahoo Finance, FRED, the Bank of Japan, the CFTC (market data), and Mistral AI (explanations). Their own terms and privacy policies apply to their services.
+Equarian Markets relies on Cloudflare (hosting), Yahoo Finance, FRED, the Bank of Japan, the CFTC (market data), and Mistral AI (explanations). Their own terms and privacy policies apply to their services.
 
 ## Ending
 

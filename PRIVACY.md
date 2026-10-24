@@ -9,11 +9,11 @@ Equarian Markets is a personal project by Ethan Tam. It has no user accounts, no
 
 ## AI explanations (optional)
 
-- The **Explain in plain English** button sends only the indicator numbers shown on the page (never text you type) to a Mistral AI model through a Netlify Function. The Function does not log or store the request.
+- The **Explain in plain English** button sends only the indicator numbers shown on the page (never text you type) to a Mistral AI model through a Cloudflare Pages Function. The Function does not log or store the request.
 
 ## Who else processes data
 
-- **Netlify:** hosts the site and the serverless function.
+- **Cloudflare:** hosts the site and the serverless function.
 - **Yahoo Finance, FRED (St. Louis Fed), Bank of Japan, CFTC:** provide the market data.
 - **Mistral AI:** only if you tap "Explain in plain English."
 
