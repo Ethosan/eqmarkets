@@ -231,6 +231,20 @@ The **Explain in plain English** button calls `functions/api/explain.mjs` (a Clo
 - **Cost control:** a per-IP rate limit of 6 a minute (kept in memory, so it resets when the function restarts), a 30-minute cache per identical data block, a 25-second timeout and at most 700 output tokens. A call costs about half a US cent on Medium 3.5 ($1.5/M input, $7.5/M output). **Set a monthly spend limit in the Mistral console (Admin → Limits)** as the backstop, because the endpoint is public.
 - **Errors:** a rejected key, rate limit, timeout or empty answer each shows a short notice instead of partial text.
 
+## Public API
+
+Two read-only endpoints expose the dashboard's own models, computed with the same code the site runs (`functions/api/_macro.mjs`), so the API and the dashboard always agree. Free for now; no key, no account.
+
+- `GET /api/regime` → the growth × inflation regime: `{ quadrant, label, confidence, growth, inflation, readingQuadrant, provisional, weeksIn, since, pending, switchesYear, asOf, updated, stale }`
+- `GET /api/risk` → the Risk Appetite Index level: `{ value, latest, label, inputs, total, contributions: [{ id, label, score }], asOf, updated, stale }`
+
+`stale: true` means a refresh failed and the last good read is being served. `asOf` is the latest market session the numbers cover.
+
+- **Freshness:** one snapshot is computed per five minutes per function instance; responses are edge-cached for 60 seconds. Fields are additive — new ones may appear without notice.
+- **Limits:** 30 requests a minute per IP (kept in memory, so it resets when the function restarts). CORS-open; `Cache-Control: public, max-age=60`.
+- **Abuse:** the endpoints take no input, hold no secrets and change no state. A flood is absorbed by the edge cache, the five-minute snapshot cache and a one-minute failure backoff, so the upstream data feeds and the rest of the site are not put at risk. If the API ever costs real money to run, it gets a key or a tighter limit before anything else changes.
+- **Errors:** `429 { error: "busy" }` when rate-limited, `503 { error: "unavailable" }` when no read exists yet. An error body is the only thing an error ever says.
+
 ## Project structure
 
 ```

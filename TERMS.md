@@ -20,7 +20,7 @@ Market data comes from Yahoo Finance, FRED, the Bank of Japan, and the CFTC. Dat
 
 ## Fair use
 
-Don't scrape the service, try to get around rate limits, or interfere with how it runs.
+Don't scrape the service, try to get around rate limits, or interfere with how it runs. The public API (`/api/regime`, `/api/risk`) is free to call within its rate limits; if that ever changes, this page says so first.
 
 ## Your device
 

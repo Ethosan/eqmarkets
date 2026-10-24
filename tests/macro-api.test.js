@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ITEM_BY_ID } from "../src/config.js";
-import { NEEDED, shapeRegime, shapeRisk } from "../functions/api/_macro.mjs";
+import { NEEDED, json, rateLimited, shapeRegime, shapeRisk } from "../functions/api/_macro.mjs";
 
 const REGIME = {
   growth: 0.4234, inflation: -0.3156, quadrant: "goldilocks", label: "Goldilocks",
@@ -58,5 +58,32 @@ describe("model inputs", () => {
     expect(NEEDED).not.toContain("cugold");
     expect(NEEDED).toEqual(expect.arrayContaining(
       ["es", "vix", "hyoas", "be10", "dbc", "dba", "vix3m", "hg", "gc"]));
+  });
+});
+
+describe("rate limiting", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("allows 30 a minute per IP and blocks the 31st until the window passes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
+    for (let i = 0; i < 30; i++) expect(rateLimited("1.2.3.4")).toBe(false);
+    expect(rateLimited("1.2.3.4")).toBe(true);
+    expect(rateLimited("5.6.7.8")).toBe(false); /* other IPs are unaffected */
+    vi.setSystemTime(new Date("2026-10-24T12:00:59Z"));
+    expect(rateLimited("1.2.3.4")).toBe(true); /* still inside the window */
+    vi.setSystemTime(new Date("2026-10-24T12:01:01Z"));
+    expect(rateLimited("1.2.3.4")).toBe(false); /* window reset */
+  });
+});
+
+describe("response headers", () => {
+  it("answers CORS-open, cacheable, sniff-proof JSON", async () => {
+    const res = json(200, { ok: true });
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(await res.json()).toEqual({ ok: true });
   });
 });
