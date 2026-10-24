@@ -45,7 +45,7 @@ describe("vol-scaled moves", () => {
     expect(Math.abs(mean(draws))).toBeLessThan(3 * se);
     expect(std(draws)).toBeGreaterThan(0.94);
     expect(std(draws)).toBeLessThan(1.06);
-  });
+  }, 30_000); /* 2,000 paths: past the 5 s default when the whole suite runs in parallel */
 
   it("scale by volatility measured before the window, so a shock can't shrink its own score", () => {
     /* Calm for 300 days, then a 21-day run of +2% days. */

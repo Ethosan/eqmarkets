@@ -76,7 +76,7 @@ function updateHtmlMeta(dir, ver) {
       // Update any data-app-version attributes
       html = html.replace(/data-app-version="[^"]*"/gi, `data-app-version="${ver}"`);
       writeFileSync(full, html);
-    } catch {}
+    } catch { /* unreadable or locked file: leave it */ }
   }
 }
 updateHtmlMeta(rootDir, next);
