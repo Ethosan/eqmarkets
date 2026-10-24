@@ -17,30 +17,32 @@ const BODY = () => `
   <table class="g-table">
     <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
     <tbody>
-      <tr><td><code>GET /api/regime</code></td><td>The growth × inflation regime</td></tr>
-      <tr><td><code>GET /api/risk</code></td><td>The Risk Appetite Index level</td></tr>
+      <tr><td><code>GET /api/regime</code></td><td>The growth × inflation regime and its weekly trail</td></tr>
+      <tr><td><code>GET /api/risk</code></td><td>The Risk Appetite Index and its history</td></tr>
     </tbody>
   </table>
 
   <p><b>GET /api/regime</b> — the growth × inflation regime.</p>
   <dl class="g-defs">
-    <div><dt>quadrant · label</dt><dd>The regime's quadrant (<code>goldilocks</code>, <code>reflation</code>, <code>stagflation</code>, <code>slowdown</code>) and its display label.</dd></div>
+    <div><dt>quadrant · label</dt><dd>The regime's quadrant (<code>goldilocks</code>, <code>reflation</code>, <code>stagflation</code>, <code>disinflation</code>) and its display label.</dd></div>
     <div><dt>confidence</dt><dd>How settled the read is.</dd></div>
-    <div><dt>growth · inflation</dt><dd>The two axis scores.</dd></div>
-    <div><dt>readingQuadrant</dt><dd>The quadrant this week's raw reading points to. It can differ from <code>quadrant</code> while a switch is still being confirmed.</dd></div>
-    <div><dt>provisional</dt><dd><code>true</code> while a switch is being confirmed over its three weeks.</dd></div>
+    <div><dt>growth · inflation</dt><dd>This week's two axis scores: the map's "now" dot.</dd></div>
+    <div><dt>readingQuadrant</dt><dd>The quadrant this week's reading points to. It can differ from <code>quadrant</code>, which only switches after three weeks.</dd></div>
+    <div><dt>provisional</dt><dd><code>true</code> until three finished weeks of readings exist.</dd></div>
     <div><dt>weeksIn · since</dt><dd>How many weeks the current regime has held, and the week it started (ISO date).</dd></div>
     <div><dt>pending</dt><dd>A description of a switch that is building, or <code>null</code>.</dd></div>
-    <div><dt>switchesYear</dt><dd>Regime switches so far this year.</dd></div>
+    <div><dt>switchesYear</dt><dd>Regime switches in the past 52 weeks.</dd></div>
+    <div><dt>trail</dt><dd><code>[{ date, growth, inflation }]</code>: the 13 finished weekly readings the regime map draws, oldest first.</dd></div>
     <div><dt>asOf · updated · stale</dt><dd><code>asOf</code> is the latest market session the numbers cover. <code>updated</code> is when this snapshot was computed (ISO). <code>stale</code> is <code>true</code> when a refresh failed and the last good read is being served.</dd></div>
   </dl>
 
-  <p><b>GET /api/risk</b> — the Risk Appetite Index level.</p>
+  <p><b>GET /api/risk</b> — the Risk Appetite Index.</p>
   <dl class="g-defs">
-    <div><dt>value · latest</dt><dd>The index level in sigma (−2 to +2), and the most recent daily value.</dd></div>
+    <div><dt>value · latest</dt><dd>The index in sigma: the mean of the last three days (the headline and label), and the latest day.</dd></div>
     <div><dt>label</dt><dd><code>Risk-on</code>, <code>Leaning risk-on</code>, <code>Neutral</code>, <code>Leaning risk-off</code> or <code>Risk-off</code>.</dd></div>
     <div><dt>inputs · total</dt><dd>How many of the 8 inputs had data, out of the 8 the index can use.</dd></div>
     <div><dt>contributions</dt><dd>Per input, <code>[{ id, label, score }]</code>, each score capped at ±3.</dd></div>
+    <div><dt>history</dt><dd><code>[{ date, value }]</code>: the daily index the dashboard charts, about a year, oldest first.</dd></div>
     <div><dt>asOf · updated · stale</dt><dd>As above.</dd></div>
   </dl>
 
@@ -55,13 +57,16 @@ curl https://markets.ethantam.dev/api/risk</code></pre>
   <p><b>A response looks like</b> (values are live, so they change):</p>
 <pre class="code"><code>// GET /api/risk
 {
-  "value": -1.13,
-  "latest": -1.13,
+  "value": -1.12,
+  "latest": -1.32,
   "label": "Risk-off",
   "inputs": 8,
   "total": 8,
   "contributions": [
-    { "id": "es", "label": "S&amp;P 500 futures", "score": -2.1 }
+    { "id": "es", "label": "Equities (ES)", "score": -0.46 }
+  ],
+  "history": [
+    { "date": "2026-10-23", "value": -1.32 }
   ],
   "asOf": "2026-10-23",
   "updated": "2026-10-24T02:14:00.000Z",

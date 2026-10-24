@@ -111,6 +111,9 @@ export function shapeRegime(regime, asOf, updated) {
       ? { quadrant: regime.pending.quadrant, label: regime.pending.label, weeks: regime.pending.weeks, needed: regime.pending.needed }
       : null,
     switchesYear: regime.switchesYear,
+    /* The weekly readings the dashboard's map draws (finished weeks, oldest first);
+       growth and inflation above are this week's reading, the map's "now" dot. */
+    trail: (regime.trail || []).map(p => ({ date: p.date, growth: r2(p.growth), inflation: r2(p.inflation) })),
     asOf,
     updated,
   };
@@ -124,6 +127,8 @@ export function shapeRisk(rai, asOf, updated) {
     inputs: rai.contributions?.length ?? 0,
     total: rai.total,
     contributions: (rai.contributions || []).map(c => ({ id: c.id, label: c.label, score: r2(c.score) })),
+    /* The daily index the dashboard charts, oldest first; value is the mean of the last three. */
+    history: (rai.history?.dates || []).map((date, i) => ({ date, value: r2(rai.history.values[i]) })),
     asOf,
     updated,
   };

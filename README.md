@@ -235,8 +235,8 @@ The **Explain in plain English** button calls `functions/api/explain.mjs` (a Clo
 
 Two read-only endpoints expose the dashboard's own models, computed with the same code the site runs (`functions/api/_macro.mjs`), so the API and the dashboard always agree. Free for now; no key, no account.
 
-- `GET /api/regime` → the growth × inflation regime: `{ quadrant, label, confidence, growth, inflation, readingQuadrant, provisional, weeksIn, since, pending, switchesYear, asOf, updated, stale }`
-- `GET /api/risk` → the Risk Appetite Index level: `{ value, latest, label, inputs, total, contributions: [{ id, label, score }], asOf, updated, stale }`
+- `GET /api/regime` → the growth × inflation regime: `{ quadrant, label, confidence, growth, inflation, readingQuadrant, provisional, weeksIn, since, pending, switchesYear, trail: [{ date, growth, inflation }], asOf, updated, stale }`. `trail` is the 13 finished weekly readings the regime map draws; `growth` and `inflation` are this week's reading.
+- `GET /api/risk` → the Risk Appetite Index: `{ value, latest, label, inputs, total, contributions: [{ id, label, score }], history: [{ date, value }], asOf, updated, stale }`. `history` is the daily index the dashboard charts (about a year); `value` is the mean of its last three days.
 
 `stale: true` means a refresh failed and the last good read is being served. `asOf` is the latest market session the numbers cover.
 
