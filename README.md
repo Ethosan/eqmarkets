@@ -240,6 +240,20 @@ Two read-only endpoints expose the dashboard's own models, computed with the sam
 
 `stale: true` means a refresh failed and the last good read is being served. `asOf` is the latest market session the numbers cover.
 
+Call them from anywhere — no key, no signup, CORS-open:
+
+```sh
+curl https://markets.ethantam.dev/api/regime
+curl https://markets.ethantam.dev/api/risk
+```
+
+```js
+const [regime, risk] = await Promise.all([
+  fetch("https://markets.ethantam.dev/api/regime").then(r => r.json()),
+  fetch("https://markets.ethantam.dev/api/risk").then(r => r.json()),
+]);
+```
+
 - **Freshness:** one snapshot is computed per five minutes per function instance; responses are edge-cached for 60 seconds. Fields are additive — new ones may appear without notice.
 - **Limits:** 30 requests a minute per IP (kept in memory, so it resets when the function restarts). CORS-open; `Cache-Control: public, max-age=60`.
 - **Abuse:** the endpoints take no input, hold no secrets and change no state. A flood is absorbed by the edge cache, the five-minute snapshot cache and a one-minute failure backoff, so the upstream data feeds and the rest of the site are not put at risk. If the API ever costs real money to run, it gets a key or a tighter limit before anything else changes.
