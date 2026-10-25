@@ -363,3 +363,7 @@ After a BOJ rate decision, if the live scrape ever fails, update `BOJ_RATE` in `
 
 - Built for context, not trading advice.
 - The service worker never caches market data; it only keeps the app shell for offline launch.
+
+## Security
+
+Found a security problem? See [markets.ethantam.dev/.well-known/security.txt](https://markets.ethantam.dev/.well-known/security.txt), or email contact@ethantam.dev.
