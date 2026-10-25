@@ -11,7 +11,7 @@ const UPSTREAM = {
   "/fed": "https://www.federalreserve.gov",
   "/cftc": "https://publicreporting.cftc.gov",
   "/cboe": "https://cdn-api.cboe.com",
-  "/odw": "https://oracular-data.makan-bot.workers.dev",
+  "/odw": "https://oracular-data.ethantam.dev",
 };
 
 /* Headers passed back to the page; everything else (cookies included) is dropped. */

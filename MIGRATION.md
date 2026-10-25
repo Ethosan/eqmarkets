@@ -46,7 +46,7 @@ Add `markets.ethantam.dev` in Pages → Custom domains.
 ## Cross-Site References
 
 - Text link to `https://oracular.ethantam.dev` — no change needed.
-- Proxy to `https://oracular-data.makan-bot.workers.dev` — unaffected.
+- Proxy to `https://oracular-data.ethantam.dev` — unaffected.
 - No hardcoded `*.netlify.app` URLs.
 
 ## Post-Migration Checklist
