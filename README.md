@@ -18,7 +18,7 @@ A live macro dashboard for futures traders. Rates, credit, carry, the options ma
 </p>
 <p align="center"><sub>Overview, the Risk Appetite Index and its drivers, the macro regime, and the S&P 500 futures detail sheet. Live data, 23 Oct 2026.</sub></p>
 
-> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended. Moved to Cloudflare Pages on 23 Oct 2026 (see `MIGRATION.md`).
+> **History:** First built in July 2026 and deployed on Netlify. Moved to GitHub in October 2026, so the commit history starts there. Moved to GitLab ([eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets)) on 17 Oct 2026 after the GitHub account was suspended. Moved to Cloudflare Pages on 23 Oct 2026 (see `MIGRATION.md`). Since 28 Oct 2026 GitLab mirrors every push back to GitHub, read-only.
 
 ## At a glance
 
@@ -28,7 +28,7 @@ A live macro dashboard for futures traders. Rates, credit, carry, the options ma
 | **Hosting** | Cloudflare Pages project `eqmarkets`, connected to this repository; every push to `main` deploys. Static Vite build, plus Pages Functions: the data proxies (`functions/_middleware.js`) and `/api/explain` |
 | **Data** | Live public sources (Yahoo Finance, FRED, Treasury.gov, the BOJ, the Fed, the CFTC, CBOE) through same-origin proxies; the last good values are saved on the device |
 | **Run locally** | `npm install && npm run dev` (see *Develop*) |
-| **Source** | [gitlab.com/eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets) |
+| **Source** | [gitlab.com/eatentam/eqmarkets](https://gitlab.com/eatentam/eqmarkets). Read-only mirror: [github.com/Ethosan/eqmarkets](https://github.com/Ethosan/eqmarkets), which GitLab updates on every push |
 
 Settings (names only; values live in the Pages project's environment variables): `MISTRAL_API_KEY` (optional, enables AI explanations), `EXPLAIN_MODEL` (optional).
 
