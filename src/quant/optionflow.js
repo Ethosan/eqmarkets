@@ -45,18 +45,36 @@ export function parseOptionSymbol(sym) {
 
 const days = (a, b) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5);
 
-/* Raw chain JSON → { asOf, spot, iv30, options: [{strike, type, expiry, dte, gamma, iv, oi, vol}], skipped }.
-   `now` (ISO date) overrides the chain's own timestamp date. */
+/* CBOE's timestamp is UTC with no zone: "2026-10-30 00:41:06" is 8:41 pm on Oct 29 in New
+   York. The session is New York's date (a weekend rolls back to Friday), and it has closed
+   from 4:15 pm. Read as a UTC date, every evening from 8 pm ET the day's own expiries came out
+   a day past (dte −1) while CBOE still lists them, so they counted as live gamma with half a
+   day left: net GEX −57.7 bn instead of −38.5, the gamma wall on an expired strike, and a
+   "same-day" share of 79% (expired plus the next day's) for a session whose 0DTE was 66%. */
+export function sessionOf(timestamp) {
+  const t = Date.parse(String(timestamp || "").replace(" ", "T") + "Z");
+  if (!isFinite(t)) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short", hourCycle: "h23" }).formatToParts(new Date(t));
+  const g = k => parts.find(p => p.type === k)?.value;
+  const back = { Sat: 1, Sun: 2 }[g("weekday")] || 0;
+  const date = new Date(Date.parse(`${g("year")}-${g("month")}-${g("day")}T12:00:00Z`) - back * 864e5).toISOString().slice(0, 10);
+  return { date, closed: back > 0 || +g("hour") * 60 + +g("minute") >= 16 * 60 + 15 };
+}
+
+/* Raw chain JSON → { asOf, closed, spot, iv30, options: [{strike, type, expiry, dte, gamma, iv, oi, vol}], skipped }.
+   asOf is the session's New York date (sessionOf); `now` (ISO date) overrides it, with the
+   session taken as open. Options that expired before the session are left out. */
 export function parseChain(json, now = null) {
   const d = json?.data;
   if (!d?.options?.length || !(d.current_price > 0)) return null;
-  const asOf = now || String(json.timestamp || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf)) return null;
+  const sess = now ? { date: now, closed: false } : sessionOf(json.timestamp);
+  const asOf = sess && sess.date;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf || "")) return null;
   const options = [];
   let skipped = 0;
   for (const o of d.options) {
     const p = parseOptionSymbol(o.option);
-    if (!p || !isFinite(o.open_interest) || !isFinite(o.gamma)) { skipped++; continue; }
+    if (!p || !isFinite(o.open_interest) || !isFinite(o.gamma) || p.expiry < asOf) { skipped++; continue; }
     options.push({
       ...p, dte: days(asOf, p.expiry),
       gamma: o.gamma, iv: isFinite(o.iv) ? o.iv : null,
@@ -64,7 +82,7 @@ export function parseChain(json, now = null) {
     });
   }
   if (options.length < 2) return null;
-  return { asOf, spot: d.current_price, iv30: d.iv30 ?? null, options, skipped };
+  return { asOf, closed: sess.closed, spot: d.current_price, iv30: d.iv30 ?? null, options, skipped };
 }
 
 /* Net dealer gamma from the chain's own gamma values, at the current spot.
@@ -137,7 +155,7 @@ export function putCallFlow(options) {
   for (const o of options) {
     totVol += o.vol;
     if (o.type === "C") { callVol += o.vol; callOi += o.oi; } else { putVol += o.vol; putOi += o.oi; }
-    if (o.dte <= 1) d0 += o.vol;
+    if (o.dte === 0) d0 += o.vol;
     else if (o.dte <= 7) w0 += o.vol;
   }
   return {
@@ -153,15 +171,18 @@ export function putCallFlow(options) {
 /* Everything the option-flow card shows, from one parsed chain. */
 export function optionFlow(chain, { r = 0.04 } = {}) {
   if (!chain) return null;
-  const gex = netGex(chain.options, chain.spot);
-  const profile = gexProfile(chain, { r });
-  const w = walls(chain.options, chain.spot);
+  /* Once the session has closed, its own expiries are gone: no gamma, no walls. Its volume
+     is still the session's flow, so the put/call and 0DTE shares count every option. */
+  const live = chain.closed ? chain.options.filter(o => o.dte > 0) : chain.options;
+  const gex = netGex(live, chain.spot);
+  const profile = gexProfile({ ...chain, options: live }, { r });
+  const w = walls(live, chain.spot);
   const pc = putCallFlow(chain.options);
   /* Net gamma by expiry bucket, in $bn per 1%. */
   const buckets = [[0, 1], [2, 7], [8, 30], [31, 90], [91, Infinity]];
   const byDte = buckets.map(([a, b]) => {
     let net = 0;
-    for (const o of chain.options) if (o.dte >= a && o.dte <= b)
+    for (const o of live) if (o.dte >= a && o.dte <= b)
       net += (o.type === "C" ? 1 : -1) * o.gamma * o.oi * CONTRACT_MULTIPLIER * chain.spot * chain.spot * 0.01;
     return { from: a, to: b, gexBn: net / 1e9 };
   });

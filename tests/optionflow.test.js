@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  bsGamma, parseOptionSymbol, parseChain, netGex, gexProfile, walls, putCallFlow, optionFlow,
+  bsGamma, parseOptionSymbol, parseChain, sessionOf, netGex, gexProfile, walls, putCallFlow, optionFlow,
 } from "../src/quant/optionflow.js";
 import { momentumPath, reversalPath, ratioSeries, levelZPath } from "../src/model/history.js";
 import { readMarket } from "../src/quant/narrative.js";
@@ -71,6 +71,41 @@ describe("chain parsing", () => {
     expect(c.skipped).toBe(1);
     expect(c.options[0]).toMatchObject({ strike: 7660, type: "C", dte: 35 });
     expect(c.options[1].dte).toBe(3);
+  });
+  it("reads CBOE's UTC timestamp as New York's session, and drops what expired before it", () => {
+    /* 00:41 UTC on Oct 30 is 8:41 pm on Oct 29 in New York: Oct 29's session, closed */
+    const json = {
+      timestamp: "2026-10-30 00:41:06",
+      data: {
+        current_price: 7720,
+        options: [
+          { option: "SPXW261028C07700000", gamma: 0.01, iv: 0.1, open_interest: 50, volume: 1 },  /* expired the day before */
+          { option: "SPXW261029C07720000", gamma: 0.02, iv: 0.1, open_interest: 900, volume: 6600 }, /* the session's own 0DTE */
+          { option: "SPXW261029P07720000", gamma: 0.02, iv: 0.1, open_interest: 900, volume: 3000 },
+          { option: "SPX261120C07720000", gamma: 0.001, iv: 0.14, open_interest: 300, volume: 300 },
+          { option: "SPX261120P07720000", gamma: 0.001, iv: 0.14, open_interest: 200, volume: 100 },
+        ],
+      },
+    };
+    const c = parseChain(json);
+    expect(c.asOf).toBe("2026-10-29");
+    expect(c.closed).toBe(true);
+    expect(c.skipped).toBe(1);
+    expect(c.options.find(o => o.expiry === "2026-10-29").dte).toBe(0);
+    const f = optionFlow(c);
+    /* the closed session's expiries add no gamma; their volume is still its flow */
+    expect(f.gex.call).toBeCloseTo(0.001 * 300 * 100 * 7720 * 7720 * 0.01);
+    expect(f.walls.gamma.strike).toBe(7720);
+    expect(f.pc.d0Share).toBeCloseTo(9600 / 10000, 8);
+    /* in the session (1:35 pm ET), the same-day options are live */
+    const open = parseChain({ ...json, timestamp: "2026-10-29 17:35:00" });
+    expect(open.closed).toBe(false);
+    expect(optionFlow(open).gex.call).toBeGreaterThan(f.gex.call * 10);
+  });
+  it("rolls a weekend back to Friday's closed session", () => {
+    expect(sessionOf("2026-10-31 15:00:00")).toEqual({ date: "2026-10-30", closed: true });
+    expect(sessionOf("2026-10-29 20:14:00")).toEqual({ date: "2026-10-29", closed: false });
+    expect(sessionOf("2026-10-29 20:16:00")).toEqual({ date: "2026-10-29", closed: true });
   });
   it("rejects a chain with nothing usable", () => {
     expect(parseChain({ data: { options: [] } })).toBeNull();
