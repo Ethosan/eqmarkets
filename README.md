@@ -56,6 +56,8 @@ Settings (names only; values live in the Pages project's environment variables):
 
 Markets and [Oracular](https://oracular.ethantam.dev) are separate tools, and new features should stay on their side of the line.
 
+> **Planned (1 Nov 2026):** Markets becomes Oracular's **Macro** tab during December 2026 and January 2027, and markets.ethantam.dev then points there; until the tab ships this repo takes fixes only. See [docs/PLAN.md](docs/PLAN.md).
+
 | Markets (this repo) | Oracular |
 |---|---|
 | Top-down and cross-asset: rates, credit, vol, FX, commodities, index futures | Bottom-up: one company or ticker at a time |

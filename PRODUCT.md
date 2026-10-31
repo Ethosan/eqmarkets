@@ -26,6 +26,7 @@ Every number is live, unit-aware and explained, and every model shows its own tr
 - Installable PWA with offline snapshot and home-screen shortcuts (`/?tab=rates`, etc.).
 - Optional AI explanation (Mistral, via a Netlify Function) of the rule-based read.
 - Admin-only backtest lab at `?admin=1&tab=lab`.
+- Planned (2026-11-01): the dashboard becomes Oracular's Macro tab (the Risk Appetite score free, the rest on Oracular Premium) during December 2026 to January 2027, and markets.ethantam.dev then redirects there. Fixes only until then; see `docs/PLAN.md`.
 - Deployed by pushing to GitLab `eatentam/eqmarkets` main (Netlify auto-build).
 
 ## Capabilities and Constraints
