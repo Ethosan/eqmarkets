@@ -314,6 +314,9 @@ The Risk Appetite Index scale is a 14px banded strip: red, amber, white normal z
 ### Detail Sheet
 A 680px dialog on sheet over the scrim (bottom sheet with a grab handle on phones). The name is 22px and the value 36px. Range segments sit above an interactive chart drawn in the group hue, with a dotted median and a shaded middle 80%. Stats sit in a hairline grid, followed by a teal source link.
 
+### What's New Log
+The release log lives in `src/whatsnew.js` (newest first: `{d, v, title, items}`) and opens from the quiet "v2.x.x · What's new" text link at the foot of the page, in the guide-style sheet (`src/ui/whatsnew-sheet.js`). No badge, banner or popup: it is there for whoever looks. Every feature release adds an entry at the top, written for users in plain words; fixes go in as one "Bug fixes and polish." line.
+
 ### Motion and Touch
 Controls answer on press, not release: buttons, tabs and range segments dip to 97% the moment they are pressed, and a vital row takes its wash at once. Dialogs arrive as a surface. On desktop they rise 8px and settle while fading in. On phones the sheet slides up from the bottom edge and leaves the same way, by the close button, Esc, a scrim tap or a drag. A drag follows the finger 1:1, resists when pulled up (rubber band), and on release projects the flick's momentum (Apple's 0.998 deceleration) to decide close or return, so a short fast flick closes it and a held finger does not. Both outcomes run on a critically damped spring that starts at the finger's speed, and the sheet can be grabbed again mid-flight. Reduced motion closes at once with no slide. Reduced transparency and more contrast make the blurred top bars solid.
 

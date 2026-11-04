@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <meta name="app-version" content="2.1.6">
+  <meta name="app-version" content="2.2.0">
 </head>
 <body>
 
@@ -283,13 +283,13 @@
 </main>
 
 <footer style="position:relative">
-  <span class="app-version" id="appVersion"></span>
   <p>Quotes from Yahoo Finance, FRED, the BOJ and the CFTC, through this site's own Cloudflare Pages proxy. Tap any row for its full history. Each trace shows three months inside the bands of its own past year: amber is the outer tenth, red the outer 2.5%. Rate changes are in basis points. Built for context, not advice.<span id="modeNote"></span></p>
   <nav class="foot-nav" aria-label="API and legal">
     <button type="button" data-api="api">API</button>
     <button type="button" data-api="terms">Terms</button>
     <button type="button" data-api="privacy">Privacy</button>
   </nav>
+  <button type="button" class="app-version" id="appVersion" aria-haspopup="dialog">What's new</button>
 </footer>
 </div>
 </div>
@@ -340,6 +340,18 @@
     <nav class="g-nav" id="aNav" aria-label="API and legal sections"></nav>
     <div id="aBody"></div>
     <div class="g-end"><a class="t-btn ghost" href="mailto:contact@ethantam.dev">Contact</a></div>
+  </div>
+</dialog>
+
+<dialog id="whatsnew" class="detail guide" aria-labelledby="wTitle">
+  <div class="d-in">
+    <div class="d-grab" id="wGrab" aria-hidden="true"></div>
+    <div class="d-head">
+      <h2 class="d-name" id="wTitle">What's new</h2>
+      <button type="button" class="d-close" id="wClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="d-desc">Every release, newest first. EQ Markets was first built in July 2026; this log starts with 2.0 in October.</p>
+    <div id="wBody"></div>
   </div>
 </dialog>
 

@@ -1,4 +1,4 @@
-const __APP_VERSION__ = import.meta.env?.__APP_VERSION__ || "";
+/* global __APP_VERSION__ */
 import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
@@ -19,6 +19,7 @@ import { tickClocks, initTabs, trackAppbar, progStart, progBump, progEnd, initTh
 import { $, clockIn } from "./ui/format.js";
 import { initGuide } from "./ui/guide.js";
 import { initApi } from "./ui/api-page.js";
+import { initWhatsNew } from "./ui/whatsnew-sheet.js";
 import { initRead } from "./ui/read-panel.js";
 import { loadSnapshot, saveSnapshot } from "./data/snapshot.js";
 import { initPwa } from "./pwa.js";
@@ -167,5 +168,5 @@ $("stamp").addEventListener("click", refresh);
 
 initPwa();
 
-// Version display
-const _av = document.getElementById("appVersion"); if (_av && typeof __APP_VERSION__ !== "undefined") _av.textContent = "v" + __APP_VERSION__;
+// Version and the What's new log, from the footer
+initWhatsNew(typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : document.querySelector('meta[name="app-version"]')?.content);

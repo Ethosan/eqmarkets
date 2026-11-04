@@ -534,6 +534,23 @@
 .foot-nav button:hover { color: var(--ink); border-color: var(--rule-2); background: var(--sheet) }
 .foot-nav button:active { transform: scale(0.97) }
 
+/* Footer version link: opens the What's new sheet. Quiet text, findable by whoever looks. */
+.app-version {
+  display: inline-flex; align-items: center; min-height: 32px; margin-top: 4px; padding: 0;
+  font: inherit; font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums;
+  background: none; border: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--rule-2); text-underline-offset: 3px;
+  transition: color .15s ease-out, text-decoration-color .15s ease-out;
+}
+.app-version:hover { color: var(--ink); text-decoration-color: currentColor }
+.app-version:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px }
+@media (max-width: 720px) { .app-version { min-height: 44px } }
+
+/* What's new sheet entries */
+.w-sec h3 { margin-bottom: 6px }
+.w-meta { font-size: var(--fs-xs) !important; color: var(--ink-3) !important; font-variant-numeric: tabular-nums; margin-bottom: 4px }
+.w-list { padding-left: 18px; display: grid; gap: 6px; overflow-wrap: anywhere }
+.w-list li::marker { color: var(--ink-3) }
+
 /* ==================================================================== tour */
 .tour-ov { position: fixed; inset: 0; z-index: 100 }
 .tour-ov[hidden] { display: none }
