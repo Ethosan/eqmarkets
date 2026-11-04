@@ -2,7 +2,7 @@
    mean, each model, a glossary of every indicator, and data timing. */
 import { GROUPS } from "../config.js";
 import { $ } from "./format.js";
-import { swipeToClose } from "./sheet.js";
+import { swipeToClose, closeSheet } from "./sheet.js";
 
 const SECTIONS = [
   { id: "routine", label: "Routine" },
@@ -201,8 +201,8 @@ export function openGuide(section) {
 
 export function initGuide({ onReplayTour }) {
   const dlg = $("guide");
-  $("gClose").addEventListener("click", () => dlg.close());
-  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  $("gClose").addEventListener("click", () => closeSheet(dlg));
+  dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(dlg); });
   $("gTour").addEventListener("click", () => { dlg.close(); onReplayTour(); });
   $("guideBtn").addEventListener("click", () => openGuide());
   document.addEventListener("click", e => {

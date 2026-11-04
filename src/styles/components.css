@@ -729,3 +729,32 @@ html.touring { overflow: hidden }
   .appbar .status { display: none }
 }
 @media (prefers-reduced-motion: reduce) { .pwa-bar { animation: none } }
+
+/* ============================================ feel: press, arrive, leave (apple-design pass) */
+/* Respond on press, not release: controls dip at once, rows take the hover wash at once. */
+:is(.icon-btn, .guide-btn, .tab, .d-close, .pwa-x, .t-btn, .d-ranges button, .bias-inst button) { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+:is(.icon-btn, .guide-btn, .tab, .d-close, .pwa-x, .t-btn, .d-ranges button, .bias-inst button):active { transform: scale(.97); transition: transform 60ms ease-out }
+.card { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+.card:active { background: var(--sheet-2); transition: none }
+
+/* Dialogs arrive as a surface, not a cut: desktop rises and settles, phones slide up from the edge
+   they are dismissed to (closing and dragging are in ui/sheet.js). */
+@media (min-width: 721px) {
+  .detail { transition: opacity .2s ease-out, transform .24s cubic-bezier(.16, 1, .3, 1) }
+  @starting-style { .detail[open] { opacity: 0; transform: translateY(8px) scale(.985) } }
+}
+@media (max-width: 720px) {
+  @starting-style { .detail[open] { transform: translateY(100%) } }
+  .detail { transition: transform .34s cubic-bezier(.16, 1, .3, 1) }
+}
+.detail::backdrop { transition: opacity .25s ease-out }
+@starting-style { .detail[open]::backdrop { opacity: 0 } }
+.detail.closing::backdrop { opacity: 0 }
+
+/* Translucent bars: solid for reduced transparency, solid and ruled for more contrast. */
+@media (prefers-reduced-transparency: reduce) {
+  .appbar, .tabs { background: var(--paper) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important }
+}
+@media (prefers-contrast: more) {
+  .appbar, .tabs { background: var(--paper) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border-bottom-color: var(--rule-2) }
+}

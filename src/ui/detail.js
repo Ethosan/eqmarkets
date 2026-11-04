@@ -5,7 +5,7 @@ import { STATE } from "../state.js";
 import { seriesStats } from "../quant/models.js";
 import { $, fmtNum, fmtChange, fmtDelta, fmtVol, ordinal, tickFmt } from "./format.js";
 import { chart } from "./chart.js";
-import { swipeToClose } from "./sheet.js";
+import { swipeToClose, closeSheet } from "./sheet.js";
 import { longRunPct, noteFor } from "./notes.js";
 
 const RANGES = [
@@ -116,10 +116,10 @@ export function initDetail() {
     range = b.dataset.range;
     render();
   });
-  $("dClose").addEventListener("click", () => dlg.close());
+  $("dClose").addEventListener("click", () => closeSheet(dlg));
   swipeToClose(dlg, [$("dGrab"), dlg.querySelector(".d-head")]);
   /* Close on backdrop click. */
-  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(dlg); });
   dlg.addEventListener("close", () => { current = null; });
 }
 

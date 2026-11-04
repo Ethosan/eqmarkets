@@ -2,7 +2,7 @@
    surfaced on-site so they are one tap away from the footer. The wording mirrors
    README.md (Public API), TERMS.md and PRIVACY.md — keep the four in sync. */
 import { $ } from "./format.js";
-import { swipeToClose } from "./sheet.js";
+import { swipeToClose, closeSheet } from "./sheet.js";
 
 const SECTIONS = [
   { id: "api", label: "API" },
@@ -141,8 +141,8 @@ export function openApi(section) {
 
 export function initApi() {
   const dlg = $("api");
-  $("aClose").addEventListener("click", () => dlg.close());
-  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  $("aClose").addEventListener("click", () => closeSheet(dlg));
+  dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(dlg); });
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-api]");
     if (b) openApi(b.dataset.api);
